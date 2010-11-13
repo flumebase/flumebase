@@ -15,34 +15,49 @@ options {
   package com.odiago.rtengine.parser;
 }
 
-top : stmt EOF;
+top returns [SQLStatement val]:
+  s=stmt {$val = $s.val;} EOF;
 
-stmt :
-    stmt_create_stream
-  | stmt_select
+stmt returns [SQLStatement val]:
+    cs=stmt_create_stream {$val = $cs.val;}
+  | sel=stmt_select {$val = $sel.val;}
   ;
 
-stmt_create_stream : CREATE STREAM ID;
+stmt_create_stream returns [CreateStreamStmt val]:
+  CREATE STREAM id=stream_spec {$val = new CreateStreamStmt($id.val);};
 
-stmt_select : SELECT field_list FROM source_definition
-    optional_conditions;
+stmt_select returns [SelectStmt val]:
+  SELECT f=field_list FROM s=source_definition w=optional_where_conditions
+  {$val = new SelectStmt($f.val, $s.val, $w.val);};
 
 // This can be '*' or 'foo, bar, "baz and quux", biff, buff...'
-field_list : ALL_FIELDS | explicit_field_list;
+field_list returns [FieldList val]:
+    ALL_FIELDS { $val = new AllFieldsList(); }
+  | e=explicit_field_list { $val = $e.val; };
 
-explicit_field_list : field_spec 
-  | field_spec COMMA explicit_field_list;
+explicit_field_list returns [FieldList val]:
+  f=field_spec { $val = new FieldList($f.val); } 
+  (COMMA g = field_spec {$val.addField($g.val);})*;
 
-// Individual fields can be specified as an identifier or a "quoted string".
-field_spec : ID | STRING;
+// Individual fields are user-specified symbols.
+field_spec returns [String val] : s=user_spec {$val=$s.val;};
+
+// A named straem is a user-specified symbol.
+stream_spec returns [String val] : s=user_spec {$val=$s.val;};
+
+// User-specified symbols can be specified as an identifier or a "quoted string".
+user_spec returns [String val] : ID {$val=$ID.text;} | STRING {$val=$STRING.text;};
 
 
 // Source for a SELECT statement (in the FROM clause). For now, must be a
 // named stream.
-source_definition : ID | STRING | LPAREN stmt_select RPAREN;
+source_definition returns [SQLStatement val]:
+    s=user_spec { $val = new LiteralSource($s.val); }
+  | LPAREN st=stmt_select RPAREN { $val = $st.val; };
 
 // WHERE conditions for a SELECT statement. May be omitted.
 // Currently takes a string as a regex. TODO(aaron): Make this a proper bexp.
-optional_conditions :
-  | WHERE STRING;
+optional_where_conditions returns [WhereConditions val] :
+    {$val=null;}
+  | WHERE s=STRING {$val=new WhereConditions($s.text);};
 

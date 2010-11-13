@@ -4,6 +4,13 @@ package com.odiago.rtengine.client;
 
 import java.io.IOException;
 
+import org.antlr.runtime.RecognitionException;
+
+import com.odiago.rtengine.lang.TypeChecker;
+import com.odiago.rtengine.lang.VisitException;
+
+import com.odiago.rtengine.parser.ASTGenerator;
+import com.odiago.rtengine.parser.SQLStatement;
 import com.odiago.rtengine.util.QuitException;
 
 import jline.ConsoleReader;
@@ -14,12 +21,19 @@ import jline.ConsoleReader;
 public class CmdLineClient {
   private static final String VERSION_STRING = "rtengine 1.0.0 / rtsql for Flume";
 
-  /**
-   * True if we're mid-buffer on a command.
-   */
+  /** True if we're mid-buffer on a command. */
   private boolean mInCommand;
 
+  /** Buffer containing command being typed in over multiple lines. */
   private StringBuilder mCmdBuilder;
+
+  /** Wrapper around the command parser. */
+  private ASTGenerator mGenerator;
+
+  public CmdLineClient() {
+    mGenerator = new ASTGenerator();
+    resetCmdState();
+  }
 
   /**
    * Print the version string to stdout.
@@ -72,7 +86,10 @@ public class CmdLineClient {
   private String trimTerminator(String cmdIn) {
     String trimmed = cmdIn.trim();
     if (trimmed.endsWith(";")) {
+      // Remove the trailing ';' character.
       trimmed = trimmed.substring(0, trimmed.length() - 1);
+      // After trimming the final ';', there may be additional whitespace to trim.
+      trimmed = trimmed.trim();
     }
 
     return trimmed;
@@ -88,7 +105,22 @@ public class CmdLineClient {
     } else if (realCommand.equalsIgnoreCase("quit")) {
       throw new QuitException(0);
     } else {
-      System.err.println("Unknown command: " + cmd);
+      try {
+        SQLStatement stmt = mGenerator.parse(realCommand);
+        if (null == stmt) {
+          System.err.println("Error parsing command.");
+        } else {
+          // TODO(Aaron): Parse tree printing should be done in a DESCRIBE statement.
+          System.out.println("Parse tree:");
+          System.out.println(stmt.toString());
+
+          stmt.accept(new TypeChecker());
+        }
+      } catch (RecognitionException re) {
+        System.err.println("Error parsing command: " + re.toString());
+      } catch (VisitException ve) {
+        System.err.println("Error processing command: " + ve.toString());
+      }
     }
   }
 
@@ -144,7 +176,7 @@ public class CmdLineClient {
     }
   }
 
-  public static void main(String [] args) throws Exception  {
+  public static void main(String [] args) throws Exception {
     CmdLineClient client = new CmdLineClient();
     System.exit(client.run());
   }

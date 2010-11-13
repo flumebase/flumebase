@@ -15,11 +15,11 @@ public class ASTGenerator {
   public ASTGenerator() {
   }
 
-  public void parse(String input) throws RecognitionException {
+  public SQLStatement parse(String input) throws RecognitionException {
     SqlLexer lex = new SqlLexer(new ANTLRStringStream(input));
     CommonTokenStream tokens = new CommonTokenStream(lex);
     SqlGrammar parser = new SqlGrammar(tokens);
 
-    parser.top();
+    return parser.top().val;
   }
 }
