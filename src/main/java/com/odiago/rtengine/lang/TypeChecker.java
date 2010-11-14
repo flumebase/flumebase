@@ -5,6 +5,7 @@ package com.odiago.rtengine.lang;
 import com.odiago.rtengine.lang.TypeChecker;
 
 import com.odiago.rtengine.parser.CreateStreamStmt;
+import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.FieldList;
 import com.odiago.rtengine.parser.LiteralSource;
 import com.odiago.rtengine.parser.SQLStatement;
@@ -43,5 +44,10 @@ public class TypeChecker extends Visitor {
     }
 
     // TODO(aaron): Check the where clause for validity if it's nonnull.
+  }
+
+  @Override
+  protected void visit(ExplainStmt s) throws VisitException {
+    s.getChildStmt().accept(this);
   }
 }

@@ -2,6 +2,9 @@
 
 package com.odiago.rtengine.parser;
 
+import com.odiago.rtengine.plan.FileInputNode;
+import com.odiago.rtengine.plan.PlanContext;
+
 /**
  * Specify a source for the FROM clause of a SELECT statement that
  * references the literal name of a stream.
@@ -22,6 +25,17 @@ public class LiteralSource extends SQLStatement {
     sb.append("Literal source: ");
     sb.append(mSourceName);
     sb.append("\n");
+  }
+
+  @Override
+  public void createExecPlan(PlanContext planContext) {
+    // The execution plan for a literal source is to just open the file
+    // specified by this source.
+    // TODO(aaron): This eventually needs to change to open the stream
+    // identified by this source.
+
+    String srcName = unquote(mSourceName);
+    planContext.getFlowSpec().addRoot(new FileInputNode(srcName));
   }
 }
 

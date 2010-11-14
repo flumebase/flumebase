@@ -15,6 +15,11 @@ public class ASTGenerator {
   public ASTGenerator() {
   }
 
+  /**
+   * Parse the given 'input', which must be exactly one statement.
+   * Return a SQLStatement representing the object, or null if there
+   * is a parse error.
+   */
   public SQLStatement parse(String input) throws RecognitionException {
     SqlLexer lex = new SqlLexer(new ANTLRStringStream(input));
     CommonTokenStream tokens = new CommonTokenStream(lex);

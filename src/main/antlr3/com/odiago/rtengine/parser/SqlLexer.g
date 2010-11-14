@@ -14,12 +14,11 @@ options {
 
 
 CREATE : C R E A T E ;
-STREAM : S T R E A M ;
-
-SELECT : S E L E C T;
+EXPLAIN: E X P L A I N;
 FROM : F R O M;
+SELECT : S E L E C T;
+STREAM : S T R E A M ;
 WHERE : W H E R E;
-
 
 ID  : ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'0'..'9'|'_')*
     ;

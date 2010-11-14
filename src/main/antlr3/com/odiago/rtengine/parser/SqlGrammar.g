@@ -21,10 +21,14 @@ top returns [SQLStatement val]:
 stmt returns [SQLStatement val]:
     cs=stmt_create_stream {$val = $cs.val;}
   | sel=stmt_select {$val = $sel.val;}
+  | expl=stmt_explain {$val = $expl.val;}
   ;
 
 stmt_create_stream returns [CreateStreamStmt val]:
   CREATE STREAM id=stream_spec {$val = new CreateStreamStmt($id.val);};
+
+stmt_explain returns [ExplainStmt val]:
+  EXPLAIN s=stmt {$val = new ExplainStmt($s.val);};
 
 stmt_select returns [SelectStmt val]:
   SELECT f=field_list FROM s=source_definition w=optional_where_conditions
@@ -42,12 +46,11 @@ explicit_field_list returns [FieldList val]:
 // Individual fields are user-specified symbols.
 field_spec returns [String val] : s=user_spec {$val=$s.val;};
 
-// A named straem is a user-specified symbol.
+// A named stream is a user-specified symbol.
 stream_spec returns [String val] : s=user_spec {$val=$s.val;};
 
 // User-specified symbols can be specified as an identifier or a "quoted string".
 user_spec returns [String val] : ID {$val=$ID.text;} | STRING {$val=$STRING.text;};
-
 
 // Source for a SELECT statement (in the FROM clause). For now, must be a
 // named stream.

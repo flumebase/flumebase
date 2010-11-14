@@ -4,13 +4,11 @@ package com.odiago.rtengine.client;
 
 import java.io.IOException;
 
-import org.antlr.runtime.RecognitionException;
+import com.odiago.rtengine.exec.ExecEnvironment;
+import com.odiago.rtengine.exec.FlowId;
+import com.odiago.rtengine.exec.QuerySubmitResponse;
 
-import com.odiago.rtengine.lang.TypeChecker;
-import com.odiago.rtengine.lang.VisitException;
-
-import com.odiago.rtengine.parser.ASTGenerator;
-import com.odiago.rtengine.parser.SQLStatement;
+import com.odiago.rtengine.exec.local.LocalEnvironment;
 import com.odiago.rtengine.util.QuitException;
 
 import jline.ConsoleReader;
@@ -27,11 +25,11 @@ public class CmdLineClient {
   /** Buffer containing command being typed in over multiple lines. */
   private StringBuilder mCmdBuilder;
 
-  /** Wrapper around the command parser. */
-  private ASTGenerator mGenerator;
+  /** The connected execution environment. */
+  private ExecEnvironment mExecEnv;
 
   public CmdLineClient() {
-    mGenerator = new ASTGenerator();
+    mExecEnv = new LocalEnvironment();
     resetCmdState();
   }
 
@@ -105,21 +103,15 @@ public class CmdLineClient {
     } else if (realCommand.equalsIgnoreCase("quit")) {
       throw new QuitException(0);
     } else {
-      try {
-        SQLStatement stmt = mGenerator.parse(realCommand);
-        if (null == stmt) {
-          System.err.println("Error parsing command.");
-        } else {
-          // TODO(Aaron): Parse tree printing should be done in a DESCRIBE statement.
-          System.out.println("Parse tree:");
-          System.out.println(stmt.toString());
+      QuerySubmitResponse response = mExecEnv.submitQuery(realCommand);
+      String msg = response.getMessage();
+      if (null != msg) {
+        System.out.println(msg);
+      }
 
-          stmt.accept(new TypeChecker());
-        }
-      } catch (RecognitionException re) {
-        System.err.println("Error parsing command: " + re.toString());
-      } catch (VisitException ve) {
-        System.err.println("Error processing command: " + ve.toString());
+      FlowId flowId = response.getFlowId();
+      if (null != flowId) {
+        System.out.println("Started flow: " + flowId);
       }
     }
   }
