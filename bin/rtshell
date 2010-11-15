@@ -1,0 +1,69 @@
+#!/bin/bash
+
+bin=`dirname $0`
+bin=`cd "${bin}" && pwd`
+
+projectroot=`cd "${bin}/.." && pwd`
+
+LIB_DIR="${projectroot}/lib"
+MVN_TARGET_DIR="${projectroot}/target"
+MVN_BUILD_DEPS_DIR="${MVN_TARGET_DIR}/dependency"
+
+RTENGINE_MAIN_CLASS=com.odiago.rtengine.client.CmdLineClient
+
+RTENGINE_CLASSPATH="${RTENGINE_CLASSPATH:-}"
+RTENGINE_OPTS="${RTENGINE_OPTS:-}"
+RTENGINE_CONF_DIR=${RTENGINE_CONF_DIR:-"${projectroot}/etc"}
+
+function add_to_classpath() {
+  dir=$1
+  if [ ! -d "${dir}" ]; then
+    return 0
+  fi
+  for jar in `ls "${dir}"`; do
+    if [ -z "$RTENGINE_CLASSPATH" ]; then
+      RTENGINE_CLASSPATH="${dir}/${jar}"
+    else
+      RTENGINE_CLASSPATH="${RTENGINE_CLASSPATH}:${dir}/${jar}"
+    fi
+  done
+}
+
+# If no lib dir exists and no dependency dir exists, then
+# try to use mvn to retrieve dependencies.
+if [ \( ! -d "${LIB_DIR}" \) -a \( ! -d "${MVN_BUILD_DEPS_DIR}" \) ]; then
+  which mvn 2>&1 >/dev/null
+  ret=$?
+  if [ "${ret}" == 0 ]; then
+    pushd "${projectroot}"
+    echo "Retrieving dependencies via mvn"
+    mvn dependency:copy-dependencies
+    popd
+  else
+    echo "WARNING: Couldn't find any dependencies. mvn doesn't seem to be"
+    echo "installed, so I don't know how to get them, either. This will"
+    echo "probably explode."
+  fi
+fi
+
+add_to_classpath "${LIB_DIR}"
+add_to_classpath "${MVN_BUILD_DEPS_DIR}"
+
+# Try for a rtengine jar in the mvn target dir first, in case we 
+# are running this from a development environment.
+RTENGINE_JAR="${RTENGINE_JAR:-${MVN_TARGET_DIR}/rtengine.jar}"
+if [ ! -e "${RTENGINE_JAR}" ]; then
+  # Couldn't find one there. Look in /lib next (release dir).
+  RTENGINE_JAR=`ls -1 ${LIB_DIR}/rtengine.jar|head -1`
+  if [ ! -e "${RTENGINE_JAR}" ]; then
+    echo "Could not find rtengine.jar! You should specify one as \$$RTENGINE_JAR."
+    echo "(Are you sure this deployment isn't busted?)"
+    exit 1
+  fi
+fi
+
+exec java -cp "${RTENGINE_CLASSPATH}:${RTENGINE_JAR}" \
+    -Drtengine.conf.dir="${RTENGINE_CONF_DIR}" \
+    $RTENGINE_OPTS \
+    "${RTENGINE_MAIN_CLASS}" "$@"
+

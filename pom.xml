@@ -111,14 +111,12 @@
       <version>1.6.1</version>
       <scope>compile</scope>
     </dependency>
-    <!-- Unclear whether this is actually required to bind slf4j to log4j.
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
       <version>1.6.1</version>
       <scope>compile</scope>
     </dependency>
-    -->
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>

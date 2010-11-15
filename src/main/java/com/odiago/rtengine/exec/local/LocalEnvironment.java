@@ -43,7 +43,7 @@ public class LocalEnvironment extends ExecEnvironment {
       while (true) {
         if (mIsFinished) {
           // We're done with the thread, stop immediately.
-          LOG.info("Got exit signal; closing local environment thrad.");
+          LOG.debug("Got exit signal; closing local environment thread.");
           break;
         }
 
@@ -89,6 +89,10 @@ public class LocalEnvironment extends ExecEnvironment {
     FlowId flowId = null;
     try {
       SQLStatement stmt = mGenerator.parse(query);
+      if (null == stmt) {
+        return new QuerySubmitResponse("Could not parse command.", null);
+      }
+
       stmt.accept(new TypeChecker());
       PlanContext planContext = new PlanContext();
       stmt.createExecPlan(planContext);

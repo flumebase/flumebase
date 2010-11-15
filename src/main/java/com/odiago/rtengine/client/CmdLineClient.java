@@ -2,7 +2,16 @@
 
 package com.odiago.rtengine.client;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+
+import java.util.Properties;
+
+import org.apache.log4j.PropertyConfigurator;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.odiago.rtengine.exec.ExecEnvironment;
 import com.odiago.rtengine.exec.FlowId;
@@ -18,6 +27,9 @@ import jline.ConsoleReader;
  */
 public class CmdLineClient {
   private static final String VERSION_STRING = "rtengine 1.0.0 / rtsql for Flume";
+
+  private static final Logger LOG = LoggerFactory.getLogger(
+      CmdLineClient.class.getName());
 
   /** True if we're mid-buffer on a command. */
   private boolean mInCommand;
@@ -124,11 +136,48 @@ public class CmdLineClient {
     }
   }
 
+  private void initLogging() {
+    // TODO: Pick a better default conf dir.
+    // TODO: Put these up as final consts at the top of the class.
+    String confDir = System.getProperty("rtengine.conf.dir", ".");
+    File confDirFile = new File(confDir);
+    File log4jPropertyFile = new File(confDirFile, "log4j.properties");
+    FileInputStream fis = null;
+    try {
+      // Load the properties from the file first.
+      fis = new FileInputStream(log4jPropertyFile);
+      Properties props = new Properties();
+      props.load(fis);
+
+      // Overlay the system properties on top of the file, in case the
+      // user wants to override the file settings at invocation time.
+      Properties sysProps = System.getProperties();
+      props.putAll(sysProps);
+      PropertyConfigurator.configure(props);
+      LOG.debug("Logging enabled.");
+    } catch (IOException ioe) {
+      System.err.println("IOException encoutered while initializing logging.");
+      System.err.println("The logging system might not be ready, meaning you");
+      System.err.println("might miss many other messages. Do you have an");
+      System.err.println("etc/log4j.properties file in this installation?");
+      System.err.println("Specific exception follows:");
+      System.err.println(ioe);
+    } finally {
+      try {
+        fis.close();
+      } catch (IOException ioe) {
+        LOG.warn("Exception closing log4j.properties file: " + ioe);
+      }
+    }
+
+  }
+
   /**
    * Main entry point for the command-line client.
    * @return the exit code for the program (0 on success).
    */
   public int run() throws IOException {
+    initLogging();
     System.out.println("Welcome to the rtengine client.");
     printVersion();
     System.out.println("Type 'help;' or '\\h' for instructions.");
@@ -165,6 +214,12 @@ public class CmdLineClient {
     } catch (QuitException qe) {
       System.out.println("Goodbye");
       return qe.getStatus();
+    } finally {
+      try {
+        mExecEnv.disconnect();
+      } catch (InterruptedException ie) {
+        LOG.warn("Interruption while disconnecting from service: " + ie);
+      }
     }
   }
 
