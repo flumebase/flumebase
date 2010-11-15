@@ -11,14 +11,12 @@ options {
   package com.odiago.rtengine.parser;
 }
 
-
-
 CREATE : C R E A T E ;
-EXPLAIN: E X P L A I N;
-FROM : F R O M;
-SELECT : S E L E C T;
+EXPLAIN : E X P L A I N ;
+FROM : F R O M ;
+SELECT : S E L E C T ;
 STREAM : S T R E A M ;
-WHERE : W H E R E;
+WHERE : W H E R E ;
 
 ID  : ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'0'..'9'|'_')*
     ;
@@ -99,7 +97,7 @@ fragment T : 't' | 'T';
 fragment U : 'u' | 'U';
 fragment V : 'v' | 'V';
 fragment W : 'w' | 'W';
-fragment X : 'y' | 'X';
-fragment Y : 'x' | 'Y';
+fragment X : 'x' | 'X';
+fragment Y : 'y' | 'Y';
 fragment Z : 'z' | 'Z';
 

@@ -9,3 +9,11 @@ Features:
 
 - No linkage between FlowSpecification and a physical exec plan. Make it happen, cap'n.
 
+
+Things to Think About:
+
+- Need to define threading model for physical operators. If we're using direct calls
+  via the FlowExecutionContext, individual FlowElements can call emit() from multiple
+  threads. We need to ensure that one FE's takeEvent() calls all happen in the same
+  thread. Preferably, the same thread as open() and close() too.
+
