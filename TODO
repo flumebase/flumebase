@@ -2,9 +2,6 @@
 
 Bugs:
 
-- Parser can indicate that it hit an error but an EXPLAIN command can go on
-  to produce a parse tree and exec plan for what it could parse. Make errors fatal. 
-- If the parser encounters a parse tree it can't get started on, things crash.
 
 Features:
 

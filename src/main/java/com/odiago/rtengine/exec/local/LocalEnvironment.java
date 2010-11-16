@@ -2,7 +2,9 @@
 
 package com.odiago.rtengine.exec.local;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 
 import org.antlr.runtime.RecognitionException;
 
@@ -85,27 +87,37 @@ public class LocalEnvironment extends ExecEnvironment {
    */
   @Override
   public QuerySubmitResponse submitQuery(String query) {
-    String msg = "";
+    StringBuilder msgBuilder = new StringBuilder();
     FlowId flowId = null;
     try {
-      SQLStatement stmt = mGenerator.parse(query);
+      // Send the parser's error messages into a buffer rather than stderr.
+      ByteArrayOutputStream errBufferStream = new ByteArrayOutputStream();
+      PrintStream errStream = new PrintStream(errBufferStream);
+
+      SQLStatement stmt = mGenerator.parse(query, errStream);
+
+      errStream.close();
+      String errMsg = new String(errBufferStream.toByteArray());
+      msgBuilder.append(errMsg);
+
       if (null == stmt) {
-        return new QuerySubmitResponse("Could not parse command.", null);
+        msgBuilder.append("(Could not parse command)");
+        return new QuerySubmitResponse(msgBuilder.toString(), null);
       }
 
       stmt.accept(new TypeChecker());
       PlanContext planContext = new PlanContext();
       stmt.createExecPlan(planContext);
       FlowSpecification spec = planContext.getFlowSpec();
-      msg = planContext.getMsgBuilder().toString();
+      msgBuilder.append(planContext.getMsgBuilder().toString());
       flowId = addFlow(spec);
     } catch (VisitException ve) {
-      msg = "Error processing command: " + ve.getMessage();
+      msgBuilder.append("Error processing command: " + ve.getMessage());
     } catch (RecognitionException re) {
-      msg = "Error parsing command: " + re.getMessage();
+      msgBuilder.append("Error parsing command: " + re.getMessage());
     }
 
-    return new QuerySubmitResponse(msg, flowId);
+    return new QuerySubmitResponse(msgBuilder.toString(), flowId);
   }
 
   @Override
@@ -121,6 +133,7 @@ public class LocalEnvironment extends ExecEnvironment {
 
   @Override
   public void cancelFlow(FlowId id) throws InterruptedException, IOException {
+    throw new IOException("Not implemented: Cannot cancelFlow(" + id + ")");
   }
 
   /**
