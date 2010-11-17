@@ -123,9 +123,15 @@ public class LocalEnvironment extends ExecEnvironment {
   @Override
   public FlowId addFlow(FlowSpecification spec) {
     if (null != spec) {
-      // TODO(aaron): Turn the specification into a physical plan and run it.
-      LOG.info("Got a specification, but don't know how to make the work.");
-      return new FlowId(mNextFlowId++);
+      // Turn the specification into a physical plan and run it.
+      FlowId flowId = new FlowId(mNextFlowId++);
+      LocalFlowBuilder flowBuilder = new LocalFlowBuilder(flowId);
+      spec.reverseBfs(flowBuilder);
+      LocalFlow localFlow = flowBuilder.getLocalFlow();
+      System.out.println("Local flow:");
+      System.out.println(localFlow);
+      System.out.println("TODO: Run the damn thing!");
+      return flowId;
     } else {
       return null;
     }

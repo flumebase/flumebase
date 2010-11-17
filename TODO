@@ -6,6 +6,18 @@ Bugs:
 Features:
 
 - No linkage between FlowSpecification and a physical exec plan. Make it happen, cap'n.
+  -- add a SpecTransformer API that allows us to traverse the graph forawrds and/or backwards
+     and emit the appropriate kind of output.
+
+     ... this actually might just be a 'Visitor' pattern over the types of plan inputs.
+     might need to rewrite the current "Visitor" class to be ASTVisitor instead,
+     and also add a PlanVisitor.
+
+    The local transformer should literally walk the graph (doing a reverse bfs) and convert
+    node-for-node into local FE's and contexts.
+
+    The remote version should generate a serialized form of the spec (e.g., in json).
+    We'll then want to reconstruct that, somehow.
 
 
 Things to Think About:

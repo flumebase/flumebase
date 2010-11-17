@@ -17,4 +17,8 @@ public class FileInputNode extends PlanNode {
     sb.append("FileInput filename=");
     sb.append(mFilename);
   }
+
+  public String getFilename() {
+    return mFilename;
+  }
 }

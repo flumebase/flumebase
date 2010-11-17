@@ -105,4 +105,9 @@ public class LocalFileSourceElement extends FlowElementImpl {
     // We generate our own events; nothing should be upstream from us.
     throw new RuntimeException("LocalFileSourceElement does not support incoming events");
   }
+
+  @Override
+  public String toString() {
+    return "FileSource[mFilename=\"" + mFilename + "\"]";
+  }
 }

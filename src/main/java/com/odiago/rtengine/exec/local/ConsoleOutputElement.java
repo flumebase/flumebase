@@ -24,4 +24,9 @@ public class ConsoleOutputElement extends FlowElementImpl {
     sb.append(new String(e.getBody()));
     System.out.println(sb.toString());
   }
+
+  @Override
+  public String toString() {
+    return "console output";
+  }
 }

@@ -17,4 +17,8 @@ public class StrMatchFilterNode extends PlanNode {
     sb.append("StrMatch text=");
     sb.append(mMatchStr);
   }
+
+  public String getMatchString() {
+    return mMatchStr;
+  }
 }

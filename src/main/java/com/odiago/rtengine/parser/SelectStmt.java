@@ -83,7 +83,7 @@ public class SelectStmt extends SQLStatement {
 
     // Now incorporate that entire plan into our plan.
     FlowSpecification flowSpec = planContext.getFlowSpec();
-    flowSpec.addNodesFromPlan(childContext.getFlowSpec());
+    flowSpec.addNodesFromDAG(childContext.getFlowSpec());
 
     // TODO(aaron): Add a projection level that grabs only the fields we care about.
     FieldList fields = getFields();
@@ -92,7 +92,7 @@ public class SelectStmt extends SQLStatement {
     WhereConditions w = getWhereConditions();
     if (w != null) {
       // Non-null filter conditions; apply the filter to all of our sources.
-      String filterText = w.getText();
+      String filterText = unquote(w.getText());
       PlanNode filterNode = new StrMatchFilterNode(filterText);
       flowSpec.attachToLastLayer(filterNode);
     }
