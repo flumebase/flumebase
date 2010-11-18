@@ -86,6 +86,9 @@ public class CmdLineClient {
     case 'q':
       // Graceful quit from the shell.
       throw new QuitException(0);
+    default:
+      System.err.println("Unknown control command: \\" + escapeChar);
+      break;
     }
   }
 
@@ -107,7 +110,7 @@ public class CmdLineClient {
   /**
    * Parse and execute a text command.
    */
-  private void execCommand(String cmd) throws IOException, QuitException {
+  private void execCommand(String cmd) throws InterruptedException, IOException, QuitException {
     String realCommand = trimTerminator(cmd);
     
     if (realCommand.equalsIgnoreCase("help")) {
@@ -203,9 +206,13 @@ public class CmdLineClient {
         } else if (trimmed.endsWith(";")) {
           mCmdBuilder.append(line);
           mCmdBuilder.append('\n');
-          execCommand(mCmdBuilder.toString());
+          try {
+            execCommand(mCmdBuilder.toString());
+          } catch (InterruptedException ie) {
+            LOG.warn("Interrupted while processing command: " + ie);
+          }
           resetCmdState();
-        } else {
+        } else if (line.length() > 0) {
           mCmdBuilder.append(line);
           mCmdBuilder.append('\n');
           mInCommand = true;

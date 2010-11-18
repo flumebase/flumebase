@@ -42,4 +42,8 @@ public abstract class FlowElementImpl extends FlowElement {
     // Default operation: ignore windowing.
   }
   
+  /** {@inheritDoc} */
+  public FlowElementContext getContext() {
+    return mContext;
+  }
 }

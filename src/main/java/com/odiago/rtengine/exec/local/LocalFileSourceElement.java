@@ -50,6 +50,12 @@ public class LocalFileSourceElement extends FlowElementImpl {
           String line = reader.readLine();
           if (null == line) {
             LOG.info("Closing EventGenThread; file is complete");
+            break;
+          }
+
+          if (line.length() == 0) {
+            // Ignore empty lines.
+            continue;
           }
 
           int tabIdx = line.indexOf('\t', 0);

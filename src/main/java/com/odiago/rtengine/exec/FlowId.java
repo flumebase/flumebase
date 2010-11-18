@@ -21,5 +21,20 @@ public class FlowId {
   public String toString() {
     return "flow[mId=" + mId + "]";
   }
+
+  @Override
+  public boolean equals(Object other) {
+    if (!other.getClass().equals(getClass())) {
+      return false;
+    }
+
+    FlowId otherFlow = (FlowId) other;
+    return mId == otherFlow.mId;
+  }
+
+  @Override
+  public int hashCode() {
+    return (int) (mId & 0xFFFFFFFF);
+  }
 }
 

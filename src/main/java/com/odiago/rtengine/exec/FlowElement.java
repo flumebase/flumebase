@@ -44,5 +44,10 @@ public abstract class FlowElement {
   public void completeWindow() throws IOException, InterruptedException {
     // Default operation: ignore windowing.
   }
+
+  /**
+   * @return the FlowElementContext that the element is bound to.
+   */
+  public abstract FlowElementContext getContext();
   
 }

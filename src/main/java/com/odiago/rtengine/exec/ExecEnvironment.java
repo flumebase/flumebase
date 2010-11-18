@@ -28,7 +28,8 @@ public abstract class ExecEnvironment {
    * @return a response containing any text for the user, as well as any
    * flow ids spawned, etc.
    */
-  public abstract QuerySubmitResponse submitQuery(String query);
+  public abstract QuerySubmitResponse submitQuery(String query)
+      throws InterruptedException, IOException;
 
   /**
    * Deploys a specified flow in the environment. Operates at a lower level
@@ -36,7 +37,7 @@ public abstract class ExecEnvironment {
    * based on the query.
    * @return the FlowId of this flow.
    */
-  public abstract FlowId addFlow(FlowSpecification spec);
+  public abstract FlowId addFlow(FlowSpecification spec) throws InterruptedException, IOException;
 
   /**
    * Terminates a running flow.

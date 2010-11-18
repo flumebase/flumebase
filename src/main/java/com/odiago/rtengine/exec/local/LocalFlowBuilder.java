@@ -8,11 +8,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.odiago.rtengine.exec.DirectCoupledFlowElemContext;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowId;
-import com.odiago.rtengine.exec.SinkFlowElemContext;
 import com.odiago.rtengine.exec.StrMatchFilterElement;
 
 import com.odiago.rtengine.plan.ConsoleOutputNode;

@@ -1,29 +1,16 @@
 
 
 Bugs:
+  Output from flows only appears at every other flow submission.
 
 
 Features:
 
-- No linkage between FlowSpecification and a physical exec plan. Make it happen, cap'n.
-  -- add a SpecTransformer API that allows us to traverse the graph forawrds and/or backwards
-     and emit the appropriate kind of output.
-
-     ... this actually might just be a 'Visitor' pattern over the types of plan inputs.
-     might need to rewrite the current "Visitor" class to be ASTVisitor instead,
-     and also add a PlanVisitor.
-
-    The local transformer should literally walk the graph (doing a reverse bfs) and convert
-    node-for-node into local FE's and contexts.
-
-    The remote version should generate a serialized form of the spec (e.g., in json).
-    We'll then want to reconstruct that, somehow.
+  - Need ability to connect local flow to a local flume EventSink
+  - Need ability to create a remote physical plan
+  -- Need ability to run remote physical plan on a set of configured nodes.
+  - Need a DROP FLOW operation
+  - Need SHOW FLOWS operation
 
 
-Things to Think About:
-
-- Need to define threading model for physical operators. If we're using direct calls
-  via the FlowExecutionContext, individual FlowElements can call emit() from multiple
-  threads. We need to ensure that one FE's takeEvent() calls all happen in the same
-  thread. Preferably, the same thread as open() and close() too.
 
