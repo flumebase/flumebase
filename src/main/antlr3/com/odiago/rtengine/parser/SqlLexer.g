@@ -13,8 +13,11 @@ options {
 
 CREATE : C R E A T E ;
 EXPLAIN : E X P L A I N ;
+FILE : F I L E ;
 FROM : F R O M ;
+LOCAL : L O C A L ;
 SELECT : S E L E C T ;
+SINK : S I N K ;
 STREAM : S T R E A M ;
 WHERE : W H E R E ;
 

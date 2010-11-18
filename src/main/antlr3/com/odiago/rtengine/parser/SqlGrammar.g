@@ -25,7 +25,16 @@ stmt returns [SQLStatement val]:
   ;
 
 stmt_create_stream returns [CreateStreamStmt val]:
-  CREATE STREAM id=stream_spec {$val = new CreateStreamStmt($id.val);};
+    CREATE STREAM fid=stream_spec FROM LOCAL FILE f=user_spec
+        {$val = new CreateStreamStmt($fid.val, StreamSourceType.File, $f.val, true);}
+  | CREATE STREAM sid=stream_spec FROM slcl=LOCAL? SINK snk=user_spec
+        {
+          boolean sinkIsLocal = slcl != null;
+          $val = new CreateStreamStmt($sid.val, StreamSourceType.Sink, $snk.val, sinkIsLocal);
+        }
+  | CREATE STREAM id=stream_spec
+        { $val = new CreateStreamStmt($id.val, StreamSourceType.Sink, $id.val, true); }
+  ;
 
 stmt_explain returns [ExplainStmt val]:
   EXPLAIN s=stmt {$val = new ExplainStmt($s.val);};

@@ -12,10 +12,13 @@ import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowId;
 import com.odiago.rtengine.exec.StrMatchFilterElement;
+import com.odiago.rtengine.exec.StreamSymbol;
+import com.odiago.rtengine.exec.Symbol;
+import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.plan.ConsoleOutputNode;
 import com.odiago.rtengine.plan.CreateStreamNode;
-import com.odiago.rtengine.plan.FileInputNode;
+import com.odiago.rtengine.plan.NamedSourceNode;
 import com.odiago.rtengine.plan.PlanNode;
 import com.odiago.rtengine.plan.StrMatchFilterNode;
 
@@ -37,9 +40,11 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
   private static final String LOCAL_FLOW_ELEM_KEY = "LocalFlowBuilder.flowElem";
 
   private LocalFlow mLocalFlow;
+  private SymbolTable mRootSymbolTable;
 
-  public LocalFlowBuilder(FlowId flowId) {
+  public LocalFlowBuilder(FlowId flowId, SymbolTable rootSymTable) {
     mLocalFlow = new LocalFlow(flowId);
+    mRootSymbolTable = rootSymTable;
   }
 
   /**
@@ -99,10 +104,32 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     } else if (node instanceof ConsoleOutputNode) {
       newElem = new ConsoleOutputElement(newContext);
     } else if (node instanceof CreateStreamNode) {
-      LOG.info("TODO: Perform the DDL operation right here?");
-    } else if (node instanceof FileInputNode) {
-      FileInputNode fileInput = (FileInputNode) node;
-      String fileName = fileInput.getFilename();
+      CreateStreamNode createStream = (CreateStreamNode) node;
+      String streamName = createStream.getName();
+      StreamSymbol streamSym = new StreamSymbol(createStream);
+      if (mRootSymbolTable.resolve(streamName) != null) {
+        // TODO: Allow CREATE OR REPLACE STREAM to override this.
+        System.err.println("Object already exists at top level: " + streamName);
+      } else {
+        mRootSymbolTable.addSymbol(streamSym);
+        System.out.println("CREATE STREAM");
+      }
+    } else if (node instanceof NamedSourceNode) {
+      NamedSourceNode fileInput = (NamedSourceNode) node;
+      String streamName = fileInput.getStreamName();
+      Symbol symbol = mRootSymbolTable.resolve(streamName);
+      if (null == symbol) {
+        // TODO: Allow throwing an exception here. This needs to fail completely.
+        LOG.error("No symbol for stream: " + streamName);
+        return;
+      }
+
+      // TODO: Be paranoid about typechecking, make sure this is actually legal
+      // first; throw an exception if not and cancel flow production.
+      StreamSymbol streamSymbol = (StreamSymbol) symbol;
+      // TODO: This is not always a file name. It might be one of many different
+      // source types... handle them all, here.
+      String fileName = streamSymbol.getSource();
       newElem = new LocalFileSourceElement(newContext, fileName);
     } else if (node instanceof StrMatchFilterNode) {
       StrMatchFilterNode matchNode = (StrMatchFilterNode) node;

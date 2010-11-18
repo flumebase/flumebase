@@ -9,10 +9,21 @@ import com.odiago.rtengine.plan.PlanContext;
  * CREATE STREAM statement.
  */
 public class CreateStreamStmt extends SQLStatement {
+  /** The name of the STREAM object in RTSQL. */
   private String mName;
+  /** The type of the stream's source (file, flume sink, etc.) */
+  private StreamSourceType mType;
+  /** The location of the source (path to file, logical flume node name, etc.) */
+  private String mSrcLocation;
+  /** True if this is a local fs file, or an embedded flume node. */
+  private boolean mIsLocal;
 
-  public CreateStreamStmt(String streamName) {
+  public CreateStreamStmt(String streamName, StreamSourceType srcType,
+      String sourceLocation, boolean isLocal) {
     mName = streamName;
+    mType = srcType;
+    mSrcLocation = sourceLocation;
+    mIsLocal = isLocal;
   }
 
   @Override
@@ -20,6 +31,12 @@ public class CreateStreamStmt extends SQLStatement {
     pad(sb, depth);
     sb.append("CREATE STREAM mName=");
     sb.append(mName);
+    sb.append(", mType=");
+    sb.append(mType);
+    sb.append(", mSrcLocation=\"");
+    sb.append(mSrcLocation);
+    sb.append("\", mIsLocal=");
+    sb.append(mIsLocal);
     sb.append("\n");
   }
 
@@ -29,7 +46,9 @@ public class CreateStreamStmt extends SQLStatement {
     // perform the DDL operation by itself and quit.
 
     String streamName = unquote(mName);
-    planContext.getFlowSpec().addRoot(new CreateStreamNode(streamName));
+    String source = unquote(mSrcLocation);
+    planContext.getFlowSpec().addRoot(new CreateStreamNode(streamName,
+        mType, source, mIsLocal));
   }
 }
 

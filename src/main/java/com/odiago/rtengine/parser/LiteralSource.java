@@ -2,7 +2,7 @@
 
 package com.odiago.rtengine.parser;
 
-import com.odiago.rtengine.plan.FileInputNode;
+import com.odiago.rtengine.plan.NamedSourceNode;
 import com.odiago.rtengine.plan.PlanContext;
 
 /**
@@ -27,15 +27,20 @@ public class LiteralSource extends SQLStatement {
     sb.append("\n");
   }
 
+
+  public String getName() {
+    return unquote(mSourceName);
+  }
+
+
   @Override
   public void createExecPlan(PlanContext planContext) {
-    // The execution plan for a literal source is to just open the file
-    // specified by this source.
-    // TODO(aaron): This eventually needs to change to open the stream
-    // identified by this source.
+    // The execution plan for a literal source is to just open the resouce
+    // specified by this abstract source, by looking up its parameters in
+    // the symbol table at plan resolution time.
 
     String srcName = unquote(mSourceName);
-    planContext.getFlowSpec().addRoot(new FileInputNode(srcName));
+    planContext.getFlowSpec().addRoot(new NamedSourceNode(srcName));
   }
 }
 

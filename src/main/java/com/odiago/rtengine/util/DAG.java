@@ -30,6 +30,11 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
   public void addRoot(NODETYPE node) {
     roots.add(node);
   }
+  
+  /** @return the set of root nodes for this DAG. */
+  public List<NODETYPE> getRootSet() {
+    return roots;
+  }
 
   /**
    * Given a complete flow specification for a sub-flow 'other', add

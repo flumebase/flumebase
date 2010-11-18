@@ -27,7 +27,9 @@ import com.cloudera.flume.core.Event;
 import com.odiago.rtengine.exec.ExecEnvironment;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowId;
+import com.odiago.rtengine.exec.HashSymbolTable;
 import com.odiago.rtengine.exec.QuerySubmitResponse;
+import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.lang.TypeChecker;
 import com.odiago.rtengine.lang.VisitException;
@@ -270,12 +272,27 @@ public class LocalEnvironment extends ExecEnvironment {
   /** The AST generator used to parse user queries. */ 
   private ASTGenerator mGenerator;
 
-  private static final int MAX_QUEUE_LEN = 100;
 
+  /** The thread that does the actual flow execution. */
   private LocalEnvThread mLocalThread;
+
+  /**
+   * Queue of control events passed from the console thread to the worker thread
+   * (e.g., "deploy stream", "cancel stream", etc.)
+   */
   private BlockingQueue<ControlOp> mControlQueue;
 
+  /** Max len for mControlQueue. */
+  private static final int MAX_QUEUE_LEN = 100;
+
+  /**
+   * The root symbol table where streams, etc are defined. Used in the
+   * user thread for AST and plan walking.
+   */
+  private SymbolTable mRootSymbolTable; 
+
   public LocalEnvironment() {
+    mRootSymbolTable = new HashSymbolTable();
     mGenerator = new ASTGenerator();
     mNextFlowId = 0;
     mControlQueue = new ArrayBlockingQueue<ControlOp>(MAX_QUEUE_LEN);
@@ -312,7 +329,7 @@ public class LocalEnvironment extends ExecEnvironment {
         return new QuerySubmitResponse(msgBuilder.toString(), null);
       }
 
-      stmt.accept(new TypeChecker());
+      stmt.accept(new TypeChecker(mRootSymbolTable));
       PlanContext planContext = new PlanContext();
       stmt.createExecPlan(planContext);
       FlowSpecification spec = planContext.getFlowSpec();
@@ -332,11 +349,16 @@ public class LocalEnvironment extends ExecEnvironment {
     if (null != spec) {
       // Turn the specification into a physical plan and run it.
       FlowId flowId = new FlowId(mNextFlowId++);
-      LocalFlowBuilder flowBuilder = new LocalFlowBuilder(flowId);
+      LocalFlowBuilder flowBuilder = new LocalFlowBuilder(flowId, mRootSymbolTable);
       spec.reverseBfs(flowBuilder);
       LocalFlow localFlow = flowBuilder.getLocalFlow();
-      mControlQueue.put(new ControlOp(ControlOp.Code.AddFlow, localFlow));
-      return flowId;
+      if (localFlow.getRootSet().size() == 0) {
+        // No nodes created (empty flow, or DDL-only flow, etc.)
+        return null;
+      } else {
+        mControlQueue.put(new ControlOp(ControlOp.Code.AddFlow, localFlow));
+        return flowId;
+      }
     } else {
       return null;
     }
