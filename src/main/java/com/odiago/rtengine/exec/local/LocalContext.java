@@ -4,6 +4,7 @@ package com.odiago.rtengine.exec.local;
 
 import java.util.AbstractQueue;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.cloudera.flume.core.Event;
@@ -22,6 +23,9 @@ public abstract class LocalContext extends FlowElementContext {
    */
   private AbstractQueue<PendingEvent> mOutputQueue;
 
+  /** The control operations queue used by the LocalEnvironment. */
+  private BlockingQueue<LocalEnvironment.ControlOp> mControlQueue;
+
   public LocalContext() {
     mOutputQueue = new ConcurrentLinkedQueue<PendingEvent>();
   }
@@ -32,6 +36,13 @@ public abstract class LocalContext extends FlowElementContext {
    */
   protected void post(FlowElement target, Event event) {
     mOutputQueue.add(new PendingEvent(target, event));
+
+    // If the control queue is empty, put a no-op in there to ensure that we fall-thru
+    // and process the pending event.
+    if (mControlQueue.isEmpty()) {
+      mControlQueue.offer(new LocalEnvironment.ControlOp(
+          LocalEnvironment.ControlOp.Code.Noop, null));
+    }
   }
 
   /**
@@ -40,6 +51,14 @@ public abstract class LocalContext extends FlowElementContext {
    */
   public AbstractQueue<PendingEvent> getPendingEventQueue() {
     return mOutputQueue;
+  }
+
+  /**
+   * Called by the LocalEnvironment to initialize the control queue instance
+   * that is pinged by the post() command in this class.
+   */
+  void initControlQueue(BlockingQueue<LocalEnvironment.ControlOp> opQueue) {
+    mControlQueue = opQueue;
   }
 
 }

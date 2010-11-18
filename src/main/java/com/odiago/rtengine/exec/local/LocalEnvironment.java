@@ -51,8 +51,8 @@ public class LocalEnvironment extends ExecEnvironment {
   /** The max number of events that will be processed in between polling for a control op. */
   private static final int MAX_STEPS = 250;
 
-  private static class ControlOp {
-    private enum Code {
+  static class ControlOp {
+    enum Code {
       AddFlow,
       CancelFlow,
       CancelAll,
@@ -106,6 +106,13 @@ public class LocalEnvironment extends ExecEnvironment {
       newFlow.reverseBfs(new DAG.Operator<FlowElementNode>() {
         public void process(FlowElementNode elemNode) {
           FlowElement flowElem = elemNode.getFlowElement();
+
+          // All FlowElements that we see will have LocalContext subclass contexts.
+          // Get the output queue from this.
+          LocalContext elemContext = (LocalContext) flowElem.getContext();
+          elemContext.initControlQueue(mControlQueue);
+          mAllFlowQueues.add(elemContext.getPendingEventQueue());
+
           try {
             flowElem.open();
           } catch (IOException ioe) {
@@ -117,11 +124,6 @@ public class LocalEnvironment extends ExecEnvironment {
             // being deployed.
             LOG.error("InterruptedException when opening flow element: " + ie);
           }
-
-          // All FlowElements that we see will have LocalContext subclass contexts.
-          // Get the output queue from this.
-          LocalContext elemContext = (LocalContext) flowElem.getContext();
-          mAllFlowQueues.add(elemContext.getPendingEventQueue());
         }
       });
       mActiveFlows.put(newFlow.getId(), newFlow);
@@ -219,7 +221,6 @@ public class LocalEnvironment extends ExecEnvironment {
         // definitely have more event processing to do, but no control ops to
         // process, run for another MAX_STEPS.
         boolean continueEvents = true;
-        boolean hasProcessedEvent = false;
         while (continueEvents) {
           int processedEvents = 0;
           boolean processedEventThisIteration = false;
@@ -240,7 +241,6 @@ public class LocalEnvironment extends ExecEnvironment {
                 LOG.error("Flow element encountered InterruptedException: " + ie);
               }
               processedEvents++;
-              hasProcessedEvent = true;
               processedEventThisIteration = true;
               if (processedEvents > MAX_STEPS) {
                 if (mControlQueue.size() > 0) {
@@ -259,15 +259,6 @@ public class LocalEnvironment extends ExecEnvironment {
             // then don't loop back around.
             break;
           }
-        }
-
-        if (hasProcessedEvent) {
-          // If we've processed at least one event, then we may have generated
-          // more pending events. If the control queue is empty, put a Noop in
-          // there to ensure that we get back down to the event processing loop
-          // again. If this doesn't fit, then no sweat -- that means there's
-          // another control operation pending anyway.
-          mControlQueue.offer(new ControlOp(ControlOp.Code.Noop, null));
         }
       }
     }
