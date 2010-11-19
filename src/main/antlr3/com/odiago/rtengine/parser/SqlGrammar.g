@@ -22,19 +22,21 @@ stmt returns [SQLStatement val]:
     cs=stmt_create_stream {$val = $cs.val;}
   | sel=stmt_select {$val = $sel.val;}
   | expl=stmt_explain {$val = $expl.val;}
+  | desc=stmt_describe {$val = $desc.val;}
   ;
 
 stmt_create_stream returns [CreateStreamStmt val]:
     CREATE STREAM fid=stream_spec FROM LOCAL FILE f=user_spec
         {$val = new CreateStreamStmt($fid.val, StreamSourceType.File, $f.val, true);}
-  | CREATE STREAM sid=stream_spec FROM slcl=LOCAL? SINK snk=user_spec
+  | CREATE STREAM sid=stream_spec FROM slcl=LOCAL? SOURCE src=user_spec
         {
-          boolean sinkIsLocal = slcl != null;
-          $val = new CreateStreamStmt($sid.val, StreamSourceType.Sink, $snk.val, sinkIsLocal);
+          boolean srcIsLocal = slcl != null;
+          $val = new CreateStreamStmt($sid.val, StreamSourceType.Sink, $src.val, srcIsLocal);
         }
-  | CREATE STREAM id=stream_spec
-        { $val = new CreateStreamStmt($id.val, StreamSourceType.Sink, $id.val, true); }
   ;
+
+stmt_describe returns [DescribeStmt val]:
+  DESCRIBE id=user_spec {$val = new DescribeStmt($id.val);};
 
 stmt_explain returns [ExplainStmt val]:
   EXPLAIN s=stmt {$val = new ExplainStmt($s.val);};
@@ -59,7 +61,9 @@ field_spec returns [String val] : s=user_spec {$val=$s.val;};
 stream_spec returns [String val] : s=user_spec {$val=$s.val;};
 
 // User-specified symbols can be specified as an identifier or a "quoted string".
-user_spec returns [String val] : ID {$val=$ID.text;} | STRING {$val=$STRING.text;};
+user_spec returns [String val] :
+    ID {$val=$ID.text.toLowerCase();}
+  | STRING {$val=unescape($STRING.text);};
 
 // Source for a SELECT statement (in the FROM clause). For now, must be a
 // named stream.
@@ -71,5 +75,5 @@ source_definition returns [SQLStatement val]:
 // Currently takes a string as a regex. TODO(aaron): Make this a proper bexp.
 optional_where_conditions returns [WhereConditions val] :
     {$val=null;}
-  | WHERE s=STRING {$val=new WhereConditions($s.text);};
+  | WHERE s=STRING {$val=new WhereConditions(unescape($s.text));};
 

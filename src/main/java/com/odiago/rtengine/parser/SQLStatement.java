@@ -54,16 +54,5 @@ public abstract class SQLStatement {
   public void createExecPlan(PlanContext planContext) {
     throw new RuntimeException("This node type cannot be incorporated into an execution plan.");
   }
-
-  /**
-   * Remove "double quotes" from around a string, if present.
-   */
-  protected final String unquote(String srcName) {
-    if (srcName.startsWith("\"") && srcName.endsWith("\"")) {
-      return srcName.substring(1, srcName.length() - 1);
-    } else {
-      return srcName;
-    }
-  }
 }
 

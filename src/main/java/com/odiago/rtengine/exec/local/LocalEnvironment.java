@@ -19,6 +19,8 @@ import java.util.concurrent.BlockingQueue;
 
 import org.antlr.runtime.RecognitionException;
 
+import org.apache.hadoop.conf.Configuration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +32,8 @@ import com.odiago.rtengine.exec.FlowId;
 import com.odiago.rtengine.exec.HashSymbolTable;
 import com.odiago.rtengine.exec.QuerySubmitResponse;
 import com.odiago.rtengine.exec.SymbolTable;
+
+import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 
 import com.odiago.rtengine.lang.TypeChecker;
 import com.odiago.rtengine.lang.VisitException;
@@ -178,93 +182,108 @@ public class LocalEnvironment extends ExecEnvironment {
 
     @Override
     public void run() {
-      boolean isFinished = false;
+      try {
+        mFlumeConfig.start();
+      } catch (IOException ioe) {
+        LOG.error("Could not start embedded Flume instance: " + ioe);
+        return;
+      }
 
-      while (true) {
-        ControlOp nextOp = null;
-        try {
-          // Read the next operation from mControlQueue.
-          nextOp = mControlQueue.take();
-        } catch (InterruptedException ie) {
-          // Expected; interruption here is used to notify us that we're done, etc.
-        }
+      try {
+        boolean isFinished = false;
 
-        if (null != nextOp) {
-          switch (nextOp.getOpCode()) {
-          case AddFlow:
-            LocalFlow newFlow = (LocalFlow) nextOp.getDatum();
-            deployFlow(newFlow);
-            break;
-          case CancelFlow:
-            FlowId cancelId = (FlowId) nextOp.getDatum();
-            cancelFlow(cancelId);
-            break;
-          case CancelAll:
-            cancelAllFlows();
-            break;
-          case ShutdownThread:
-            isFinished = true;
-            break;
-          case Noop:
-            // Don't do any control operation; skip ahead to event processing.
+        while (true) {
+          ControlOp nextOp = null;
+          try {
+            // Read the next operation from mControlQueue.
+            nextOp = mControlQueue.take();
+          } catch (InterruptedException ie) {
+            // Expected; interruption here is used to notify us that we're done, etc.
+          }
+
+          if (null != nextOp) {
+            switch (nextOp.getOpCode()) {
+            case AddFlow:
+              LocalFlow newFlow = (LocalFlow) nextOp.getDatum();
+              deployFlow(newFlow);
+              break;
+            case CancelFlow:
+              FlowId cancelId = (FlowId) nextOp.getDatum();
+              cancelFlow(cancelId);
+              break;
+            case CancelAll:
+              cancelAllFlows();
+              break;
+            case ShutdownThread:
+              isFinished = true;
+              break;
+            case Noop:
+              // Don't do any control operation; skip ahead to event processing.
+              break;
+            }
+          }
+
+          if (isFinished) {
+            // Stop immediately; ignore any further event processing or control work.
             break;
           }
-        }
 
-        if (isFinished) {
-          // Stop immediately; ignore any further event processing or control work.
-          break;
-        }
-
-        // Check to see if there is work to be done inside the existing flows.
-        // If we have more events to process, continue to do so. Every MAX_STEPS
-        // events, check to see if we have additional control operations to perform.
-        // If so, loop back around and give them an opportunity to process. If we
-        // definitely have more event processing to do, but no control ops to
-        // process, run for another MAX_STEPS.
-        boolean continueEvents = true;
-        while (continueEvents) {
-          int processedEvents = 0;
-          boolean processedEventThisIteration = false;
-          for (AbstractQueue<PendingEvent> queue : mAllFlowQueues) {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Dequeuing from queue: " + queue + " with size=" + queue.size());
-            }
-            while (!queue.isEmpty()) {
-              PendingEvent pe = queue.remove();
-              FlowElement fe = pe.getFlowElement();
-              Event e = pe.getEvent();
-              try {
-                fe.takeEvent(e);
-              } catch (IOException ioe) {
-                // TODO(aaron): Encountering an exception mid-flow should cancel the flow.
-                LOG.error("Flow element encountered IOException: " + ioe);
-              } catch (InterruptedException ie) {
-                LOG.error("Flow element encountered InterruptedException: " + ie);
+          // Check to see if there is work to be done inside the existing flows.
+          // If we have more events to process, continue to do so. Every MAX_STEPS
+          // events, check to see if we have additional control operations to perform.
+          // If so, loop back around and give them an opportunity to process. If we
+          // definitely have more event processing to do, but no control ops to
+          // process, run for another MAX_STEPS.
+          boolean continueEvents = true;
+          while (continueEvents) {
+            int processedEvents = 0;
+            boolean processedEventThisIteration = false;
+            for (AbstractQueue<PendingEvent> queue : mAllFlowQueues) {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Dequeuing from queue: " + queue + " with size=" + queue.size());
               }
-              processedEvents++;
-              processedEventThisIteration = true;
-              if (processedEvents > MAX_STEPS) {
-                if (mControlQueue.size() > 0) {
-                  // There are control operations to perform. Drain these.
-                  continueEvents = false;
-                } else {
-                  // Run for another MAX_STEPS before checking again.
-                  processedEvents = 0;
+              while (!queue.isEmpty()) {
+                PendingEvent pe = queue.remove();
+                FlowElement fe = pe.getFlowElement();
+                Event e = pe.getEvent();
+                try {
+                  fe.takeEvent(e);
+                } catch (IOException ioe) {
+                  // TODO(aaron): Encountering an exception mid-flow should cancel the flow.
+                  LOG.error("Flow element encountered IOException: " + ioe);
+                } catch (InterruptedException ie) {
+                  LOG.error("Flow element encountered InterruptedException: " + ie);
+                }
+                processedEvents++;
+                processedEventThisIteration = true;
+                if (processedEvents > MAX_STEPS) {
+                  if (mControlQueue.size() > 0) {
+                    // There are control operations to perform. Drain these.
+                    continueEvents = false;
+                  } else {
+                    // Run for another MAX_STEPS before checking again.
+                    processedEvents = 0;
+                  }
                 }
               }
             }
-          }
 
-          if (!processedEventThisIteration) {
-            // If we didn't process any events after scanning all queues,
-            // then don't loop back around.
-            break;
+            if (!processedEventThisIteration) {
+              // If we didn't process any events after scanning all queues,
+              // then don't loop back around.
+              break;
+            }
           }
         }
+      } finally {
+        // Shut down the embedded Flume instance before we exit the thread.
+        mFlumeConfig.stop();
       }
     }
   }
+
+  /** The configuration for this environment instance. */
+  private Configuration mConf;
 
   /** Next flow id to assign to new flows. */
   private long mNextFlowId;
@@ -272,6 +291,12 @@ public class LocalEnvironment extends ExecEnvironment {
   /** The AST generator used to parse user queries. */ 
   private ASTGenerator mGenerator;
 
+  /** 
+   * Manager for the embedded Flume instances in this environment.
+   * References to this object are distributed in the client thread,
+   * but its methods are used only in the execution thread.
+   */
+  private EmbeddedFlumeConfig mFlumeConfig;
 
   /** The thread that does the actual flow execution. */
   private LocalEnvThread mLocalThread;
@@ -291,12 +316,18 @@ public class LocalEnvironment extends ExecEnvironment {
    */
   private SymbolTable mRootSymbolTable; 
 
-  public LocalEnvironment() {
+  public LocalEnvironment(Configuration conf) {
+    mConf = conf;
     mRootSymbolTable = new HashSymbolTable();
     mGenerator = new ASTGenerator();
     mNextFlowId = 0;
     mControlQueue = new ArrayBlockingQueue<ControlOp>(MAX_QUEUE_LEN);
+    mFlumeConfig = new EmbeddedFlumeConfig(mConf);
     mLocalThread = this.new LocalEnvThread();
+  }
+
+  @Override
+  public void connect() throws IOException {
     mLocalThread.start();
   }
 
@@ -349,7 +380,7 @@ public class LocalEnvironment extends ExecEnvironment {
     if (null != spec) {
       // Turn the specification into a physical plan and run it.
       FlowId flowId = new FlowId(mNextFlowId++);
-      LocalFlowBuilder flowBuilder = new LocalFlowBuilder(flowId, mRootSymbolTable);
+      LocalFlowBuilder flowBuilder = new LocalFlowBuilder(flowId, mRootSymbolTable, mFlumeConfig);
       spec.reverseBfs(flowBuilder);
       LocalFlow localFlow = flowBuilder.getLocalFlow();
       if (localFlow.getRootSet().size() == 0) {

@@ -16,8 +16,13 @@ import com.odiago.rtengine.exec.StreamSymbol;
 import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
+import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
+
+import com.odiago.rtengine.parser.StreamSourceType;
+
 import com.odiago.rtengine.plan.ConsoleOutputNode;
 import com.odiago.rtengine.plan.CreateStreamNode;
+import com.odiago.rtengine.plan.DescribeNode;
 import com.odiago.rtengine.plan.NamedSourceNode;
 import com.odiago.rtengine.plan.PlanNode;
 import com.odiago.rtengine.plan.StrMatchFilterNode;
@@ -39,12 +44,17 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
    */
   private static final String LOCAL_FLOW_ELEM_KEY = "LocalFlowBuilder.flowElem";
 
+  private FlowId mFlowId;
   private LocalFlow mLocalFlow;
   private SymbolTable mRootSymbolTable;
+  private EmbeddedFlumeConfig mFlumeConfig;
 
-  public LocalFlowBuilder(FlowId flowId, SymbolTable rootSymTable) {
+  public LocalFlowBuilder(FlowId flowId, SymbolTable rootSymTable,
+      EmbeddedFlumeConfig flumeConfig) {
+    mFlowId = flowId;
     mLocalFlow = new LocalFlow(flowId);
     mRootSymbolTable = rootSymTable;
+    mFlumeConfig = flumeConfig;
   }
 
   /**
@@ -104,6 +114,8 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     } else if (node instanceof ConsoleOutputNode) {
       newElem = new ConsoleOutputElement(newContext);
     } else if (node instanceof CreateStreamNode) {
+      // Just perform this operation immediately. Do not translate this into another
+      // layer. (This results in an empty flow being generated, which is discarded.)
       CreateStreamNode createStream = (CreateStreamNode) node;
       String streamName = createStream.getName();
       StreamSymbol streamSym = new StreamSymbol(createStream);
@@ -114,6 +126,11 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
         mRootSymbolTable.addSymbol(streamSym);
         System.out.println("CREATE STREAM");
       }
+    } else if (node instanceof DescribeNode) {
+      // Look up the referenced object in the symbol table and describe it immediately.
+      DescribeNode describe = (DescribeNode) node;
+      Symbol sym = mRootSymbolTable.resolve(describe.getIdentifier());
+      System.out.println(sym);
     } else if (node instanceof NamedSourceNode) {
       NamedSourceNode fileInput = (NamedSourceNode) node;
       String streamName = fileInput.getStreamName();
@@ -127,10 +144,32 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       // TODO: Be paranoid about typechecking, make sure this is actually legal
       // first; throw an exception if not and cancel flow production.
       StreamSymbol streamSymbol = (StreamSymbol) symbol;
-      // TODO: This is not always a file name. It might be one of many different
-      // source types... handle them all, here.
-      String fileName = streamSymbol.getSource();
-      newElem = new LocalFileSourceElement(newContext, fileName);
+      if (!streamSymbol.isLocal()) {
+        // TODO(aaron): BEtter exception for this.
+        throw new RuntimeException("Do not know how to handle a non-local source yet.");
+      }
+
+      switch (streamSymbol.getSourceType()) {
+      case File:
+        String fileName = streamSymbol.getSource();
+        newElem = new LocalFileSourceElement(newContext, fileName);
+        break;
+      case Sink:
+        String flumeSource = streamSymbol.getSource();
+        long flowIdNum = mFlowId.getId();
+        String flowSourceId = "rtengine-flow-" + flowIdNum + "-" + streamSymbol.getName();
+        newElem = new LocalFlumeSinkElement(newContext, flowSourceId,
+            mFlumeConfig, flumeSource);
+        if (!streamSymbol.isLocal()) {
+          LOG.info("Created local Flume logical node: " + flowSourceId);
+          LOG.info("You may need to connect upstream Flume elements to this source.");
+        }
+        break;
+      default:
+        // TODO(aaron): Turn this into a checked exception when we have an API for it.
+        throw new RuntimeException("Unhandled stream source type: "
+            + streamSymbol.getSourceType());
+      }
     } else if (node instanceof StrMatchFilterNode) {
       StrMatchFilterNode matchNode = (StrMatchFilterNode) node;
       String matchStr = matchNode.getMatchString();

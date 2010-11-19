@@ -13,7 +13,7 @@ public class CreateStreamStmt extends SQLStatement {
   private String mName;
   /** The type of the stream's source (file, flume sink, etc.) */
   private StreamSourceType mType;
-  /** The location of the source (path to file, logical flume node name, etc.) */
+  /** The location of the source (path to file, flume eventsource description, etc.) */
   private String mSrcLocation;
   /** True if this is a local fs file, or an embedded flume node. */
   private boolean mIsLocal;
@@ -45,10 +45,8 @@ public class CreateStreamStmt extends SQLStatement {
     // The execution plan for a CREATE STREAM statement is to
     // perform the DDL operation by itself and quit.
 
-    String streamName = unquote(mName);
-    String source = unquote(mSrcLocation);
-    planContext.getFlowSpec().addRoot(new CreateStreamNode(streamName,
-        mType, source, mIsLocal));
+    planContext.getFlowSpec().addRoot(new CreateStreamNode(mName,
+        mType, mSrcLocation, mIsLocal));
   }
 }
 

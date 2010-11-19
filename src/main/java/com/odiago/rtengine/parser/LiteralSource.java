@@ -29,7 +29,7 @@ public class LiteralSource extends SQLStatement {
 
 
   public String getName() {
-    return unquote(mSourceName);
+    return mSourceName;
   }
 
 
@@ -39,8 +39,7 @@ public class LiteralSource extends SQLStatement {
     // specified by this abstract source, by looking up its parameters in
     // the symbol table at plan resolution time.
 
-    String srcName = unquote(mSourceName);
-    planContext.getFlowSpec().addRoot(new NamedSourceNode(srcName));
+    planContext.getFlowSpec().addRoot(new NamedSourceNode(mSourceName));
   }
 }
 

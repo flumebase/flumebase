@@ -4,6 +4,7 @@
 /target
 /TAGS
 /.taglist
+/etc/rtengine-site.xml
 
 *.swp
 *~

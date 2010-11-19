@@ -3,6 +3,7 @@
 package com.odiago.rtengine.lang;
 
 import com.odiago.rtengine.parser.CreateStreamStmt;
+import com.odiago.rtengine.parser.DescribeStmt;
 import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.LiteralSource;
 import com.odiago.rtengine.parser.SQLStatement;
@@ -22,8 +23,11 @@ public abstract class Visitor {
       visit((SelectStmt) stmt);
     } else if (stmt instanceof ExplainStmt) {
       visit((ExplainStmt) stmt);
+    } else if (stmt instanceof DescribeStmt) {
+      visit((DescribeStmt) stmt);
     } else {
-      throw new VisitException("No visit() method for type: " + stmt.getClass().getName());
+      throw new VisitException("No visit() method for type: " + stmt.getClass().getName()
+          + " in class: " + getClass().getName());
     }
   }
 
@@ -31,4 +35,5 @@ public abstract class Visitor {
   protected abstract void visit(LiteralSource s) throws VisitException;
   protected abstract void visit(SelectStmt s) throws VisitException;
   protected abstract void visit(ExplainStmt s) throws VisitException;
+  protected abstract void visit(DescribeStmt s) throws VisitException;
 }

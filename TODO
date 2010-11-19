@@ -1,15 +1,17 @@
 
 
 Bugs:
+  - Flume is super-chatty when you start it up locally. We should squash its logs,
+    unless we're in debug mode.
 
+  - We have no tests. This is hugely problematic.
 
 Features:
 
-  - Need ability to connect local flow to a local flume EventSink
   - Need ability to create a remote physical plan
   -- Need ability to run remote physical plan on a set of configured nodes.
   - Need a DROP FLOW operation
   - Need SHOW FLOWS operation
-
-
+  - Need SHOW STREAMS, DROP STREAM
+  - Need ability to auto-connect to a remote Flume resource.
 

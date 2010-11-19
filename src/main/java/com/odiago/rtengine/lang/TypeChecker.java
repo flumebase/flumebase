@@ -8,6 +8,7 @@ import com.odiago.rtengine.exec.SymbolTable;
 import com.odiago.rtengine.lang.TypeChecker;
 
 import com.odiago.rtengine.parser.CreateStreamStmt;
+import com.odiago.rtengine.parser.DescribeStmt;
 import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.FieldList;
 import com.odiago.rtengine.parser.LiteralSource;
@@ -69,6 +70,18 @@ public class TypeChecker extends Visitor {
     // TODO(aaron): Create a new symbol table containing the fields defined in this
     // SELECT statement and push that on top of symTableContext before checking the
     // WHERE clause. Don't forget to pop it when we're done.
+  }
+
+  @Override
+  protected void visit(DescribeStmt s) throws VisitException {
+    // Check the symbol table that the identifier exists.
+    String id = s.getIdentifier();
+    SymbolTable symtab = mSymTableContext.top();
+
+    Symbol symbol = symtab.resolve(id);
+    if (null == symbol) {
+      throw new TypeCheckException("No such identifier: " + id);
+    }
   }
 
   @Override

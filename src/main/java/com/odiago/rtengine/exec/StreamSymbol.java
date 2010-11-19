@@ -17,10 +17,13 @@ public class StreamSymbol extends Symbol {
   /** True if the backing resource for this stream is local. */ 
   private final boolean mIsLocal;
 
+  private final StreamSourceType mStreamType;
+
   /** Initialize all parameters of a stream symbol explicitly. */
   public StreamSymbol(String name, StreamSourceType type, String source, boolean isLocal) {
     super(name, SymbolType.STREAM);
     mSource = source;
+    mStreamType = type;
     mIsLocal = isLocal;
   }
 
@@ -29,6 +32,7 @@ public class StreamSymbol extends Symbol {
     super(createNode.getName(), SymbolType.STREAM);
     mSource = createNode.getSource();
     mIsLocal = createNode.isLocal();
+    mStreamType = createNode.getType();
   }
 
   public String getSource() {
@@ -38,4 +42,30 @@ public class StreamSymbol extends Symbol {
   public boolean isLocal() {
     return mIsLocal;
   }
+
+  /**
+   * @return the StreamSourceType identifying the origin of this stream.
+   */
+  public StreamSourceType getSourceType() {
+    return mStreamType;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(super.toString());
+    sb.append("\n");
+    sb.append("  type: ");
+    sb.append(mStreamType);
+    sb.append("\n");
+    sb.append("  source: ");
+    sb.append(mSource);
+    sb.append("\n");
+    if (mIsLocal) {
+      sb.append("  local");
+    }
+
+    return sb.toString();
+  }
+
 }

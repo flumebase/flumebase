@@ -16,6 +16,11 @@ public abstract class ExecEnvironment {
   public ExecEnvironment() {
   }
 
+  /**
+   * Connect the client to the execution environment.
+   */
+  public abstract void connect() throws InterruptedException, IOException;
+
   /** @return the name of this execution environment. e.g. "local",
    * or perhaps the server you're connected to, etc.
    */

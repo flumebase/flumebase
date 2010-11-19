@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!-- Put any site-specific configuration into this file. -->
+<configuration>
+
+  <!-- Identify the local Flume installation
+  <property>
+    <name>flume.home</name>
+    <value>/usr/lib/flume</value>
+  </property>
+  -->
+
+  <!--
+     By default, rtengine will start a local embedded flume master for
+     managing a completely self-contained instance. For production use,
+     disable the embedded master and identify the remote FlumeMaster
+     instance to connect to:
+
+  <property>
+    <name>embedded.flume.master</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>rtengine.flume.master.host</name>
+    <value>localhost</value>
+  </property>
+  <property>
+    <name>rtengine.flume.master.port</name>
+    <value>35873</value>
+  </property>
+  -->
+</configuration>

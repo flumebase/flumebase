@@ -38,4 +38,76 @@ public abstract class AbstractSqlParse extends Parser {
   public void setErrorStream(PrintStream errStream) {
     mErrPrintStream = errStream;
   }
+
+  /**
+   * Remove "double quotes" from around a string, if present.
+   */
+  protected final String unquote(String srcName) {
+    if (srcName.startsWith("\"") && srcName.endsWith("\"")) {
+      return srcName.substring(1, srcName.length() - 1);
+    } else {
+      return srcName;
+    }
+  }
+
+  /**
+   * Given an input string which was of the form "some text",
+   * where the inner text may include escape characters, remove the enclosing
+   * double quotes and transform any escape sequences into their respective
+   * proper characters.
+   */
+  protected final String unescape(String inputStr) {
+    inputStr = unquote(inputStr);
+    StringBuilder sb = new StringBuilder();
+
+    for (int i = 0; i < inputStr.length(); i++) {
+      char c = inputStr.charAt(i);
+      if (c == '\\') {
+        // We've found an escape sequence.
+        i++;
+        if (i == inputStr.length()) {
+          // We found a lone '\' by itself at the end of the string.
+          // Just include it literally.
+          sb.append('\\');
+        } else {
+          char esc = inputStr.charAt(i);
+          switch (esc) {
+          case 'b':
+            sb.append('\b');
+            break;
+          case 't':
+            sb.append('\t');
+            break;
+          case 'n':
+            sb.append('\n');
+            break;
+          case 'f':
+            sb.append('\f');
+            break;
+          case 'r':
+            sb.append('\r');
+            break;
+          case '\"':
+            sb.append('\"');
+            break;
+          case '\'':
+            sb.append('\'');
+            break;
+          case '\\':
+            sb.append('\\');
+            break;
+          default:
+            // Undefined escape characters resolve to themselves.
+            sb.append(esc);
+            break;
+          }
+        }
+      } else {
+        // normal character.
+        sb.append(c);
+      }
+    }
+
+    return sb.toString();
+  }
 }

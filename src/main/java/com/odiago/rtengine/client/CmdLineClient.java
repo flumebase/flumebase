@@ -8,6 +8,8 @@ import java.io.IOException;
 
 import java.util.Properties;
 
+import org.apache.hadoop.conf.Configuration;
+
 import org.apache.log4j.PropertyConfigurator;
 
 import org.slf4j.Logger;
@@ -31,6 +33,18 @@ public class CmdLineClient {
   private static final Logger LOG = LoggerFactory.getLogger(
       CmdLineClient.class.getName());
 
+  /** System property that sets the path of the RTEngine configuration. */
+  private static final String RTENGINE_CONF_DIR_KEY = "rtengine.conf.dir";
+
+  /** Environment variable that sets the path of the RTEngine configuration. */
+  private static final String RTENGINE_CONF_DIR_ENV = "RTENGINE_CONF_DIR";
+
+  /** Environment variable that sets the path of the RTEngine installation "home". */
+  private static final String RTENGINE_HOME_ENV = "RTENGINE_HOME";
+
+  /** Application configuration. */
+  private Configuration mConf;
+
   /** True if we're mid-buffer on a command. */
   private boolean mInCommand;
 
@@ -41,7 +55,12 @@ public class CmdLineClient {
   private ExecEnvironment mExecEnv;
 
   public CmdLineClient() {
-    mExecEnv = new LocalEnvironment();
+    this(new Configuration());
+  }
+
+  public CmdLineClient(Configuration conf) {
+    mConf = conf;
+    mExecEnv = new LocalEnvironment(mConf);
     resetCmdState();
   }
 
@@ -139,10 +158,54 @@ public class CmdLineClient {
     }
   }
 
+  /**
+   * @return the home directory for this application installation.
+   * This is taken from $RTENGINE_HOME. Returns null if this is not set.
+   */
+  private String getAppHomeDir() {
+    String homeEnv = System.getenv(RTENGINE_HOME_ENV);
+    if (null != homeEnv) {
+      File homeFile = new File(homeEnv);
+      return homeFile.getAbsolutePath();
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * @return the configuration directory for this application.
+   * This is one of the following, in order:
+   * <ol>
+   *   <li>${rtengine.conf.dir} (System property)</li>
+   *   <li>$RTENGINE_CONF_DIR</li>
+   *   <li>$RTENGINE_HOME/etc</li>
+   *   <li>(current dir)</li>
+   * </ol>
+   */
+  private String getAppConfDir() {
+    String rtengineConfDir = System.getProperty(RTENGINE_CONF_DIR_KEY, null);
+    if (null == rtengineConfDir) {
+      rtengineConfDir = System.getenv(RTENGINE_CONF_DIR_ENV);
+    }
+
+    if (null != rtengineConfDir) {
+      File confFile = new File(rtengineConfDir);
+      return confFile.getAbsolutePath();
+    }
+
+    // Infer from application home dir. 
+    String homeDir = getAppHomeDir();
+    if (null != homeDir) {
+      // return $RTENGINE_HOME/etc.
+      File homeFile = new File(homeDir);
+      return new File(homeFile, "etc").getAbsolutePath();
+    }
+
+    return ".";
+  }
+
   private void initLogging() {
-    // TODO: Pick a better default conf dir.
-    // TODO: Put these up as final consts at the top of the class.
-    String confDir = System.getProperty("rtengine.conf.dir", ".");
+    String confDir = getAppConfDir();
     File confDirFile = new File(confDir);
     File log4jPropertyFile = new File(confDirFile, "log4j.properties");
     FileInputStream fis = null;
@@ -176,15 +239,31 @@ public class CmdLineClient {
   }
 
   /**
+   * Add the appropriate rtengine-site.xml file to the Configuration.
+   */
+  private void initConfResources() {
+    String rtengineConfFile = new File(getAppConfDir(), "rtengine-site.xml").toString();
+    LOG.debug("Initializing configuration from " + rtengineConfFile);
+    Configuration.addDefaultResource(rtengineConfFile);
+  }
+
+  /**
    * Main entry point for the command-line client.
    * @return the exit code for the program (0 on success).
    */
   public int run() throws IOException {
     initLogging();
+    initConfResources();
     System.out.println("Welcome to the rtengine client.");
     printVersion();
     System.out.println("Type 'help;' or '\\h' for instructions.");
     System.out.println("Type 'exit;' or '\\q' to quit.");
+
+    try {
+      mExecEnv.connect();
+    } catch (InterruptedException ie) {
+      throw new IOException("Interrupted while connecting to environment: " + ie);
+    }
 
     ConsoleReader conReader = new ConsoleReader();
 

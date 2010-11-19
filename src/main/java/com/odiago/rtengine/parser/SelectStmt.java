@@ -92,7 +92,7 @@ public class SelectStmt extends SQLStatement {
     WhereConditions w = getWhereConditions();
     if (w != null) {
       // Non-null filter conditions; apply the filter to all of our sources.
-      String filterText = unquote(w.getText());
+      String filterText = w.getText();
       PlanNode filterNode = new StrMatchFilterNode(filterText);
       flowSpec.attachToLastLayer(filterNode);
     }
