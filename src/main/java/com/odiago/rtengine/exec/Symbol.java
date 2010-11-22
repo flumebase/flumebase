@@ -2,27 +2,16 @@
 
 package com.odiago.rtengine.exec;
 
+import com.odiago.rtengine.lang.Type;
+
 /**
  * A named symbol in a SymbolTable.
  */
 public class Symbol {
   private final String mName;
-  private final SymbolType mType;
+  private final Type mType;
 
-  public enum SymbolType {
-    STREAM,
-    TINYINT,
-    SMALLINT,
-    INT,
-    BIGINT,
-    FLOAT,
-    DOUBLE,
-    STRING,
-    TIMESTAMP,
-    TIMERANGE,
-  }
-
-  public Symbol(String name, SymbolType type) {
+  public Symbol(String name, Type type) {
     mName = name;
     mType = type;
   }
@@ -31,7 +20,7 @@ public class Symbol {
     return mName;
   }
 
-  public SymbolType getType() {
+  public Type getType() {
     return mType;
   }
 
@@ -49,7 +38,7 @@ public class Symbol {
     }
 
     Symbol sym = (Symbol) other;
-    return mName.equals(sym.mName);
+    return mName.equals(sym.mName) && mType.equals(sym.mType);
   }
 
   @Override

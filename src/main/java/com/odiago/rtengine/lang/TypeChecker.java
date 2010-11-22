@@ -43,10 +43,12 @@ public class TypeChecker extends Visitor {
     Symbol symbol = symtab.resolve(name);
     if (null == symbol) {
       throw new TypeCheckException("No such identifier: " + name);
-    } else if (symbol.getType() != Symbol.SymbolType.STREAM) {
+    } else if (symbol.getType().getTypeName() != Type.TypeName.STREAM) {
       throw new TypeCheckException("Identifier " + name + " is not a stream (type="
           + symbol.getType());
     }
+
+    // TODO: Add a new symbol table layer containing the named stream's symbols.
   }
 
   @Override
