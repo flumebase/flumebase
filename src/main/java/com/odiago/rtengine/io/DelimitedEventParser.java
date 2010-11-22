@@ -8,6 +8,9 @@ import java.util.ArrayList;
 
 import org.apache.avro.util.Utf8;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.cloudera.flume.core.Event;
 
 import com.odiago.rtengine.lang.NullableType;
@@ -19,6 +22,9 @@ import com.odiago.rtengine.lang.Type;
  * this does not support any enclosed- or escaped-by characters.
  */
 public class DelimitedEventParser extends EventParser {
+
+  private static final Logger LOG = LoggerFactory.getLogger(
+      DelimitedEventParser.class.getName());
 
   /** The event we're processing. */
   private Event mEvent;
@@ -69,6 +75,7 @@ public class DelimitedEventParser extends EventParser {
     mAsUtf8 = new Utf8(mEvent.getBody());
     mAsCharacters = null;
     mIndex = 0;
+    mCurField = 0;
     mColTexts.clear();
     mColumnValues.clear();
     mColumnNulls.clear();
@@ -131,6 +138,10 @@ public class DelimitedEventParser extends EventParser {
       if (start >= mAsCharacters.length) {
         // We don't have any more fields we can parse. If we need to read
         // more fields, then this is an error; the event is too short.
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Not enough fields: mCurField=" + mCurField + " and no more string left");
+        }
+
         throw new ColumnParseException("Not enough fields");
       }
 
@@ -150,6 +161,7 @@ public class DelimitedEventParser extends EventParser {
 
       mColTexts.add(cbField); // Always add fields to the end of the list.
       mCurField++; // We've added another field.
+      mIndex++; // Advance past the delimiter character.
     }
 
     // We have separated enough fields; this one's text is cached. Parse its
@@ -165,6 +177,13 @@ public class DelimitedEventParser extends EventParser {
   private Object parseAndCache(CharBuffer chars, int colIdx, Type expectedType)
       throws ColumnParseException {
     Type.TypeName primitiveTypeName = expectedType.getTypeName();
+
+    String debugInputString = null;
+    if (LOG.isDebugEnabled()) {
+      // Save this for the end. This method may consume the chars object,
+      // so we need to do this up-front.
+      debugInputString = chars.toString();
+    }
 
     if (expectedType.isNullable()) {
       // TODO: Should nullables store the nullable type name as the base so that
@@ -218,8 +237,12 @@ public class DelimitedEventParser extends EventParser {
 
     // Now add this parsed value to the end of the list. Sets its null bit appropriately.
     mColumnValues.add(out);
-    mColumnValues.add(Boolean.valueOf(out == null));
+    mColumnNulls.add(Boolean.valueOf(out == null));
 
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Parsed string [" + debugInputString + "] with expected type ["
+          + expectedType + "] for column idx=" + colIdx + "; result is [" + out + "]"); 
+    }
     return out;
   }
 

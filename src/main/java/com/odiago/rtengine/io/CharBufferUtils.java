@@ -4,16 +4,22 @@ package com.odiago.rtengine.io;
 
 import java.nio.CharBuffer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Utility methods for parsing string-based values without
  * requiring that they be incorporated into a String object.
  */
 public class CharBufferUtils {
 
-  private CharBufferUtils() { }
+  private static final Logger LOG = LoggerFactory.getLogger(
+      CharBufferUtils.class.getName());
 
   private static final String TRUE_STR = "true";
   private static final String FALSE_STR = "false";
+
+  private CharBufferUtils() { }
 
   /**
    * Parse a CharSequence into a bool. Only the case-sensitive values
@@ -22,9 +28,12 @@ public class CharBufferUtils {
   public static boolean parseBool(CharSequence chars) throws ColumnParseException {
     if (TRUE_STR.contentEquals(chars)) {
       return true;
-    } else if (FALSE_STR.contentEquals("chars")) {
+    } else if (FALSE_STR.contentEquals(chars)) {
       return false;
     } else {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Could not parse as boolean: " + chars);
+      }
       throw new ColumnParseException("Invalid boolean");
     }
   }
@@ -35,27 +44,34 @@ public class CharBufferUtils {
   public static int parseInt(CharBuffer chars) throws ColumnParseException {
     int result = 0;
     
-    final int len = chars.length();
+    final int limit = chars.limit();
     final int start = chars.position();
+    if (0 == limit - start) {
+      // The empty string can not be parsed as an integer.
+      throw new ColumnParseException("No value provided");
+    }
+    
     boolean isNegative = false;
-    for (int pos = start; pos < len; pos++) {
+    for (int pos = start; pos < limit; pos++) {
       char cur = chars.get();
       if (pos == start && cur == '-') {
         isNegative = true;
+        if (limit - start == 1) {
+          // "-" is not an integer we accept.
+          throw new ColumnParseException("No integer part provided");
+        }
       } else if (Character.isDigit(cur)) {
         byte digitVal = (byte)( cur - '0' );
-        result = result * 10 + digitVal;
-        if (isNegative) {
-          result = 0 - result; // Flip negative after first value added in.
-          isNegative = false; // Only process this once.
-        }
+        result = result * 10 - digitVal;
         // TODO: Detect over/underflow and signal exception?
       } else {
         throw new ColumnParseException("Invalid character in number");
       }
     }
 
-    return result;
+    // We built up the value as a negative, to use the larger "half" of the
+    // integer range. If it's not negative, flip it on return.
+    return isNegative ? result : -result;
   }
 
   /**
@@ -64,27 +80,34 @@ public class CharBufferUtils {
   public static long parseLong(CharBuffer chars) throws ColumnParseException {
     long result = 0L;
     
-    final int len = chars.length();
+    final int limit = chars.limit();
     final int start = chars.position();
+    if (0 == limit - start) {
+      // The empty string can not be parsed as an integer.
+      throw new ColumnParseException("No value provided");
+    }
+    
     boolean isNegative = false;
-    for (int pos = start; pos < len; pos++) {
+    for (int pos = start; pos < limit; pos++) {
       char cur = chars.get();
       if (pos == start && cur == '-') {
         isNegative = true;
+        if (limit - start == 1) {
+          // "-" is not an integer we accept.
+          throw new ColumnParseException("No integer part provided");
+        }
       } else if (Character.isDigit(cur)) {
         byte digitVal = (byte)( cur - '0' );
-        result = result * 10 + digitVal;
-        if (isNegative) {
-          result = 0 - result; // Flip negative after first value added in.
-          isNegative = false; // Only process this once.
-        }
+        result = result * 10 - digitVal;
         // TODO: Detect over/underflow and signal exception?
       } else {
         throw new ColumnParseException("Invalid character in number");
       }
     }
 
-    return result;
+    // We built up the value as a negative, to use the larger "half" of the
+    // integer range. If it's not negative, flip it on return.
+    return isNegative ? result : -result;
   }
 
   /**
@@ -110,7 +133,7 @@ public class CharBufferUtils {
   }
 
   public static String parseString(CharBuffer chars) throws ColumnParseException {
-    return new String(chars.array(), chars.position(), chars.length());
+    return chars.toString();
   }
 
 }
