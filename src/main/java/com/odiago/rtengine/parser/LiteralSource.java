@@ -2,8 +2,20 @@
 
 package com.odiago.rtengine.parser;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.avro.Schema;
+
+import com.odiago.rtengine.exec.HashSymbolTable;
+import com.odiago.rtengine.exec.StreamSymbol;
+import com.odiago.rtengine.exec.Symbol;
+import com.odiago.rtengine.exec.SymbolTable;
+
 import com.odiago.rtengine.plan.NamedSourceNode;
 import com.odiago.rtengine.plan.PlanContext;
+import com.odiago.rtengine.plan.PlanNode;
 
 /**
  * Specify a source for the FROM clause of a SELECT statement that
@@ -34,12 +46,38 @@ public class LiteralSource extends SQLStatement {
 
 
   @Override
-  public void createExecPlan(PlanContext planContext) {
+  public PlanContext createExecPlan(PlanContext planContext) {
     // The execution plan for a literal source is to just open the resouce
     // specified by this abstract source, by looking up its parameters in
     // the symbol table at plan resolution time.
 
-    planContext.getFlowSpec().addRoot(new NamedSourceNode(mSourceName));
+    // The output PlanContext contains a new symbol table defining the fields
+    // of this source.
+
+    PlanContext outContext = new PlanContext(planContext);
+    SymbolTable inTable = planContext.getSymbolTable();
+    SymbolTable outTable = new HashSymbolTable(inTable);
+    outContext.setSymbolTable(outTable);
+
+    // Guaranteed to be a non-null StreamSymbol by the typechecker.
+    StreamSymbol streamSym = (StreamSymbol) inTable.resolve(mSourceName);
+    List<TypedField> fields = streamSym.getFields();
+    Set<String> fieldNames = new HashSet<String>();
+    for (TypedField field : fields) {
+      outTable.addSymbol(new Symbol(field.getName(), field.getType()));
+      fieldNames.add(field.getName());
+    }
+
+    PlanNode node = new NamedSourceNode(mSourceName, fields);
+    planContext.getFlowSpec().addRoot(node);
+
+    // Create an Avro output schema for this node, specifying all the fields
+    // we can emit.
+    Schema outSchema = createFieldSchema(fieldNames, outTable);
+    outContext.setSchema(outSchema);
+    node.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, outSchema);
+
+    return outContext;
   }
 }
 

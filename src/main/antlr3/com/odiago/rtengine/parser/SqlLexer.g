@@ -11,15 +11,24 @@ options {
   package com.odiago.rtengine.parser;
 }
 
+BIGINT : B I G I N T ;
+BOOLEAN : B O O L E A N ;
 CREATE : C R E A T E ;
 DESCRIBE : D E S C R I B E ;
+DOUBLE : D O U B L E ;
 EXPLAIN : E X P L A I N ;
 FILE : F I L E ;
+FLOAT : F L O A T ;
 FROM : F R O M ;
+INT_KW : I N T ;
 LOCAL : L O C A L ;
+NOT : N O T ;
+NULL : N U L L ;
 SELECT : S E L E C T ;
 SOURCE : S O U R C E ;
 STREAM : S T R E A M ;
+STRING_KW : S T R I N G ;
+TIMESTAMP : T I M E S T A M P ;
 WHERE : W H E R E ;
 
 ID  : ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'0'..'9'|'_')*

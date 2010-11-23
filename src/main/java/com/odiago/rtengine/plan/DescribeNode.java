@@ -20,5 +20,7 @@ public class DescribeNode extends PlanNode {
   public void formatParams(StringBuilder sb) {
     sb.append("Describe id=");
     sb.append(mIdentifier);
+    sb.append("\n");
+    formatAttributes(sb);
   }
 }

@@ -43,8 +43,10 @@ import com.odiago.rtengine.parser.SQLStatement;
 
 import com.odiago.rtengine.plan.FlowSpecification;
 import com.odiago.rtengine.plan.PlanContext;
+import com.odiago.rtengine.plan.PropagateSchemas;
 
 import com.odiago.rtengine.util.DAG;
+import com.odiago.rtengine.util.DAGOperatorException;
 
 /**
  * Standalone local execution environment for flows.
@@ -104,57 +106,74 @@ public class LocalEnvironment extends ExecEnvironment {
       mAllFlowQueues = new ArrayList<AbstractQueue<PendingEvent>>();
     }
 
-    private void deployFlow(LocalFlow newFlow) {
+    private void deployFlow(LocalFlow newFlow) throws IOException, InterruptedException {
       // Open all FlowElements in the flow, in reverse bfs order
       // (so sinks are always ready before sources). Add the output
       // queue(s) from the FlowElement to the set of output queues
       // we monitor for further event processing.
-      newFlow.reverseBfs(new DAG.Operator<FlowElementNode>() {
-        public void process(FlowElementNode elemNode) {
-          FlowElement flowElem = elemNode.getFlowElement();
+      try {
+        newFlow.reverseBfs(new DAG.Operator<FlowElementNode>() {
+          public void process(FlowElementNode elemNode) throws DAGOperatorException {
+            FlowElement flowElem = elemNode.getFlowElement();
 
-          // All FlowElements that we see will have LocalContext subclass contexts.
-          // Get the output queue from this.
-          LocalContext elemContext = (LocalContext) flowElem.getContext();
-          elemContext.initControlQueue(mControlQueue);
-          mAllFlowQueues.add(elemContext.getPendingEventQueue());
+            // All FlowElements that we see will have LocalContext subclass contexts.
+            // Get the output queue from this.
+            LocalContext elemContext = (LocalContext) flowElem.getContext();
+            elemContext.initControlQueue(mControlQueue);
+            mAllFlowQueues.add(elemContext.getPendingEventQueue());
 
-          try {
-            flowElem.open();
-          } catch (IOException ioe) {
-            // TODO(aaron): Do something more drastic to prevent the flow from
-            // being deployed.
-            LOG.error("IOException when opening flow element: " + ioe);
-          } catch (InterruptedException ie) {
-            // TODO(aaron): Do something more drastic to prevent the flow from
-            // being deployed.
-            LOG.error("InterruptedException when opening flow element: " + ie);
+            try {
+              flowElem.open();
+            } catch (IOException ioe) {
+              throw new DAGOperatorException(ioe);
+            } catch (InterruptedException ie) {
+              throw new DAGOperatorException(ie);
+            }
           }
+        });
+      } catch (DAGOperatorException doe) {
+        // This is a wrapper exception; unpack and rethrow with the appropriate type.
+        Throwable cause  = doe.getCause();
+        if (cause instanceof IOException) {
+          throw (IOException) cause;
+        } else if (cause instanceof InterruptedException) {
+          throw (InterruptedException) cause;
+        } else {
+          // Don't know how we got here. In any case, do not consider this
+          // flow active.
+          LOG.error("Unexpected DAG exception: " + doe);
+          return;
         }
-      });
+      }
+
       mActiveFlows.put(newFlow.getId(), newFlow);
     }
 
     private void cancelFlowInner(LocalFlow flow) {
       // Close all FlowElements in the flow, and remove their output queues
       // from the set of queues we track.
-      flow.bfs(new DAG.Operator<FlowElementNode>() {
-        public void process(FlowElementNode elemNode) {
-          FlowElement flowElem = elemNode.getFlowElement();
-          try {
-            flowElem.close();
-          } catch (IOException ioe) {
-            LOG.error("IOException when closing flow element: " + ioe);
-          } catch (InterruptedException ie) {
-            LOG.error("InterruptedException when closing flow element: " + ie);
-          }
+      try {
+        flow.bfs(new DAG.Operator<FlowElementNode>() {
+          public void process(FlowElementNode elemNode) {
+            FlowElement flowElem = elemNode.getFlowElement();
+            try {
+              flowElem.close();
+            } catch (IOException ioe) {
+              LOG.error("IOException when closing flow element: " + ioe);
+            } catch (InterruptedException ie) {
+              LOG.error("InterruptedException when closing flow element: " + ie);
+            }
 
-          // All FlowElements that we see will have LocalContext subclass contexts.
-          // Get the output queue from this, and remove it from the tracking set.
-          LocalContext elemContext = (LocalContext) flowElem.getContext();
-          mAllFlowQueues.remove(elemContext.getPendingEventQueue());
-        }
-      });
+            // All FlowElements that we see will have LocalContext subclass contexts.
+            // Get the output queue from this, and remove it from the tracking set.
+            LocalContext elemContext = (LocalContext) flowElem.getContext();
+            mAllFlowQueues.remove(elemContext.getPendingEventQueue());
+          }
+        });
+      } catch (DAGOperatorException doe) {
+        // Shouldn't get here with this operator.
+        LOG.error("Unexpected dag op exn: " + doe);
+      }
     }
 
     private void cancelFlow(FlowId id) {
@@ -205,7 +224,11 @@ public class LocalEnvironment extends ExecEnvironment {
             switch (nextOp.getOpCode()) {
             case AddFlow:
               LocalFlow newFlow = (LocalFlow) nextOp.getDatum();
-              deployFlow(newFlow);
+              try {
+                deployFlow(newFlow);
+              } catch (Exception e) {
+                LOG.error("Exception deploying flow: " + e);
+              }
               break;
             case CancelFlow:
               FlowId cancelId = (FlowId) nextOp.getDatum();
@@ -362,14 +385,29 @@ public class LocalEnvironment extends ExecEnvironment {
 
       stmt.accept(new TypeChecker(mRootSymbolTable));
       PlanContext planContext = new PlanContext();
-      stmt.createExecPlan(planContext);
-      FlowSpecification spec = planContext.getFlowSpec();
-      msgBuilder.append(planContext.getMsgBuilder().toString());
-      flowId = addFlow(spec);
+      planContext.setSymbolTable(mRootSymbolTable);
+      PlanContext retContext = stmt.createExecPlan(planContext);
+      msgBuilder.append(retContext.getMsgBuilder().toString());
+      FlowSpecification spec = retContext.getFlowSpec();
+      if (null != spec) {
+        // Given a flow specification from the AST, run it through
+        // necessary post-processing and optimization phases.
+        spec.bfs(new PropagateSchemas());
+        if (retContext.isExplain()) {
+          // We just should explain this flow, but not actually add it.
+          msgBuilder.append("Execution plan:\n");
+          msgBuilder.append(spec.toString());
+          msgBuilder.append("\n");
+        } else {
+          flowId = addFlow(spec);
+        }
+      }
     } catch (VisitException ve) {
       msgBuilder.append("Error processing command: " + ve.getMessage());
     } catch (RecognitionException re) {
       msgBuilder.append("Error parsing command: " + re.getMessage());
+    } catch (DAGOperatorException doe) {
+      msgBuilder.append("Error processing plan: " + doe.getMessage());
     }
 
     return new QuerySubmitResponse(msgBuilder.toString(), flowId);
@@ -381,7 +419,15 @@ public class LocalEnvironment extends ExecEnvironment {
       // Turn the specification into a physical plan and run it.
       FlowId flowId = new FlowId(mNextFlowId++);
       LocalFlowBuilder flowBuilder = new LocalFlowBuilder(flowId, mRootSymbolTable, mFlumeConfig);
-      spec.reverseBfs(flowBuilder);
+      try {
+        spec.reverseBfs(flowBuilder);
+      } catch (DAGOperatorException doe) {
+        // An exception occurred when creating the physical plan.
+        // LocalFlowBuilder put a message for the user in here; print it
+        // without a stack trace. The flow cannot be executed.
+        LOG.error(doe.getMessage());
+        return null;
+      }
       LocalFlow localFlow = flowBuilder.getLocalFlow();
       if (localFlow.getRootSet().size() == 0) {
         // No nodes created (empty flow, or DDL-only flow, etc.)

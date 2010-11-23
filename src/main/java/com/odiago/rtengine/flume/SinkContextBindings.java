@@ -19,11 +19,11 @@ public final class SinkContextBindings {
   /** The singleton instance of this. */
   private static SinkContextBindings mBindings;
 
-  /** The actual mapping of names to FlowElementContexts. */
-  private Map<String, FlowElementContext> mContextMap;
+  /** The actual mapping of names to SinkContexts. */
+  private Map<String, SinkContext> mContextMap;
 
   private SinkContextBindings() {
-    mContextMap = new HashMap<String, FlowElementContext>();
+    mContextMap = new HashMap<String, SinkContext>();
   }
 
   public static SinkContextBindings get() {
@@ -35,17 +35,17 @@ public final class SinkContextBindings {
   }
 
   /**
-   * Look up and return the FlowElementContext associated with a string id.
-   * @returns the FlowElementContext for name, or null if name is not mapped.
+   * Look up and return the SinkContext associated with a string id.
+   * @returns the SinkContext for name, or null if name is not mapped.
    */
-  public FlowElementContext getContext(String name) {
+  public SinkContext getContext(String name) {
     return mContextMap.get(name);
   }
 
   /**
-   * Bind a name to a specific FlowElementContext for later retrieval.
+   * Bind a name to a specific SinkContext for later retrieval.
    */
-  public void bindContext(String name, FlowElementContext context) {
+  public void bindContext(String name, SinkContext context) {
     mContextMap.put(name, context);
   }
 

@@ -26,12 +26,11 @@ public class ExplainStmt extends SQLStatement {
   }
 
   @Override
-  public void createExecPlan(PlanContext planContext) {
+  public PlanContext createExecPlan(PlanContext planContext) {
     // If we're visiting an EXPLAIN statement, then we don't actually
     // want to execute a flow specification. So we create it via
-    // the usual visit sequence, but then we construct a string representation
-    // of it, pack that in the message, and discard the actual flow specification
-    // to prevent its execution.
+    // the usual visit sequence, but then we set a flag telling the caller
+    // to construct a string representation of it rather than execute it.
 
     getChildStmt().createExecPlan(planContext);
 
@@ -39,11 +38,10 @@ public class ExplainStmt extends SQLStatement {
     sb.append("Parse tree:\n");
     getChildStmt().format(sb, 0);
     sb.append("\n");
-    sb.append("Execution plan:\n");
-    sb.append(planContext.getFlowSpec().toString());
-    sb.append("\n");
 
-    planContext.setFlowSpec(null); // discard flow spec after reifying to string.
+    PlanContext retContext = new PlanContext(planContext);
+    retContext.setExplain(true);
+    return retContext;
   }
 }
 

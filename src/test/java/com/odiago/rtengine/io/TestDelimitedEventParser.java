@@ -2,6 +2,8 @@
 
 package com.odiago.rtengine.io;
 
+import org.junit.Test;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,9 +12,9 @@ import com.cloudera.flume.core.EventImpl;
 
 import com.odiago.rtengine.lang.Type;
 
-import junit.framework.TestCase;
+import static junit.framework.Assert.*;
 
-public class TestDelimitedEventParser extends TestCase {
+public class TestDelimitedEventParser {
   private static final Logger LOG = LoggerFactory.getLogger(
       TestDelimitedEventParser.class.getName());
 
@@ -21,6 +23,7 @@ public class TestDelimitedEventParser extends TestCase {
     return event;
   }
 
+  @Test
   public void testEmpty() throws Exception {
     Event e = makeEvent("");
     DelimitedEventParser ep = new DelimitedEventParser();
@@ -34,6 +37,7 @@ public class TestDelimitedEventParser extends TestCase {
     }
   }
 
+  @Test
   public void testSingleCol() throws Exception {
     Event e = makeEvent("42");
     DelimitedEventParser ep = new DelimitedEventParser();
@@ -60,6 +64,7 @@ public class TestDelimitedEventParser extends TestCase {
     }
   }
 
+  @Test
   public void testMultiCols() throws Exception {
     Event e = makeEvent("1,2,3,4");
     DelimitedEventParser ep = new DelimitedEventParser();

@@ -4,9 +4,15 @@ package com.odiago.rtengine.flume;
 
 import java.io.IOException;
 
+import java.util.List;
+
+import org.apache.avro.Schema;
+
 import org.apache.thrift.TException;
 
 import com.odiago.rtengine.exec.FlowElementContext;
+
+import com.odiago.rtengine.parser.TypedField;
 
 /**
  * Container that launches an embedded Flume physical node and hosts
@@ -30,6 +36,12 @@ public class EmbeddedNode {
   /** Flume instruction for where to source the data from for this node. */
   private String mDataSource;
 
+  /** Schema for records emitted by this node. */
+  private Schema mOutputSchema;
+
+  /** List of fields and types emitted by this node. */
+  private List<TypedField> mFieldTypes;
+
   /**
    * Create a single embedded node instance.
    * @param flowSourceId - the flowId and source name within the flow being fulfilled.
@@ -38,18 +50,22 @@ public class EmbeddedNode {
    * @param dataSource - the Flume 'source' argument for the logical node.
    */
   public EmbeddedNode(String flowSourceId, FlowElementContext flowContext,
-      EmbeddedFlumeConfig flumeConfig, String dataSource) {
+      EmbeddedFlumeConfig flumeConfig, String dataSource, Schema outputSchema,
+      List<TypedField> fieldTypes) {
     mFlowSourceId = flowSourceId;
     mFlowElemContext = flowContext;
     mFlumeConfig = flumeConfig;
     mDataSource = dataSource;
+    mOutputSchema = outputSchema;
+    mFieldTypes = fieldTypes;
   }
 
   /**
    * Start the embedded node instance.
    */
   public void open() throws IOException {
-    SinkContextBindings.get().bindContext(mFlowSourceId, mFlowElemContext);
+    SinkContextBindings.get().bindContext(mFlowSourceId,
+        new SinkContext(mFlowElemContext, mOutputSchema, mFieldTypes));
     try {
       mFlumeConfig.createFlowSink(mFlowSourceId, mDataSource);
     } catch (TException te) {

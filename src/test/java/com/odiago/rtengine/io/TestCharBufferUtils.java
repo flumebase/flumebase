@@ -4,13 +4,16 @@ package com.odiago.rtengine.io;
 
 import java.nio.CharBuffer;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-public class TestCharBufferUtils extends TestCase {
+import static junit.framework.Assert.*;
+
+public class TestCharBufferUtils {
   private CharBuffer makeCharBuffer(String text) {
     return CharBuffer.wrap(text.toCharArray());
   }
 
+  @Test
   public void testBooleans() throws Exception {
     boolean result = CharBufferUtils.parseBool("true");
     assertEquals(true, result);
@@ -28,6 +31,7 @@ public class TestCharBufferUtils extends TestCase {
     }
   }
 
+  @Test
   public void testInts() throws Exception {
     int result = CharBufferUtils.parseInt(makeCharBuffer("42"));
     assertEquals(42, result);

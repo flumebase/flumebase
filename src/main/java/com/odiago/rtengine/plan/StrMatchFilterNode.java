@@ -16,6 +16,8 @@ public class StrMatchFilterNode extends PlanNode {
   public void formatParams(StringBuilder sb) {
     sb.append("StrMatch text=");
     sb.append(mMatchStr);
+    sb.append("\n");
+    formatAttributes(sb);
   }
 
   public String getMatchString() {

@@ -18,12 +18,16 @@ public class CreateStreamStmt extends SQLStatement {
   /** True if this is a local fs file, or an embedded flume node. */
   private boolean mIsLocal;
 
+  /** Set of fields and types within each event in the stream. */
+  private TypedFieldList mFields;
+
   public CreateStreamStmt(String streamName, StreamSourceType srcType,
-      String sourceLocation, boolean isLocal) {
+      String sourceLocation, boolean isLocal, TypedFieldList fields) {
     mName = streamName;
     mType = srcType;
     mSrcLocation = sourceLocation;
     mIsLocal = isLocal;
+    mFields = fields;
   }
 
   @Override
@@ -38,15 +42,21 @@ public class CreateStreamStmt extends SQLStatement {
     sb.append("\", mIsLocal=");
     sb.append(mIsLocal);
     sb.append("\n");
+    for (TypedField field : mFields) {
+      pad(sb, depth + 2);
+      sb.append(field.toString());
+      sb.append("\n");
+    }
   }
 
   @Override
-  public void createExecPlan(PlanContext planContext) {
+  public PlanContext createExecPlan(PlanContext planContext) {
     // The execution plan for a CREATE STREAM statement is to
     // perform the DDL operation by itself and quit.
 
     planContext.getFlowSpec().addRoot(new CreateStreamNode(mName,
-        mType, mSrcLocation, mIsLocal));
+        mType, mSrcLocation, mIsLocal, mFields));
+    return planContext;
   }
 }
 

@@ -2,9 +2,13 @@
 
 package com.odiago.rtengine.exec;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.odiago.rtengine.lang.StreamType;
 
 import com.odiago.rtengine.parser.StreamSourceType;
+import com.odiago.rtengine.parser.TypedField;
 
 import com.odiago.rtengine.plan.CreateStreamNode;
 
@@ -22,21 +26,32 @@ public class StreamSymbol extends Symbol {
   /** The source of the stream (a file, a Flume EventSource, etc.) */
   private final StreamSourceType mStreamType;
 
+  private final List<TypedField> mFieldTypes;
+
   /** Initialize all parameters of a stream symbol explicitly. */
   public StreamSymbol(String name, StreamSourceType type, String source, boolean isLocal) {
-    // TODO: Take in the column definitions and produce a more accurate StreamType.
     super(name, StreamType.getEmptyStreamType());
     mSource = source;
     mStreamType = type;
     mIsLocal = isLocal;
+    mFieldTypes = new ArrayList<TypedField>();
   }
 
   /** Initialize a stream symbol from the logical plan node for a CREATE STREAM operation. */
   public StreamSymbol(CreateStreamNode createNode) {
-    super(createNode.getName(), StreamType.getEmptyStreamType());
+    super(createNode.getName(), new StreamType(createNode.getFieldsAsTypes()));
     mSource = createNode.getSource();
     mIsLocal = createNode.isLocal();
     mStreamType = createNode.getType();
+    mFieldTypes = new ArrayList<TypedField>(createNode.getFields());
+  }
+
+  /**
+   * @return a set of TypedFields declaring the names and types of all fields.
+   * The objects in this list should not be modified by the client.
+   */
+  public List<TypedField> getFields() {
+    return mFieldTypes;
   }
 
   public String getSource() {
@@ -66,7 +81,13 @@ public class StreamSymbol extends Symbol {
     sb.append(mSource);
     sb.append("\n");
     if (mIsLocal) {
-      sb.append("  local");
+      sb.append("  local\n");
+    }
+    sb.append("  fields:\n");
+    for (TypedField field : mFieldTypes) {
+      sb.append("    ");
+      sb.append(field);
+      sb.append("\n");
     }
 
     return sb.toString();

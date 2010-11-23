@@ -5,6 +5,11 @@ package com.odiago.rtengine.lang;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.avro.Schema;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Defines a static or runtime type within the rtsql
  * language. Complex types may be defined in subclasses of this
@@ -14,6 +19,8 @@ import java.util.Map;
  * </p>
  */
 public class Type {
+
+  private static final Logger LOG = LoggerFactory.getLogger(Type.class.getName());
 
   /**
    * Every type in rtsql has a name specified here.
@@ -105,6 +112,34 @@ public class Type {
   /** @return true if this is a primitive type (Non-recursive) */
   public boolean isPrimitive() {
     return true;
+  }
+
+  /** @return an Avro schema describing this type. */
+  public Schema getAvroSchema() {
+    return getAvroSchema(mTypeName);
+  }
+
+  /** @return an Avro schema describing the specified TypeName. */
+  protected Schema getAvroSchema(TypeName typeName) { 
+    switch (typeName) {
+    case BOOLEAN:
+      return Schema.create(Schema.Type.BOOLEAN);
+    case INT:
+      return Schema.create(Schema.Type.INT);
+    case BIGINT:
+      return Schema.create(Schema.Type.LONG);
+    case FLOAT:
+      return Schema.create(Schema.Type.FLOAT);
+    case DOUBLE:
+      return Schema.create(Schema.Type.DOUBLE);
+    case STRING:
+      return Schema.create(Schema.Type.STRING);
+    case TIMESPAN: // TODO(aaron): Schema for this type.
+    case TIMESTAMP: // TODO(aaron): Schema for this type.
+    default:
+      LOG.error("Cannot create avro schema for type: " + toString());
+      return null;
+    }
   }
 
   @Override

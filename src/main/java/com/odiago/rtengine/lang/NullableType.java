@@ -2,6 +2,10 @@
 
 package com.odiago.rtengine.lang;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.avro.Schema;
 
 /**
  * Represents a nullable instance of a type (e.g. "INT" vs. "INT NOT NULL").
@@ -29,8 +33,17 @@ public class NullableType extends Type {
   }
 
   @Override
+  public Schema getAvroSchema() {
+    // Our schema is a union of our ordinary type, or null.
+    List<Schema> unionTypes = new ArrayList<Schema>();
+    unionTypes.add(getAvroSchema(mNullableType));
+    unionTypes.add(Schema.create(Schema.Type.NULL));
+    return Schema.createUnion(unionTypes);
+  }
+
+  @Override
   public String toString() {
-    return "NULLABLE " + super.toString();
+    return "NULLABLE " + mNullableType;
   }
 
   @Override

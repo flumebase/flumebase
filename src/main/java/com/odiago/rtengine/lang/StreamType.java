@@ -5,10 +5,19 @@ package com.odiago.rtengine.lang;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.avro.Schema;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.odiago.rtengine.util.StringUtils;
+
 /**
  * Type that defines a stream.
  */
 public class StreamType extends Type {
+  private static final Logger LOG = LoggerFactory.getLogger(StreamType.class.getName());
+
   /** The types associated with each column. */
   private List<Type> mColumnTypes;
 
@@ -50,17 +59,21 @@ public class StreamType extends Type {
   }
 
   @Override
+  public Schema getAvroSchema() {
+    // TODO(aaron): Would be good to create avro schemas for the whole stream, for
+    // completeness' sake (not currently required here).
+    // Note that since we do not have the field names, we cannot create a proper
+    // record schema in here. For an example of creating a schema for a set of fields,
+    // see SelectStmt.createFieldSchema().
+    LOG.error("StreamType.getAvroSchema() -- not implemented!");
+    return null;
+  }
+
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("STREAM(");
-    boolean isFirst = true;
-    for (Type t : mColumnTypes) {
-      if (!isFirst) {
-        sb.append(", ");
-      }
-      sb.append(t.toString());
-      isFirst = false;
-    }
+    StringUtils.formatList(sb, mColumnTypes);
     sb.append(")");
     return sb.toString();
   }

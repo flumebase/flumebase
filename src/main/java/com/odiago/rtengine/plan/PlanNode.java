@@ -12,6 +12,18 @@ import com.odiago.rtengine.util.DAGNode;
  */
 public class PlanNode extends DAGNode<PlanNode> {
 
+  /**
+   * Attribute referencing a Schema describing the set of input fields
+   * to this node in the plan. 
+   */
+  public static final String INPUT_SCHEMA_ATTR = "input.field.schema";
+
+  /**
+   * Attribute referencing a Schema describing the set of output fields
+   * from this node in the plan. 
+   */
+  public static final String OUTPUT_SCHEMA_ATTR = "output.field.schema";
+
   /** Free-form attribute map which can be used by operators when working on
    * transforming the graph, etc.
    */
@@ -38,5 +50,23 @@ public class PlanNode extends DAGNode<PlanNode> {
    */
   public Object getAttr(String attrName) {
     return mAttributes.get(attrName);
+  }
+
+  /** Format all free-form attributes of the node into the specified StringBuilder. */
+  public void formatAttributes(StringBuilder sb) {
+    for (Map.Entry<String, Object> attr : mAttributes.entrySet()) {
+      sb.append("  ");
+      sb.append(attr.getKey());
+      sb.append(" : ");
+      sb.append(attr.getValue());
+      sb.append("\n");
+    }
+  }
+
+  protected void formatParams(StringBuilder sb) {
+    sb.append("(");
+    sb.append(getClass().getName());
+    sb.append(")\n");
+    formatAttributes(sb);
   }
 }

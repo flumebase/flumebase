@@ -18,6 +18,12 @@ public class DAGNode<NODETYPE extends DAGNode> {
   /** node id within the graph. */
   private int mId;
 
+  /**
+   * Bit set to 'true' if the current traversal operator has seen
+   * this node already.
+   */
+  private boolean mSeen;
+
   public DAGNode(int id) {
     mId = id;
     mInputs = new ArrayList<NODETYPE>();
@@ -67,13 +73,28 @@ public class DAGNode<NODETYPE extends DAGNode> {
     mId = id;
   }
 
+  /** Mark this node as seen by the current bfs/dfs/etc operator. */
+  void markSeen() {
+    mSeen = true;
+  }
+
+  /** Reset the mark in between operators. */
+  void clearSeen() {
+    mSeen = false;
+  }
+
+  /** @return true if the current traversal operator has seen this node already. */
+  boolean isSeen() {
+    return mSeen;
+  }
+
   /**
    * Format the node type and its parameters into the specified StringBuilder.
    */ 
   protected void formatParams(StringBuilder sb) {
     sb.append("(");
     sb.append(getClass().getName());
-    sb.append(")");
+    sb.append(")\n");
   }
 
 
@@ -89,7 +110,6 @@ public class DAGNode<NODETYPE extends DAGNode> {
     sb.append(idStr);
     sb.append(": ");
     formatParams(sb);
-    sb.append("\n");
     
     formatGraphConnections(sb, "inputs", getParents(), idStr.length() + 2);
     formatGraphConnections(sb, "outputs", getChildren(), idStr.length() + 2);

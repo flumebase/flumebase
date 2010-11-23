@@ -1,10 +1,24 @@
 
 
+
 Bugs:
   - Flume is super-chatty when you start it up locally. We should squash its logs,
     unless we're in debug mode.
 
-  - We have no tests. This is hugely problematic.
+  - We have no automated end-to-end tests. This is hugely problematic.
+  - Quitting is very slow due to the Flume shutdown. Can we improve this?
+    ... it also emits a scary looking error message, that we should suppress for
+    hygeine's sake.
+
+  - log4j.properties under src/test/resources/ should really go to a per-test file,
+    not stdout/err.
+
+
+  - The following operates in a weird way:
+      CREATE STREAM foo (a STRING NOT NULL) FROM LOCAL SOURCE "text(\"/var/log/messages\")";
+      SELECT a FROM foo;
+
+    ... Message bodies seem to be cut off here. Why?
 
 Features:
 
@@ -14,4 +28,14 @@ Features:
   - Need SHOW FLOWS operation
   - Need SHOW STREAMS, DROP STREAM
   - Need ability to auto-connect to a remote Flume resource.
+
+  - Need to pick different delimiters for DelimitedEventParser.
+  - Need to pick different EventParser implementations for different streams.
+
+Optimizations:
+
+  - ProjectionNode instances with identical input and output schemata should be removed.
+  - ProjectionNode immediately after NamedSource should be fused.
+  -- longer term: projection (and filtering) should be pushed up into previous
+     FlowElements, when we use DAG tiling.
 

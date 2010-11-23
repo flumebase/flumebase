@@ -2,6 +2,11 @@
 
 package com.odiago.rtengine.plan;
 
+import org.apache.avro.Schema;
+
+import com.odiago.rtengine.exec.HashSymbolTable;
+import com.odiago.rtengine.exec.SymbolTable;
+
 /**
  * Container for state associated with the plan-formation process
  * when operating over the statement AST.
@@ -13,6 +18,21 @@ public class PlanContext {
   /** The DAG we are forming to plan this query. */
   private FlowSpecification mFlowSpec;
 
+  /** The symbol table for the current context. */
+  private SymbolTable mSymTable;
+
+  /** The schema describing the fields of a stage of processing.
+   * This is the input schema when a PlanContext is used as the argument to
+   * createExecPlan(); as a return value, this describes the output schema.
+   */
+  private Schema mSchema;
+
+  /**
+   * Set to true if we should explain the plan after it is all fully-processed,
+   * but not actually execute it.
+   */
+  private boolean mIsExplain;
+
   /**
    * True if we are building the 'root' FlowSpecification; false if we are
    * building a FlowSpecification intended to be incorporated into a larger
@@ -23,13 +43,19 @@ public class PlanContext {
   public PlanContext() {
     mMsgBuilder = new StringBuilder();
     mFlowSpec = new FlowSpecification();
+    mSymTable = new HashSymbolTable();
     mIsRoot = true;
+    mSchema = null;
+    mIsExplain = false;
   }
 
-  public PlanContext(StringBuilder msgBuilder, FlowSpecification flowSpec, boolean isRoot) {
-    mMsgBuilder = msgBuilder;
-    mFlowSpec = flowSpec;
-    mIsRoot = isRoot;
+  public PlanContext(PlanContext other) {
+    mMsgBuilder = other.mMsgBuilder;
+    mFlowSpec = other.mFlowSpec;
+    mSymTable = other.mSymTable;
+    mIsRoot = other.mIsRoot;
+    mSchema = other.mSchema;
+    mIsExplain = other.mIsExplain;
   }
 
   public boolean isRoot() {
@@ -54,5 +80,29 @@ public class PlanContext {
 
   public void setFlowSpec(FlowSpecification flow) {
     mFlowSpec = flow;
+  }
+
+  public void setSymbolTable(SymbolTable t) {
+    mSymTable = t;
+  }
+
+  public SymbolTable getSymbolTable() {
+    return mSymTable;
+  }
+
+  public Schema getSchema() {
+    return mSchema;
+  }
+
+  public void setSchema(Schema s) {
+    mSchema = s;
+  }
+
+  public void setExplain(boolean explain) {
+    mIsExplain = explain;
+  }
+
+  public boolean isExplain() {
+    return mIsExplain;
   }
 }

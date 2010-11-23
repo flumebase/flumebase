@@ -11,6 +11,7 @@ import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
 
 import com.odiago.rtengine.exec.FlowElementContext;
+import com.odiago.rtengine.exec.ParsingFlowElementImpl;
 
 /**
  * EventSink that receives events from upstream in a Flume pipeline.
@@ -26,6 +27,19 @@ public class RtsqlSink extends EventSink.Base {
    */
   private String mContextSourceName;
 
+
+  /**
+   * An internal FlowElement we use to parse the incoming event into Avro
+   * records and dispatch internally.
+   */
+  private ParsingFlowElementImpl mParsingElement;
+
+  /**
+   * The container for all the state initialized elsewhere in the engine
+   * required for processing events at this sink.
+   */
+  private SinkContext mSinkContext;
+
   /**
    * The FlowElementContext for our containing "source" FlowElement;
    * where we insert events we receive from Flume.
@@ -40,10 +54,19 @@ public class RtsqlSink extends EventSink.Base {
   @Override
   public void open() throws IOException {
     LOG.info("Opening Flume sink for flow/source: " + mContextSourceName);
-    mWriteContext = SinkContextBindings.get().getContext(mContextSourceName);
-    if (null == mWriteContext) {
+    mSinkContext = SinkContextBindings.get().getContext(mContextSourceName);
+    if (null == mSinkContext) {
       throw new IOException("No context binding available for flow/source: "
           + mContextSourceName);
+    }
+    mWriteContext = mSinkContext.getFlowElementContext();
+    mParsingElement = new ParsingFlowElementImpl(mWriteContext,
+      mSinkContext.getOutputSchema(), mSinkContext.getFieldTypes());
+    try {
+      mParsingElement.open();
+    } catch (InterruptedException ie) {
+      // TODO - when flume lets us throw this naturally, just do so.
+      throw new IOException(ie);
     }
   }
 
@@ -58,7 +81,7 @@ public class RtsqlSink extends EventSink.Base {
       // TODO(aaron): In local mode, this appends to an unbounded queue. We should
       // ensure that we can apply some sort of backpressure by blocking if this
       // is actually getting out of hand.
-      mWriteContext.emit(e);
+      mParsingElement.takeEvent(e);
     } catch (InterruptedException ie) {
       // TODO(aaron): When Flume's api lets us throw InterruptedException, do so directly.
       throw new IOException(ie);
@@ -69,5 +92,13 @@ public class RtsqlSink extends EventSink.Base {
   @Override
   public void close() throws IOException {
     LOG.info("Closing Flume sink for flow/source: " + mContextSourceName);
+    try {
+      mParsingElement.close();
+    } catch (InterruptedException ie) {
+      throw new IOException(ie); // TODO(aaron): Throw this naturally when Flume allows.
+    }
+
+    mParsingElement = null;
+    mWriteContext = null;
   }
 }

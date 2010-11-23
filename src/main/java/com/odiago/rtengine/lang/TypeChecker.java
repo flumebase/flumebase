@@ -2,6 +2,8 @@
 
 package com.odiago.rtengine.lang;
 
+import com.odiago.rtengine.exec.HashSymbolTable;
+import com.odiago.rtengine.exec.StreamSymbol;
 import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
@@ -14,6 +16,7 @@ import com.odiago.rtengine.parser.FieldList;
 import com.odiago.rtengine.parser.LiteralSource;
 import com.odiago.rtengine.parser.SQLStatement;
 import com.odiago.rtengine.parser.SelectStmt;
+import com.odiago.rtengine.parser.TypedField;
 
 import com.odiago.rtengine.util.Stack;
 
@@ -48,30 +51,60 @@ public class TypeChecker extends Visitor {
           + symbol.getType());
     }
 
-    // TODO: Add a new symbol table layer containing the named stream's symbols.
+    StreamSymbol streamSym = (StreamSymbol) symbol;
+
+    // Add a new symbol table layer containing the named stream's symbols.
+    SymbolTable sourceTable = new HashSymbolTable(symtab);
+
+    for (TypedField field : streamSym.getFields()) {
+      String fieldName = field.getName();
+      sourceTable.addSymbol(new Symbol(fieldName, field.getType()));
+    }
+
+    // Push it on top of the stack.
+    mSymTableContext.push(sourceTable);
   }
 
   @Override
   protected void visit(SelectStmt s) throws VisitException {
-    FieldList fields = s.getFields();
-    if (!fields.isAllFields()) {
-      for (String fieldName : fields) {
-        // TODO(aaron) Check that this field is defined for one of the inputs.
-      }
-    }
-
     SQLStatement source = s.getSource();
     if (source instanceof SelectStmt || source instanceof LiteralSource) {
+      // This pushes a symbol table on the stack, declaring the fields of this source.
+      // Make sure we pop it on our way out.
       source.accept(this);
     } else {
       throw new TypeCheckException("Invalid source in FROM clause; this must be "
           + "an identifier, or a SELECT statement. Got " + source.getClass().getName());
     }
 
-    // TODO(aaron): Check the where clause for validity if it's nonnull.
-    // TODO(aaron): Create a new symbol table containing the fields defined in this
-    // SELECT statement and push that on top of symTableContext before checking the
-    // WHERE clause. Don't forget to pop it when we're done.
+    try {
+      SymbolTable fieldsSymTab = mSymTableContext.top();
+      FieldList fields = s.getFields();
+      if (!fields.isAllFields()) {
+        for (String fieldName : fields) {
+          // Check that this field is defined by one of the input sources.
+          // Since the source pushed a symbol table on the stack, just check
+          // that we have a symbol table, and that this is a primitive value.
+          Symbol fieldSym = fieldsSymTab.resolve(fieldName);
+          if (null == fieldSym) {
+            throw new TypeCheckException("No field \"" + fieldName + "\" in source");
+          }
+
+          Type fieldType = fieldSym.getType();
+          if (!fieldType.isPrimitive()) {
+            // This name refers to a stream or other complex object. We can't
+            // select that.
+            throw new TypeCheckException("Cannot select non-primitive entity \""
+                + fieldName + "\"");
+          }
+        }
+      }
+
+      // TODO(aaron): Check the where clause for validity if it's nonnull.
+    } finally {
+      // Pop the source's symbol table from the stack.
+      mSymTableContext.pop();
+    }
   }
 
   @Override

@@ -21,7 +21,7 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
    * An operator which should be applied to all elements of the DAG.
    */
   public abstract static class Operator<NODE extends DAGNode<NODE>> {
-    public abstract void process(NODE node);
+    public abstract void process(NODE node) throws DAGOperatorException;
   }
 
   /**
@@ -48,14 +48,18 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
    * Perform a breadth-first traversal over the flow specification,
    * applying the specified operator to each node.
    */
-  public void bfs(Operator op) {
+  public void bfs(Operator op) throws DAGOperatorException {
+    clearAllMarks();
     // Work queue for BFS.
     List<NODETYPE> work = new LinkedList<NODETYPE>();
     work.addAll(roots);
     while (!work.isEmpty()) {
       NODETYPE curNode = work.remove(0);
-      op.process(curNode);
-      work.addAll(curNode.getChildren());
+      if (!curNode.isSeen()) {
+        op.process(curNode);
+        work.addAll(curNode.getChildren());
+        curNode.markSeen();
+      }
     }
   }
 
@@ -63,14 +67,18 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
    * Perform a depth-first traversal over the flow specification,
    * applying the specified operator to each node.
    */
-  public void dfs(Operator op) {
+  public void dfs(Operator op) throws DAGOperatorException {
+    clearAllMarks();
     // Work stack for DFS.
     List<NODETYPE> work = new LinkedList<NODETYPE>();
     work.addAll(roots);
     while (!work.isEmpty()) {
       NODETYPE curNode = work.remove(work.size() - 1);
-      op.process(curNode);
-      work.addAll(curNode.getChildren());
+      if (!curNode.isSeen()) {
+        op.process(curNode);
+        work.addAll(curNode.getChildren());
+        curNode.markSeen();
+      }
     }
   }
 
@@ -79,13 +87,34 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
    * in the DAG and working backward toward the roots, applying the specified
    * operator to each node.
    */
-  public void reverseBfs(Operator op) {
+  public void reverseBfs(Operator op) throws DAGOperatorException {
     List<NODETYPE> work = new LinkedList<NODETYPE>();
     work.addAll(getLastLayer());
+    clearAllMarks();
     while (!work.isEmpty()) {
       NODETYPE curNode = work.remove(0);
-      op.process(curNode);
-      work.addAll(curNode.getParents());
+      if (!curNode.isSeen()) {
+        op.process(curNode);
+        work.addAll(curNode.getParents());
+        curNode.markSeen();
+      }
+    }
+  }
+
+  /**
+   * Clear all the seen bits in the current graph by using a separate
+   * special-purpose BFS traversal.
+   */
+  private void clearAllMarks() {
+    List<NODETYPE> work = new LinkedList<NODETYPE>();
+    work.addAll(getRootSet());
+    while (!work.isEmpty()) {
+      NODETYPE curNode = work.remove(0);
+      if (curNode.isSeen()) {
+        // clear this mark bit.
+        curNode.clearSeen();
+        work.addAll(curNode.getChildren());
+      }
     }
   }
 
@@ -98,14 +127,18 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
 
     // Execute an operator over all nodes; gather a list of all
     // nodes which do not have children.
-    bfs(new Operator<NODETYPE>() {
-      @Override
-      public void process(NODETYPE node) {
-        if (node.getChildren().size() == 0) {
-          lastLayer.add(node);
+    try {
+      bfs(new Operator<NODETYPE>() {
+        @Override
+        public void process(NODETYPE node) {
+          if (node.getChildren().size() == 0) {
+            lastLayer.add(node);
+          }
         }
-      }
-    });
+      });
+    } catch (DAGOperatorException doe) {
+      // Impossible with this operator.
+    }
 
     return lastLayer;
   }
@@ -126,12 +159,16 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
     final StringBuilder sb = new StringBuilder();
 
     // Use a BFS operator to stringify all nodes in the DAG.
-    bfs(new Operator<NODETYPE>() {
-      @Override
-      public void process(NODETYPE node) {
-        sb.append(node.toString());
-      }
-    });
+    try {
+      bfs(new Operator<NODETYPE>() {
+        @Override
+        public void process(NODETYPE node) {
+          sb.append(node.toString());
+        }
+      });
+    } catch (DAGOperatorException doe) {
+      // Impossible with this operator.
+    }
 
     return sb.toString();
   }

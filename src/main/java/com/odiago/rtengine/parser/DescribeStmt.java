@@ -27,8 +27,9 @@ public class DescribeStmt extends SQLStatement {
   }
 
   @Override
-  public void createExecPlan(PlanContext planContext) {
+  public PlanContext createExecPlan(PlanContext planContext) {
     planContext.getFlowSpec().addRoot(new DescribeNode(mIdentifier));
+    return planContext;
   }
 }
 

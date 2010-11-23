@@ -5,12 +5,15 @@ package com.odiago.rtengine.exec.local;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.avro.Schema;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowId;
+import com.odiago.rtengine.exec.ProjectionElement;
 import com.odiago.rtengine.exec.StrMatchFilterElement;
 import com.odiago.rtengine.exec.StreamSymbol;
 import com.odiago.rtengine.exec.Symbol;
@@ -18,16 +21,16 @@ import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 
-import com.odiago.rtengine.parser.StreamSourceType;
-
 import com.odiago.rtengine.plan.ConsoleOutputNode;
 import com.odiago.rtengine.plan.CreateStreamNode;
 import com.odiago.rtengine.plan.DescribeNode;
 import com.odiago.rtengine.plan.NamedSourceNode;
 import com.odiago.rtengine.plan.PlanNode;
+import com.odiago.rtengine.plan.ProjectionNode;
 import com.odiago.rtengine.plan.StrMatchFilterNode;
 
 import com.odiago.rtengine.util.DAG;
+import com.odiago.rtengine.util.DAGOperatorException;
 
 /**
  * Traverse a FlowSpecification, building an actual flow based on the
@@ -102,9 +105,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     }
   }
 
-  public void process(PlanNode node) {
-    // TODO(aaron): Rework this to use a pattern such that the inability to
-    // handle a certain type of PlanNode is actually a compile-time error.
+  public void process(PlanNode node) throws DAGOperatorException {
     FlowElement newElem = null; // The newly-constructed FlowElement.
     FlowElementContext newContext = makeContextForNode(node);
 
@@ -112,7 +113,10 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       LOG.warn("Null node in plan graph");
       return;
     } else if (node instanceof ConsoleOutputNode) {
-      newElem = new ConsoleOutputElement(newContext);
+      ConsoleOutputNode consoleNode = (ConsoleOutputNode) node;
+      newElem = new ConsoleOutputElement(newContext,
+          (Schema) consoleNode.getAttr(PlanNode.INPUT_SCHEMA_ATTR),
+          consoleNode.getFields());
     } else if (node instanceof CreateStreamNode) {
       // Just perform this operation immediately. Do not translate this into another
       // layer. (This results in an empty flow being generated, which is discarded.)
@@ -121,7 +125,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       StreamSymbol streamSym = new StreamSymbol(createStream);
       if (mRootSymbolTable.resolve(streamName) != null) {
         // TODO: Allow CREATE OR REPLACE STREAM to override this.
-        System.err.println("Object already exists at top level: " + streamName);
+        throw new DAGOperatorException("Object already exists at top level: " + streamName);
       } else {
         mRootSymbolTable.addSymbol(streamSym);
         System.out.println("CREATE STREAM");
@@ -132,50 +136,57 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       Symbol sym = mRootSymbolTable.resolve(describe.getIdentifier());
       System.out.println(sym);
     } else if (node instanceof NamedSourceNode) {
-      NamedSourceNode fileInput = (NamedSourceNode) node;
-      String streamName = fileInput.getStreamName();
+      NamedSourceNode namedInput = (NamedSourceNode) node;
+      String streamName = namedInput.getStreamName();
       Symbol symbol = mRootSymbolTable.resolve(streamName);
       if (null == symbol) {
-        // TODO: Allow throwing an exception here. This needs to fail completely.
-        LOG.error("No symbol for stream: " + streamName);
-        return;
+        throw new DAGOperatorException("No symbol for stream: " + streamName);
       }
 
-      // TODO: Be paranoid about typechecking, make sure this is actually legal
-      // first; throw an exception if not and cancel flow production.
+      if (!(symbol instanceof StreamSymbol)) {
+        throw new DAGOperatorException("Identifier " + streamName + " has type: "
+            + symbol.getType() + ", not STREAM.");
+      }
+
       StreamSymbol streamSymbol = (StreamSymbol) symbol;
       if (!streamSymbol.isLocal()) {
-        // TODO(aaron): BEtter exception for this.
-        throw new RuntimeException("Do not know how to handle a non-local source yet.");
+        throw new DAGOperatorException("Do not know how to handle a non-local source yet.");
       }
 
       switch (streamSymbol.getSourceType()) {
       case File:
         String fileName = streamSymbol.getSource();
-        newElem = new LocalFileSourceElement(newContext, fileName);
+        newElem = new LocalFileSourceElement(newContext, fileName,
+            (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR), namedInput.getFields());
         break;
       case Sink:
         String flumeSource = streamSymbol.getSource();
         long flowIdNum = mFlowId.getId();
         String flowSourceId = "rtengine-flow-" + flowIdNum + "-" + streamSymbol.getName();
         newElem = new LocalFlumeSinkElement(newContext, flowSourceId,
-            mFlumeConfig, flumeSource);
+            mFlumeConfig, flumeSource, (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
+            namedInput.getFields());
         if (!streamSymbol.isLocal()) {
           LOG.info("Created local Flume logical node: " + flowSourceId);
           LOG.info("You may need to connect upstream Flume elements to this source.");
         }
         break;
       default:
-        // TODO(aaron): Turn this into a checked exception when we have an API for it.
-        throw new RuntimeException("Unhandled stream source type: "
+        throw new DAGOperatorException("Unhandled stream source type: "
             + streamSymbol.getSourceType());
       }
     } else if (node instanceof StrMatchFilterNode) {
       StrMatchFilterNode matchNode = (StrMatchFilterNode) node;
       String matchStr = matchNode.getMatchString();
       newElem = new StrMatchFilterElement(newContext, matchStr);
+    } else if (node instanceof ProjectionNode) {
+      ProjectionNode projNode = (ProjectionNode) node;
+      Schema inSchema = (Schema) projNode.getAttr(PlanNode.INPUT_SCHEMA_ATTR);
+      Schema outSchema = (Schema) projNode.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
+      newElem = new ProjectionElement(newContext, inSchema, outSchema);
     } else {
-      LOG.error("Cannot create FlowElement for PlanNode of type: " + node.getClass().getName());
+      throw new DAGOperatorException("Cannot create FlowElement for PlanNode of type: "
+          + node.getClass().getName());
     }
 
     if (null != newElem) {

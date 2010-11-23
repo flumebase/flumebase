@@ -6,6 +6,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
+import java.util.List;
+
+import org.apache.avro.Schema;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +19,9 @@ import com.cloudera.flume.core.Event.Priority;
 import com.cloudera.flume.core.EventImpl;
 
 import com.odiago.rtengine.exec.FlowElementContext;
-import com.odiago.rtengine.exec.FlowElementImpl;
+import com.odiago.rtengine.exec.ParsingFlowElementImpl;
+
+import com.odiago.rtengine.parser.TypedField;
 
 /**
  * FlowElement providing source data from a local file.
@@ -24,7 +30,7 @@ import com.odiago.rtengine.exec.FlowElementImpl;
  *
  * The integer on each line specifies the timestamp of the event.
  */
-public class LocalFileSourceElement extends FlowElementImpl {
+public class LocalFileSourceElement extends ParsingFlowElementImpl {
   private static final Logger LOG = LoggerFactory.getLogger(
       LocalFileSourceElement.class.getName());
 
@@ -66,8 +72,11 @@ public class LocalFileSourceElement extends FlowElementImpl {
           try {
             long timestamp = Long.parseLong(line.substring(0, tabIdx));
             byte [] body = line.substring(tabIdx + 1).getBytes();
-            EventImpl e = new EventImpl(body, timestamp, Priority.INFO, 0, "localhost");
-            emit(e);
+            EventImpl inputEvent = new EventImpl(body, timestamp, Priority.INFO, 0, "localhost");
+            Event outputEvent = parseEvent(inputEvent);
+            if (null != outputEvent) {
+              emit(outputEvent);
+            }
           } catch (NumberFormatException nfe) {
             LOG.warn("Could not parse timestamp: " + nfe);
           }
@@ -88,8 +97,9 @@ public class LocalFileSourceElement extends FlowElementImpl {
     }
   }
 
-  public LocalFileSourceElement(FlowElementContext context, String fileName) {
-    super(context);
+  public LocalFileSourceElement(FlowElementContext context, String fileName,
+      Schema outputSchema, List<TypedField> fields) {
+    super(context, outputSchema, fields);
     mFilename = fileName;
   }
 
