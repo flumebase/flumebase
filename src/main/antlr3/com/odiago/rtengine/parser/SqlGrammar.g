@@ -25,6 +25,8 @@ stmt returns [SQLStatement val]:
   | sel=stmt_select {$val = $sel.val;}
   | expl=stmt_explain {$val = $expl.val;}
   | desc=stmt_describe {$val = $desc.val;}
+  | show=stmt_show {$val = $show.val;}
+  | drop=stmt_drop {$val = $drop.val;}
   ;
 
 stmt_create_stream returns [CreateStreamStmt val]:
@@ -51,6 +53,14 @@ stmt_select returns [SelectStmt val]:
   SELECT f=field_list FROM s=source_definition w=optional_where_conditions
   {$val = new SelectStmt($f.val, $s.val, $w.val);};
 
+stmt_show returns [ShowStmt val]:
+    SHOW FLOWS {$val = new ShowStmt(EntityTarget.Flow);}
+  | SHOW STREAMS {$val = new ShowStmt(EntityTarget.Stream);};
+
+stmt_drop returns [DropStmt val]:
+    DROP FLOW f=user_sel {$val = new DropStmt(EntityTarget.Flow, $f.val);}
+  | DROP STREAM s=stream_sel {$val = new DropStmt(EntityTarget.Stream, $s.val);};
+
 // This is a selector for fields; it can be '*' or 'foo, bar, "baz and quux", biff, buff...'
 field_list returns [FieldList val]:
     ALL_FIELDS { $val = new AllFieldsList(); }
@@ -62,7 +72,6 @@ explicit_field_list returns [FieldList val]:
 
 // Selecting individual fields is done via user-specified symbol selectors.
 field_sel returns [String val] : s=user_sel {$val=$s.val;};
-
 
 // Specifying a list of fields is done with comma-separated field specs inside parens.
 // e.g., '(foo INT, bar STRING , baz STRING ...)'

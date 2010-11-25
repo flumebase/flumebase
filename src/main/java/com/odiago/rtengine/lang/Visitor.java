@@ -4,10 +4,12 @@ package com.odiago.rtengine.lang;
 
 import com.odiago.rtengine.parser.CreateStreamStmt;
 import com.odiago.rtengine.parser.DescribeStmt;
+import com.odiago.rtengine.parser.DropStmt;
 import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.LiteralSource;
 import com.odiago.rtengine.parser.SQLStatement;
 import com.odiago.rtengine.parser.SelectStmt;
+import com.odiago.rtengine.parser.ShowStmt;
 
 /**
  * Interface implemented by all visitor-pattern AST actors.
@@ -25,6 +27,10 @@ public abstract class Visitor {
       visit((ExplainStmt) stmt);
     } else if (stmt instanceof DescribeStmt) {
       visit((DescribeStmt) stmt);
+    } else if (stmt instanceof ShowStmt) {
+      visit((ShowStmt) stmt);
+    } else if (stmt instanceof DropStmt) {
+      visit((DropStmt) stmt);
     } else {
       throw new VisitException("No visit() method for type: " + stmt.getClass().getName()
           + " in class: " + getClass().getName());
@@ -36,4 +42,6 @@ public abstract class Visitor {
   protected abstract void visit(SelectStmt s) throws VisitException;
   protected abstract void visit(ExplainStmt s) throws VisitException;
   protected abstract void visit(DescribeStmt s) throws VisitException;
+  protected abstract void visit(ShowStmt s) throws VisitException;
+  protected abstract void visit(DropStmt s) throws VisitException;
 }

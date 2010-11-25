@@ -1,7 +1,8 @@
 
 
-
 Bugs:
+  - Cannot SELECT *; individual fields must be explicitly specified.
+
   - Flume is super-chatty when you start it up locally. We should squash its logs,
     unless we're in debug mode.
 

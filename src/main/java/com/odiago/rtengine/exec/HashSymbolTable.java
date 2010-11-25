@@ -3,6 +3,7 @@
 package com.odiago.rtengine.exec;
 
 import java.util.HashMap;
+import java.util.Iterator;
 
 /**
  * HashMap-backed (transient) symbol table.
@@ -38,5 +39,13 @@ public class HashSymbolTable extends SymbolTable {
 
   public void addSymbol(Symbol sym) {
     mTable.put(sym.getName(), sym);
+  }
+
+  public void remove(String name) {
+    mTable.remove(name);
+  }
+
+  public Iterator<Symbol> iterator() {
+    return new LinkedIterator(mTable.values().iterator());
   }
 }

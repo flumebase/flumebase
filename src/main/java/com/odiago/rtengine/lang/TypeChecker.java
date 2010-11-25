@@ -11,11 +11,13 @@ import com.odiago.rtengine.lang.TypeChecker;
 
 import com.odiago.rtengine.parser.CreateStreamStmt;
 import com.odiago.rtengine.parser.DescribeStmt;
+import com.odiago.rtengine.parser.DropStmt;
 import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.FieldList;
 import com.odiago.rtengine.parser.LiteralSource;
 import com.odiago.rtengine.parser.SQLStatement;
 import com.odiago.rtengine.parser.SelectStmt;
+import com.odiago.rtengine.parser.ShowStmt;
 import com.odiago.rtengine.parser.TypedField;
 
 import com.odiago.rtengine.util.Stack;
@@ -35,6 +37,16 @@ public class TypeChecker extends Visitor {
 
   @Override
   protected void visit(CreateStreamStmt s) throws VisitException {
+    // Nothing to do.
+  }
+
+  @Override
+  protected void visit(DropStmt s) throws VisitException {
+    // Nothing to do.
+  }
+
+  @Override
+  protected void visit(ShowStmt s) throws VisitException {
     // Nothing to do.
   }
 

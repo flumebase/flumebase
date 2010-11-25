@@ -2,6 +2,9 @@
 
 package com.odiago.rtengine.exec;
 
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
 /**
  * Holds all the symbol definitions available to the user in the current
  * session. e.g., named streams, flows, etc. Also contains the metadata
@@ -12,7 +15,7 @@ package com.odiago.rtengine.exec;
  * contexts. For example, within a SELECT statement, the symbol table
  * contains the column aliases present in the statement.  
  */
-public abstract class SymbolTable {
+public abstract class SymbolTable implements Iterable<Symbol> {
 
   /**
    * @return the parent symbol table, or null if this is the root.
@@ -25,5 +28,99 @@ public abstract class SymbolTable {
    */
   public abstract Symbol resolve(String symName);
 
+  /**
+   * Add the specified Symbol to our table.
+   */
   public abstract void addSymbol(Symbol sym);
+
+  /**
+   * Remove the first symbol we find with the specified name.
+   */
+  public abstract void remove(String symName);
+
+  /**
+   * @return An iterator over all symbols available in this scope.
+   */
+  public abstract Iterator<Symbol> iterator(); 
+
+  /**
+   * An iterator that will wrap around an iterator for the current level,
+   * but also continue iteration at higher levels in the symbol table.
+   */
+  protected class LinkedIterator implements Iterator<Symbol> {
+    /**
+     * Set to true if we're iterating over the current level,
+     * false if we're iterating on the parent.
+     */
+    private boolean mThisLevel;
+
+    /** The current inner iterator. */
+    private Iterator<Symbol> mIter;
+
+    /**
+     * Create an iterator over this symbol table.
+     * @param thisLevelIter - an iterator over the contents of the current level of
+     * the symbol table.
+     */
+    public LinkedIterator(Iterator<Symbol> thisLevelIter) {
+      mIter = thisLevelIter;
+      mThisLevel = true;
+    }
+
+    @Override
+    public boolean hasNext() {
+      if (null == mIter) {
+        return false;
+      }
+      boolean thisHasNext = mIter.hasNext();
+      if (thisHasNext) {
+        // Current level's iterator is still full.
+        return true;
+      } else if (mThisLevel) {
+        // We've exhausted the iterator, and we are on the current level. Switch to the parent.
+        parentIterator();
+        return hasNext();
+      } else {
+        // Done with the parent level too.
+        mIter = null;
+        return false;
+      }
+    }
+
+    /**
+     * If we're done iterating over the current level, start again on the parent's
+     * iterator.
+     */
+    private void parentIterator() {
+      if (!mThisLevel) {
+        // We're already done with the parent's level.
+        mIter = null;
+        return;
+      }
+
+      mThisLevel = false;
+      SymbolTable parent = getParent();
+      if (null != parent) {
+        mIter = parent.iterator();
+      } else {
+        mIter = null;
+      }
+    }
+
+    @Override
+    public Symbol next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      if (null == mIter) {
+        throw new NoSuchElementException();
+      }
+      return mIter.next();
+    }
+
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException();
+    }
+  }
 }

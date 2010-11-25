@@ -36,6 +36,7 @@ public class Type {
     TIMESTAMP,
     TIMESPAN,
     NULLABLE, // nullable instance of a primitive type (int, bigint, etc).
+    FLOW, // An executing flow.
   };
 
   

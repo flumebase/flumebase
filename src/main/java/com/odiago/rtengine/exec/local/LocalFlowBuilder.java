@@ -21,9 +21,14 @@ import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 
+import com.odiago.rtengine.lang.Type;
+
+import com.odiago.rtengine.parser.EntityTarget;
+
 import com.odiago.rtengine.plan.ConsoleOutputNode;
 import com.odiago.rtengine.plan.CreateStreamNode;
 import com.odiago.rtengine.plan.DescribeNode;
+import com.odiago.rtengine.plan.DropNode;
 import com.odiago.rtengine.plan.NamedSourceNode;
 import com.odiago.rtengine.plan.PlanNode;
 import com.odiago.rtengine.plan.ProjectionNode;
@@ -135,6 +140,29 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       DescribeNode describe = (DescribeNode) node;
       Symbol sym = mRootSymbolTable.resolve(describe.getIdentifier());
       System.out.println(sym);
+    } else if (node instanceof DropNode) {
+      // Perform the operation here.
+      // Remove the objet from our symbol table.
+      DropNode dropNode = (DropNode) node;
+      String name = dropNode.getName();
+      Symbol sym = mRootSymbolTable.resolve(name);
+      if (null == sym) {
+        throw new DAGOperatorException("No such object at top level: " + name);
+      }
+      EntityTarget targetType = dropNode.getType();
+      Type.TypeName symType = sym.getType().getTypeName();
+      // Check that the DROP ___ type matches the symbol type.
+      if (EntityTarget.Stream.equals(targetType)
+          && !Type.TypeName.STREAM.equals(symType)) {
+        throw new DAGOperatorException("Entity " + name + " has incorrect type: " + symType);
+      } else if (EntityTarget.Flow.equals(targetType)
+          && !Type.TypeName.FLOW.equals(symType)) {
+        throw new DAGOperatorException("Entity " + name + " has incorrect type: " + symType);
+      } else {
+        // Perform the operation.
+        mRootSymbolTable.remove(name);
+        System.out.println("DROP " + targetType.toString().toUpperCase());
+      }
     } else if (node instanceof NamedSourceNode) {
       NamedSourceNode namedInput = (NamedSourceNode) node;
       String streamName = namedInput.getStreamName();
