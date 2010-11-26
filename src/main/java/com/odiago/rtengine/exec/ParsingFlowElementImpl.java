@@ -102,7 +102,8 @@ public class ParsingFlowElementImpl extends FlowElementImpl {
     // We've filled the record with fields; write the Avro data to the output sink.
     mOutputBytes.reset();
     mGenericWriter.write(mRecord, mEncoder);
-    Event out = new EventImpl(mOutputBytes.toByteArray());
+    Event out = new EventImpl(mOutputBytes.toByteArray(),
+        in.getTimestamp(), in.getPriority(), in.getNanos(), in.getHost());
     return out;
   }
 

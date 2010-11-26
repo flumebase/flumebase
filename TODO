@@ -1,7 +1,18 @@
 
+Next on the list:
+
+  Create a test harness that can:
+  - Put StreamSymbol objects in the symtab with type StreamSymbolType.Memory
+  - Execute flows in the local environment without starting Flume.
+  - Emit output events to a list in memory for us to inspect and assert against.
+
 
 Bugs:
   - Cannot SELECT *; individual fields must be explicitly specified.
+
+  - DelimitedEventParser: if the expected type of a column is a union (e.g., because it is  
+    nullable), we need to put the parsed entity into a generic union object of the appropriate
+    sub-schema.
 
   - Flume is super-chatty when you start it up locally. We should squash its logs,
     unless we're in debug mode.
@@ -19,7 +30,7 @@ Bugs:
       CREATE STREAM foo (a STRING NOT NULL) FROM LOCAL SOURCE "text(\"/var/log/messages\")";
       SELECT a FROM foo;
 
-    ... Message bodies seem to be cut off here. Why?
+    ... Message bodies seem to be truncated. Why?
 
 Features:
 
@@ -27,7 +38,6 @@ Features:
   -- Need ability to run remote physical plan on a set of configured nodes.
   - Need a DROP FLOW operation
   - Need SHOW FLOWS operation
-  - Need SHOW STREAMS, DROP STREAM
   - Need ability to auto-connect to a remote Flume resource.
 
   - Need to pick different delimiters for DelimitedEventParser.

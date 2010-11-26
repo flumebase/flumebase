@@ -11,12 +11,30 @@ import com.odiago.rtengine.util.DAG;
 public class LocalFlow extends DAG<FlowElementNode> {
   private FlowId mFlowId;
 
+  private boolean mRequiresFlume; 
+
   public LocalFlow(FlowId id) {
     mFlowId = id;
+    mRequiresFlume = false;
   }
 
   public FlowId getId() {
     return mFlowId;
+  }
+
+  /**
+   * @return true if Flume is required locally to execute this flow.
+   */
+  public boolean requiresFlume() {
+    return mRequiresFlume;
+  }
+
+  /**
+   * Called by the LocalFlowBuilder to specify whether this flow requires
+   * local Flume elements to be started first.
+   */
+  void setFlumeRequired(boolean required) {
+    mRequiresFlume = required;
   }
 
 

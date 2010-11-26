@@ -99,14 +99,24 @@ public class LocalEnvironment extends ExecEnvironment {
     /** The set of running flows. */
     private Map<FlowId, LocalFlow> mActiveFlows;
 
+    private boolean mFlumeStarted;
+
     public LocalEnvThread() {
       mActiveFlows = new HashMap<FlowId, LocalFlow>();
       // TODO(aaron): This should be something like a heap, that keeps
       // the "most full" queues near the front of the line.
       mAllFlowQueues = new ArrayList<AbstractQueue<PendingEvent>>();
+      mFlumeStarted = false;
     }
 
     private void deployFlow(LocalFlow newFlow) throws IOException, InterruptedException {
+      // If we haven't yet started Flume, and the flow requires Flume-based sources,
+      // start Flume.
+      if (newFlow.requiresFlume() && !mFlumeStarted) {
+        mFlumeConfig.start();
+        mFlumeStarted = true;
+      }
+
       // Open all FlowElements in the flow, in reverse bfs order
       // (so sinks are always ready before sources). Add the output
       // queue(s) from the FlowElement to the set of output queues
@@ -202,13 +212,6 @@ public class LocalEnvironment extends ExecEnvironment {
     @Override
     public void run() {
       try {
-        mFlumeConfig.start();
-      } catch (IOException ioe) {
-        LOG.error("Could not start embedded Flume instance: " + ioe);
-        return;
-      }
-
-      try {
         boolean isFinished = false;
 
         while (true) {
@@ -300,7 +303,9 @@ public class LocalEnvironment extends ExecEnvironment {
         }
       } finally {
         // Shut down the embedded Flume instance before we exit the thread.
-        mFlumeConfig.stop();
+        if (mFlumeStarted) {
+          mFlumeConfig.stop();
+        }
       }
     }
   }

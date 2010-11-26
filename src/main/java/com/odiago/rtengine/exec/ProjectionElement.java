@@ -46,14 +46,20 @@ public class ProjectionElement extends FlowElementImpl {
   public void takeEvent(Event e) throws IOException, InterruptedException {
     byte[] body = e.getBody();
     mDecoder = mDecoderFactory.createBinaryDecoder(body, mDecoder);
-    mRecord = mDatumReader.read(mRecord, mDecoder);
+    try {
+      mRecord = mDatumReader.read(mRecord, mDecoder);
+    } catch (ArrayIndexOutOfBoundsException oob) {
+      // Could not read fields of this event.
+      return;
+    }
 
     // TODO: BAOS.toByteArray() creates a new byte array, as does the
     // creation of the event. That's at least one more array copy than
     // necessary.
     mOutputBytes.reset();
     mDatumWriter.write(mRecord, mEncoder);
-    Event out = new EventImpl(mOutputBytes.toByteArray()); 
+    Event out = new EventImpl(mOutputBytes.toByteArray(),
+        e.getTimestamp(), e.getPriority(), e.getNanos(), e.getHost()); 
     emit(out);
   }
 }

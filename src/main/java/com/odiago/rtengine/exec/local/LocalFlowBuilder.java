@@ -198,6 +198,9 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
           LOG.info("Created local Flume logical node: " + flowSourceId);
           LOG.info("You may need to connect upstream Flume elements to this source.");
         }
+
+        // Mark Flume as required to execute this flow.
+        mLocalFlow.setFlumeRequired(true);
         break;
       default:
         throw new DAGOperatorException("Unhandled stream source type: "
