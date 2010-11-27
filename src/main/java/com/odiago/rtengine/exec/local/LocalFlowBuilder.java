@@ -87,7 +87,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     List<PlanNode> children = node.getChildren();
     List<FlowElementNode> childElements = getNodeElements(children);
     if (childElements.size() == 0) {
-      return new SinkFlowElemContext();
+      return new SinkFlowElemContext(mFlowId);
     } else if (childElements.size() == 1) {
       return new DirectCoupledFlowElemContext(childElements.get(0).getFlowElement());
     } else {

@@ -71,10 +71,13 @@ public class LocalFlumeSinkElement extends FlowElementImpl {
     mEmbeddedFlumeNode.open();
   }
 
+  @Override
   public void close() throws IOException, InterruptedException {
     mEmbeddedFlumeNode.close();
+    super.close();
   }
 
+  @Override
   public void takeEvent(Event e) {
     // We generate our own events; nothing should be upstream from us.
     throw new RuntimeException("LocalFlumeSinkElement does not support incoming events");

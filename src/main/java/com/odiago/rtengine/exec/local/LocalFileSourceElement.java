@@ -93,6 +93,14 @@ public class LocalFileSourceElement extends ParsingFlowElementImpl {
             LOG.warn("IOException closing file reader" + ioe);
           }
         }
+
+        try {
+          getContext().notifyCompletion();
+        } catch (IOException ioe) {
+          LOG.warn("IOException notifying flow of file source completion: " + ioe);
+        } catch (InterruptedException ie) {
+          LOG.warn("InterruptedException notifying flow of file source completion: " + ie);
+        }
       }
     }
   }
@@ -112,9 +120,11 @@ public class LocalFileSourceElement extends ParsingFlowElementImpl {
     mEventGenThread.start();
   }
 
+  @Override
   public void close() throws IOException, InterruptedException {
     mIsFinished = true;
     mEventGenThread.join();
+    super.close();
   }
 
   public void takeEvent(Event e) {

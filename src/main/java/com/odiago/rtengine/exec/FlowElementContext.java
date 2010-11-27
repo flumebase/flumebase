@@ -16,4 +16,11 @@ public abstract class FlowElementContext {
    * Emit an event to the next downstream FlowElement(s).
    */
   public abstract void emit(Event e) throws IOException, InterruptedException;
+
+  /**
+   * Notify downstream FlowElement(s) that this element will not be
+   * providing future events. Downstream FlowElements should themselves
+   * emit any final values and complete processing.
+   */
+  public abstract void notifyCompletion() throws IOException, InterruptedException;
 }

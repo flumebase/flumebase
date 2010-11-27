@@ -2,6 +2,8 @@
 
 package com.odiago.rtengine.exec.local;
 
+import java.io.IOException;
+
 import java.util.AbstractQueue;
 
 import java.util.concurrent.BlockingQueue;
@@ -26,7 +28,11 @@ public abstract class LocalContext extends FlowElementContext {
   /** The control operations queue used by the LocalEnvironment. */
   private BlockingQueue<LocalEnvironment.ControlOp> mControlQueue;
 
+  /** Set to true after notifyCompletion() was called once. */
+  private boolean mNotifiedCompletion;
+
   public LocalContext() {
+    mNotifiedCompletion = false;
     mOutputQueue = new ConcurrentLinkedQueue<PendingEvent>();
   }
 
@@ -61,4 +67,20 @@ public abstract class LocalContext extends FlowElementContext {
     mControlQueue = opQueue;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void notifyCompletion() throws IOException, InterruptedException {
+    if (mNotifiedCompletion) {
+      return; // Already did this.
+    }
+
+    // Specify to the LocalEnvironment that we are done processing. 
+    // TODO(aaron): If the control queue is full, this will deadlock in the same thread.
+    mControlQueue.put(new LocalEnvironment.ControlOp(
+        LocalEnvironment.ControlOp.Code.ElementComplete,
+        new LocalCompletionEvent(this)));
+    mNotifiedCompletion = true;
+  }
 }

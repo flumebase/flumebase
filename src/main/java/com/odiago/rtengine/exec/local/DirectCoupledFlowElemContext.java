@@ -22,8 +22,18 @@ public class DirectCoupledFlowElemContext extends LocalContext {
     mDownstream = downstream;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void emit(Event e) throws IOException, InterruptedException {
     post(mDownstream, e);
+  }
+
+  /**
+   * Return the downstream FlowElement. Used by the LocalEnvironment.
+   */
+  FlowElement getDownstream() {
+    return mDownstream;
   }
 }

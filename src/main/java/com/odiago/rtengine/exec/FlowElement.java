@@ -27,9 +27,14 @@ public abstract class FlowElement {
   /**
    * Called to notify the FlowElement to stop processing events. After
    * the close() call returns, the FE may not emit further events
-   * downstream.
+   * downstream. After this call returns, isClosed() should return true.
    */
   public abstract void close() throws IOException, InterruptedException;
+
+  /**
+   * Returns true if close() has already been called on this FlowElement.
+   */
+  public abstract boolean isClosed();
 
   /**
    * Process another input event in the current window.

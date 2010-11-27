@@ -61,11 +61,12 @@ public class LocalEnvironment extends ExecEnvironment {
 
   static class ControlOp {
     enum Code {
-      AddFlow,
-      CancelFlow,
-      CancelAll,
-      ShutdownThread,
-      Noop,
+      AddFlow,         // A new flow shold be deployed.
+      CancelFlow,      // An entire flow should be canceled.
+      CancelAll,       // All flows should be canceled.
+      ShutdownThread,  // Stop processing anything else, immediately.
+      Noop,            // Do no control action; just service data events.
+      ElementComplete, // A flow element is complete and should be freed.
     };
 
     /** What operation should be performed by the worker thread? */
@@ -166,12 +167,14 @@ public class LocalEnvironment extends ExecEnvironment {
         flow.bfs(new DAG.Operator<FlowElementNode>() {
           public void process(FlowElementNode elemNode) {
             FlowElement flowElem = elemNode.getFlowElement();
-            try {
-              flowElem.close();
-            } catch (IOException ioe) {
-              LOG.error("IOException when closing flow element: " + ioe);
-            } catch (InterruptedException ie) {
-              LOG.error("InterruptedException when closing flow element: " + ie);
+            if (!flowElem.isClosed()) {
+              try {
+                flowElem.close();
+              } catch (IOException ioe) {
+                LOG.error("IOException when closing flow element: " + ioe);
+              } catch (InterruptedException ie) {
+                LOG.error("InterruptedException when closing flow element: " + ie);
+              }
             }
 
             // All FlowElements that we see will have LocalContext subclass contexts.
@@ -245,6 +248,37 @@ public class LocalEnvironment extends ExecEnvironment {
               break;
             case Noop:
               // Don't do any control operation; skip ahead to event processing.
+              break;
+            case ElementComplete:
+              // Remove a specific FlowElement from service; it's done.
+              LocalCompletionEvent completionEvent = (LocalCompletionEvent) nextOp.getDatum();
+              FlowElement downstream = null;
+              try {
+                LocalContext context = completionEvent.getContext();
+                mAllFlowQueues.remove(context.getPendingEventQueue());
+
+                if (context instanceof DirectCoupledFlowElemContext) {
+                  // Notify the downstream FlowElement that it too should close.
+                  DirectCoupledFlowElemContext directContext =
+                      (DirectCoupledFlowElemContext) context;
+                  downstream = directContext.getDownstream();
+                  downstream.completeWindow();
+                  downstream.close();
+                } else if (context instanceof SinkFlowElemContext) {
+                  // We have received close() notification from the last element in a flow.
+                  // Remove the entire flow from service.
+                  // TODO(aaron): Are multiple SinkFlowElemContexts possible per flow?
+                  // If so, we need to wait for the last of these...
+                  SinkFlowElemContext sinkContext = (SinkFlowElemContext) context;
+                  FlowId id = sinkContext.getFlowId();
+                  LOG.info("Processing complete for flow: " + id);
+                  cancelFlow(id);
+                }
+              } catch (IOException ioe) {
+                LOG.error("IOException closing flow element (" + downstream + "): " + ioe);
+              } catch (InterruptedException ie) {
+                LOG.error("Interruption closing downstream element: " + ie);
+              }
               break;
             }
           }

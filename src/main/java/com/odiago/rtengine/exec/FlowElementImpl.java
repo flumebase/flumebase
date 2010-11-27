@@ -17,8 +17,11 @@ public abstract class FlowElementImpl extends FlowElement {
    */
   private FlowElementContext mContext;
 
+  private boolean mIsClosed;
+
   public FlowElementImpl(FlowElementContext ctxt) {
     mContext = ctxt;
+    mIsClosed = false;
   }
 
   /**
@@ -29,20 +32,34 @@ public abstract class FlowElementImpl extends FlowElement {
   }
 
   /** {@inheritDoc} */
+  @Override
   public void open() throws IOException, InterruptedException {
     // Default operation: do nothing.
   }
 
   /** {@inheritDoc} */
+  @Override
   public void close() throws IOException, InterruptedException {
+    // Notify downstream elements that we're complete.
+    mIsClosed = true;
+    mContext.notifyCompletion();
+  }
+  
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isClosed() {
+    return mIsClosed;
   }
 
   /** {@inheritDoc} */
+  @Override
   public void completeWindow() throws IOException, InterruptedException {
     // Default operation: ignore windowing.
   }
   
   /** {@inheritDoc} */
+  @Override
   public FlowElementContext getContext() {
     return mContext;
   }
