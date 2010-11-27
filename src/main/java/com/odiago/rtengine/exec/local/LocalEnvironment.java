@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,6 +68,8 @@ public class LocalEnvironment extends ExecEnvironment {
       ShutdownThread,  // Stop processing anything else, immediately.
       Noop,            // Do no control action; just service data events.
       ElementComplete, // A flow element is complete and should be freed.
+      Join,            // Add an object to the list of objects to be notified when a
+                       // flow is canceled.
     };
 
     /** What operation should be performed by the worker thread? */
@@ -89,6 +92,47 @@ public class LocalEnvironment extends ExecEnvironment {
     }
   }
 
+  /**
+   * Container for information maintained by the local environment
+   * regarding an active flow.
+   */
+  private static class ActiveFlowData {
+    /** The flow itself. */
+    private final LocalFlow mLocalFlow;
+
+    /**
+     * Set of objects which will have notify() called when the flow is
+     * complete.
+     */
+    private final List<Object> mJoinTargets;
+
+    public ActiveFlowData(LocalFlow flow) {
+      mLocalFlow = flow;
+      mJoinTargets = new ArrayList<Object>();
+    }
+
+    public LocalFlow getFlow() {
+      return mLocalFlow;
+    }
+
+    public FlowId getFlowId() {
+      return mLocalFlow.getId();
+    }
+
+    /** Notifies everyone waiting on this flow that it is canceled. */
+    public void cancel() {
+      for (Object joinTarget : mJoinTargets) {
+        synchronized (joinTarget) {
+          joinTarget.notify();
+        }
+      }
+    }
+
+    /** Waits for this flow to terminate. */
+    public void subscribeToCancelation(Object obj) {
+      mJoinTargets.add(obj);
+    }
+  }
 
   /**
    * The thread where the active flows in the local environment actually operate.
@@ -98,12 +142,12 @@ public class LocalEnvironment extends ExecEnvironment {
     private Collection<AbstractQueue<PendingEvent>> mAllFlowQueues;
 
     /** The set of running flows. */
-    private Map<FlowId, LocalFlow> mActiveFlows;
+    private Map<FlowId, ActiveFlowData> mActiveFlows;
 
     private boolean mFlumeStarted;
 
     public LocalEnvThread() {
-      mActiveFlows = new HashMap<FlowId, LocalFlow>();
+      mActiveFlows = new HashMap<FlowId, ActiveFlowData>();
       // TODO(aaron): This should be something like a heap, that keeps
       // the "most full" queues near the front of the line.
       mAllFlowQueues = new ArrayList<AbstractQueue<PendingEvent>>();
@@ -157,12 +201,13 @@ public class LocalEnvironment extends ExecEnvironment {
         }
       }
 
-      mActiveFlows.put(newFlow.getId(), newFlow);
+      mActiveFlows.put(newFlow.getId(), new ActiveFlowData(newFlow));
     }
 
-    private void cancelFlowInner(LocalFlow flow) {
+    private void cancelFlowInner(ActiveFlowData flowData) {
       // Close all FlowElements in the flow, and remove their output queues
       // from the set of queues we track.
+      LocalFlow flow = flowData.getFlow();
       try {
         flow.bfs(new DAG.Operator<FlowElementNode>() {
           public void process(FlowElementNode elemNode) {
@@ -187,25 +232,28 @@ public class LocalEnvironment extends ExecEnvironment {
         // Shouldn't get here with this operator.
         LOG.error("Unexpected dag op exn: " + doe);
       }
+
+      // Notify external threads that this flow is complete.
+      flowData.cancel();
     }
 
     private void cancelFlow(FlowId id) {
       LOG.info("Closing flow: " + id);
-      LocalFlow flow = mActiveFlows.get(id);
-      if (null == flow) {
+      ActiveFlowData flowData = mActiveFlows.get(id);
+      if (null == flowData) {
         LOG.error("Cannot cancel flow: No flow available for id: " + id);
         return;
       }
-      cancelFlowInner(flow);
+      cancelFlowInner(flowData);
       mActiveFlows.remove(id);
     }
 
     private void cancelAllFlows() {
       LOG.info("Closing all flows");
-      Set<Map.Entry<FlowId, LocalFlow>> flowSet = mActiveFlows.entrySet();
-      Iterator<Map.Entry<FlowId, LocalFlow>> flowIter = flowSet.iterator();
+      Set<Map.Entry<FlowId, ActiveFlowData>> flowSet = mActiveFlows.entrySet();
+      Iterator<Map.Entry<FlowId, ActiveFlowData>> flowIter = flowSet.iterator();
       while (flowIter.hasNext()) {
-        Map.Entry<FlowId, LocalFlow> entry = flowIter.next();
+        Map.Entry<FlowId, ActiveFlowData> entry = flowIter.next();
         cancelFlowInner(entry.getValue());
       }
 
@@ -278,6 +326,21 @@ public class LocalEnvironment extends ExecEnvironment {
                 LOG.error("IOException closing flow element (" + downstream + "): " + ioe);
               } catch (InterruptedException ie) {
                 LOG.error("Interruption closing downstream element: " + ie);
+              }
+              break;
+            case Join:
+              FlowJoinRequest joinReq = (FlowJoinRequest) nextOp.getDatum();
+              FlowId id = joinReq.getFlowId();
+              Object waitObj = joinReq.getJoinObj();
+              ActiveFlowData flowData = mActiveFlows.get(id);
+              if (null == flowData) {
+                // This flow id is already canceled. Return immediately.
+                synchronized (waitObj) {
+                  waitObj.notify();
+                }
+              } else {
+                // Mark the waitObj as one we should notify when the flow is canceled.
+                flowData.subscribeToCancelation(waitObj);
               }
               break;
             }
@@ -485,6 +548,15 @@ public class LocalEnvironment extends ExecEnvironment {
     mControlQueue.put(new ControlOp(ControlOp.Code.CancelFlow, id));
   }
 
+  @Override
+  public void joinFlow(FlowId id) throws InterruptedException {
+    Object joinObj = new Object();
+    synchronized (joinObj) {
+      mControlQueue.put(new ControlOp(ControlOp.Code.Join, new FlowJoinRequest(id, joinObj)));
+      joinObj.wait();
+    }
+  }
+
   /**
    * Stop the local environment and shut down any flows operating therein.
    */
@@ -494,6 +566,5 @@ public class LocalEnvironment extends ExecEnvironment {
     mControlQueue.put(new ControlOp(ControlOp.Code.ShutdownThread, null));
     mLocalThread.join();
   }
-
 }
 

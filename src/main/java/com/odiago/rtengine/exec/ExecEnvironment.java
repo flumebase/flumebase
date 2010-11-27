@@ -50,6 +50,11 @@ public abstract class ExecEnvironment {
   public abstract void cancelFlow(FlowId id) throws InterruptedException, IOException;
 
   /**
+   * Waits for the specified flow to complete.
+   */
+  public abstract void joinFlow(FlowId id) throws InterruptedException, IOException;
+
+  /**
    * Disconnects this client from the environment.
    */
   public abstract void disconnect() throws InterruptedException, IOException;
