@@ -4,6 +4,7 @@ package com.odiago.rtengine.exec.local;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.avro.Schema;
 
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowId;
+import com.odiago.rtengine.exec.InMemStreamSymbol;
 import com.odiago.rtengine.exec.ProjectionElement;
 import com.odiago.rtengine.exec.StrMatchFilterElement;
 import com.odiago.rtengine.exec.StreamSymbol;
@@ -29,6 +31,7 @@ import com.odiago.rtengine.plan.ConsoleOutputNode;
 import com.odiago.rtengine.plan.CreateStreamNode;
 import com.odiago.rtengine.plan.DescribeNode;
 import com.odiago.rtengine.plan.DropNode;
+import com.odiago.rtengine.plan.MemoryOutputNode;
 import com.odiago.rtengine.plan.NamedSourceNode;
 import com.odiago.rtengine.plan.PlanNode;
 import com.odiago.rtengine.plan.ProjectionNode;
@@ -56,10 +59,12 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
   private LocalFlow mLocalFlow;
   private SymbolTable mRootSymbolTable;
   private EmbeddedFlumeConfig mFlumeConfig;
+  private Map<String, MemoryOutputElement> mMemOutputMap;
 
   public LocalFlowBuilder(FlowId flowId, SymbolTable rootSymTable,
-      EmbeddedFlumeConfig flumeConfig) {
+      EmbeddedFlumeConfig flumeConfig, Map<String, MemoryOutputElement> memOutputMap) {
     mFlowId = flowId;
+    mMemOutputMap = memOutputMap;
     mLocalFlow = new LocalFlow(flowId);
     mRootSymbolTable = rootSymTable;
     mFlumeConfig = flumeConfig;
@@ -122,6 +127,15 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       newElem = new ConsoleOutputElement(newContext,
           (Schema) consoleNode.getAttr(PlanNode.INPUT_SCHEMA_ATTR),
           consoleNode.getFields());
+    } else if (node instanceof MemoryOutputNode) {
+      MemoryOutputNode memoryNode = (MemoryOutputNode) node;
+      newElem = new MemoryOutputElement(newContext,
+          (Schema) memoryNode.getAttr(PlanNode.INPUT_SCHEMA_ATTR),
+          memoryNode.getFields());
+      String bufferName = memoryNode.getName();
+      // Bind this buffer name to this memory node in the map provided
+      // by the client.
+      mMemOutputMap.put(bufferName, (MemoryOutputElement) newElem);
     } else if (node instanceof CreateStreamNode) {
       // Just perform this operation immediately. Do not translate this into another
       // layer. (This results in an empty flow being generated, which is discarded.)
@@ -201,6 +215,11 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
 
         // Mark Flume as required to execute this flow.
         mLocalFlow.setFlumeRequired(true);
+        break;
+      case Memory:
+        newElem = new LocalInMemSourceElement(newContext,
+            (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
+            namedInput.getFields(), (InMemStreamSymbol) streamSymbol);
         break;
       default:
         throw new DAGOperatorException("Unhandled stream source type: "

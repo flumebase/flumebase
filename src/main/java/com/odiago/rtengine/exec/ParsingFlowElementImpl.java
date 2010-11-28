@@ -111,7 +111,7 @@ public class ParsingFlowElementImpl extends FlowElementImpl {
   public void takeEvent(Event e) throws IOException, InterruptedException {
     Event parsed = parseEvent(e);
     if (null != parsed) {
-      emit(e);
+      emit(parsed);
     }
   }
 }

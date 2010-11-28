@@ -12,7 +12,7 @@ import com.cloudera.flume.core.EventImpl;
 
 import com.odiago.rtengine.lang.Type;
 
-import static junit.framework.Assert.*;
+import static org.junit.Assert.*;
 
 public class TestDelimitedEventParser {
   private static final Logger LOG = LoggerFactory.getLogger(

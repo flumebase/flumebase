@@ -1,30 +1,42 @@
 
 Next on the list:
 
-  Create a test harness that can:
-  - Put StreamSymbol objects in the symtab with type StreamSymbolType.Memory
-  - Execute flows in the local environment without starting Flume.
-  - Emit output events to a list in memory for us to inspect and assert against.
+  Generalize TestSelect into a better test harness.
+  Write additional TestSelect tests.
 
 
 Bugs:
+  - It is possible in the LocalEnvironment that the control queue is filled with
+    externally-placed entries. If the LocalEnvThread itself must add entries to
+    the control queue (e.g., because of a CompletionEvent posted by
+    FlowElementContext.notifyCompletion()), it might deadlock on itself. We need
+    a data structure that allows bounded puts from other threads, but the internal
+    thread is allowed to override the limit.
+
   - Cannot SELECT *; individual fields must be explicitly specified.
 
   - DelimitedEventParser: if the expected type of a column is a union (e.g., because it is  
     nullable), we need to put the parsed entity into a generic union object of the appropriate
-    sub-schema.
+    sub-schema. (ArrayIndexOutOfBoundsException gets thrown in avro somewhere...
+    this seems to be a problem in the Flume-based source, but not file-based?
+
+    CREATE STREAM foo (a STRING) FROM LOCAL SOURCE "text(\"/var/log/messages\")"; // no good
+    SELECT a FROM foo; // returns nothing;
+
+    CREATE STREAM foo (a STRING NOT NULL) FROM LOCAL SOURCE "text(\"/var/log/messages\")"; // ok!
+    SELECT a FROM foo; // returns msgs;
+
+    CREATE STREAM foo (a STRING, b INT) FROM LOCAL FILE "/home/aaron/foo.txt";
+    SELECT a, b FROM foo; // OK (!?!)
+
 
   - Flume is super-chatty when you start it up locally. We should squash its logs,
     unless we're in debug mode.
 
-  - We have no automated end-to-end tests. This is hugely problematic.
+  - We have precious few automated end-to-end tests. This is hugely problematic.
   - Quitting is very slow due to the Flume shutdown. Can we improve this?
     ... it also emits a scary looking error message, that we should suppress for
     hygeine's sake.
-
-  - log4j.properties under src/test/resources/ should really go to a per-test file,
-    not stdout/err.
-
 
   - The following operates in a weird way:
       CREATE STREAM foo (a STRING NOT NULL) FROM LOCAL SOURCE "text(\"/var/log/messages\")";

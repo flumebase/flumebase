@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.odiago.rtengine.lang.StreamType;
+import com.odiago.rtengine.lang.Type;
 
 import com.odiago.rtengine.parser.StreamSourceType;
 import com.odiago.rtengine.parser.TypedField;
@@ -28,13 +29,25 @@ public class StreamSymbol extends Symbol {
 
   private final List<TypedField> mFieldTypes;
 
-  /** Initialize all parameters of a stream symbol explicitly. */
-  public StreamSymbol(String name, StreamSourceType type, String source, boolean isLocal) {
+  /** Initialize all parameters of a stream symbol explicitly.
+   * @param name the name of the stream.
+   * @param sourceType specifies where the source data for this stream comes from
+   * (e.g., flume, a file, etc..)
+   * @param streamType the type signature for the stream.
+   * @param source the specification for how to connect to the source.
+   * @param isLocal true if the source of this data is local.
+   * @param fieldTypes the names and types for each field.
+   */
+  public StreamSymbol(String name, StreamSourceType sourceType, Type streamType,
+      String source, boolean isLocal, List<TypedField> fieldTypes) {
     super(name, StreamType.getEmptyStreamType());
     mSource = source;
-    mStreamType = type;
+    mStreamType = sourceType;
     mIsLocal = isLocal;
     mFieldTypes = new ArrayList<TypedField>();
+    if (null != fieldTypes) {
+      mFieldTypes.addAll(fieldTypes);
+    }
   }
 
   /** Initialize a stream symbol from the logical plan node for a CREATE STREAM operation. */

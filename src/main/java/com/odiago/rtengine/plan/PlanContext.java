@@ -4,6 +4,8 @@ package com.odiago.rtengine.plan;
 
 import org.apache.avro.Schema;
 
+import org.apache.hadoop.conf.Configuration;
+
 import com.odiago.rtengine.exec.HashSymbolTable;
 import com.odiago.rtengine.exec.SymbolTable;
 
@@ -40,7 +42,13 @@ public class PlanContext {
    */
   private boolean mIsRoot;
 
+  /**
+   * The user's configuration.
+   */
+  private Configuration mConf;
+
   public PlanContext() {
+    mConf = new Configuration();
     mMsgBuilder = new StringBuilder();
     mFlowSpec = new FlowSpecification();
     mSymTable = new HashSymbolTable();
@@ -50,12 +58,21 @@ public class PlanContext {
   }
 
   public PlanContext(PlanContext other) {
+    mConf = other.mConf;
     mMsgBuilder = other.mMsgBuilder;
     mFlowSpec = other.mFlowSpec;
     mSymTable = other.mSymTable;
     mIsRoot = other.mIsRoot;
     mSchema = other.mSchema;
     mIsExplain = other.mIsExplain;
+  }
+
+  public Configuration getConf() {
+    return mConf;
+  }
+
+  public void setConf(Configuration conf) {
+    mConf = conf;
   }
 
   public boolean isRoot() {

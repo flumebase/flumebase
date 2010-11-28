@@ -8,7 +8,7 @@ import org.junit.Test;
 
 import com.odiago.rtengine.util.DAGOperatorException;
 
-import static junit.framework.Assert.*;
+import static org.junit.Assert.*;
 
 /** Test that the PropagateSchemas BFS pass works correctly. */
 public class TestPropagateSchemas {

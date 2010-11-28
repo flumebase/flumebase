@@ -15,6 +15,9 @@ import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DecoderFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
 
@@ -23,6 +26,8 @@ import com.cloudera.flume.core.EventImpl;
  * input schema to our (narrower) output schema.
  */
 public class ProjectionElement extends FlowElementImpl {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      ProjectionElement.class.getName());
 
   // Avro encoder/decoder components reused in our internal workflow.
   private DecoderFactory mDecoderFactory;

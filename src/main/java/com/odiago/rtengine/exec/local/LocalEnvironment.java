@@ -362,7 +362,7 @@ public class LocalEnvironment extends ExecEnvironment {
             int processedEvents = 0;
             boolean processedEventThisIteration = false;
             for (AbstractQueue<PendingEvent> queue : mAllFlowQueues) {
-              if (LOG.isDebugEnabled()) {
+              if (LOG.isDebugEnabled() && queue.size() > 0) {
                 LOG.debug("Dequeuing from queue: " + queue + " with size=" + queue.size());
               }
               while (!queue.isEmpty()) {
@@ -416,6 +416,13 @@ public class LocalEnvironment extends ExecEnvironment {
   /** The AST generator used to parse user queries. */ 
   private ASTGenerator mGenerator;
 
+  /**
+   * Mapping from named outputs to the memory elements fulfilling those outputs.
+   * If clients will be accessing elements of this map, then it needs to be
+   * internally synchronized.
+   */
+  private Map<String, MemoryOutputElement> mMemoryOutputMap;
+
   /** 
    * Manager for the embedded Flume instances in this environment.
    * References to this object are distributed in the client thread,
@@ -441,9 +448,22 @@ public class LocalEnvironment extends ExecEnvironment {
    */
   private SymbolTable mRootSymbolTable; 
 
+  /**
+   * Main constructor.
+   */
   public LocalEnvironment(Configuration conf) {
+    this(conf, new HashSymbolTable(), new HashMap<String, MemoryOutputElement>());
+  }
+
+  /**
+   * Constructor for testing; allows dependency injection.
+   */
+  public LocalEnvironment(Configuration conf, SymbolTable rootSymbolTable,
+      Map<String, MemoryOutputElement> memoryOutputMap) {
     mConf = conf;
-    mRootSymbolTable = new HashSymbolTable();
+    mRootSymbolTable = rootSymbolTable;
+    mMemoryOutputMap = memoryOutputMap;
+
     mGenerator = new ASTGenerator();
     mNextFlowId = 0;
     mControlQueue = new ArrayBlockingQueue<ControlOp>(MAX_QUEUE_LEN);
@@ -487,6 +507,7 @@ public class LocalEnvironment extends ExecEnvironment {
 
       stmt.accept(new TypeChecker(mRootSymbolTable));
       PlanContext planContext = new PlanContext();
+      planContext.setConf(mConf);
       planContext.setSymbolTable(mRootSymbolTable);
       PlanContext retContext = stmt.createExecPlan(planContext);
       msgBuilder.append(retContext.getMsgBuilder().toString());
@@ -520,7 +541,8 @@ public class LocalEnvironment extends ExecEnvironment {
     if (null != spec) {
       // Turn the specification into a physical plan and run it.
       FlowId flowId = new FlowId(mNextFlowId++);
-      LocalFlowBuilder flowBuilder = new LocalFlowBuilder(flowId, mRootSymbolTable, mFlumeConfig);
+      LocalFlowBuilder flowBuilder = new LocalFlowBuilder(flowId, mRootSymbolTable,
+          mFlumeConfig, mMemoryOutputMap);
       try {
         spec.reverseBfs(flowBuilder);
       } catch (DAGOperatorException doe) {

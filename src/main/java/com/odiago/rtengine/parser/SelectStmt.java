@@ -17,6 +17,7 @@ import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.plan.ConsoleOutputNode;
 import com.odiago.rtengine.plan.FlowSpecification;
+import com.odiago.rtengine.plan.MemoryOutputNode;
 import com.odiago.rtengine.plan.PlanContext;
 import com.odiago.rtengine.plan.PlanNode;
 import com.odiago.rtengine.plan.ProjectionNode;
@@ -28,6 +29,20 @@ import com.odiago.rtengine.plan.StrMatchFilterNode;
 public class SelectStmt extends SQLStatement {
 
   private static final Logger LOG = LoggerFactory.getLogger(SelectStmt.class.getName());
+
+  /**
+   * Configuration key that specifies how we should deliver output records of a
+   * top-level RTSQL statement to the client. If this is set to "$console," we
+   * print to the screen. Other strings cause us to allocate a list buffer that
+   * can be retrieved later by the client.
+   */
+  public static final String CLIENT_SELECT_TARGET_KEY = "rtsql.client.select.target";
+
+  /** Special value for rtsql.client.select.target that prints to stdout. */
+  public static final String CONSOLE_SELECT_TARGET = "$console";
+
+  /** The default for rtsql.client.select.target is to use the console. */
+  public static final String DEFAULT_CLIENT_SELECT_TARGET = CONSOLE_SELECT_TARGET;
 
   private FieldList mFields;
   // Source stream for the FROM clause. must be a LiteralSource or a SelectStmt.
@@ -140,8 +155,15 @@ public class SelectStmt extends SQLStatement {
 
     PlanContext outContext = planContext;
     if (planContext.isRoot()) {
-      // SELECT statements that are root queries need to go to the console.
-      flowSpec.attachToLastLayer(new ConsoleOutputNode(consoleFields));
+      String selectTarget = planContext.getConf().get(CLIENT_SELECT_TARGET_KEY,
+          DEFAULT_CLIENT_SELECT_TARGET);
+      if (CONSOLE_SELECT_TARGET.equals(selectTarget)) {
+        // SELECT statements that are root queries go to the console.
+        flowSpec.attachToLastLayer(new ConsoleOutputNode(consoleFields));
+      } else {
+        // Client has specified that outputs of this root query go to a named memory buffer.
+        flowSpec.attachToLastLayer(new MemoryOutputNode(selectTarget, consoleFields));
+      }
     } else {
       // If the initial projection contained both explicitly selected fields as
       // well as implicitly selected fields (e.g., for the WHERE clause), attach another

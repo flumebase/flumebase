@@ -25,4 +25,16 @@ public class PendingEvent {
   public FlowElement getFlowElement() {
     return mTarget;
   }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("(\"");
+    String eventStr = new String(mEvent.getBody());
+    sb.append(eventStr);
+    sb.append("\" -> ");
+    sb.append(mTarget);
+    sb.append(")");
+    return sb.toString();
+  }
 }
