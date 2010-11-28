@@ -49,6 +49,12 @@ fi
 add_to_classpath "${LIB_DIR}"
 add_to_classpath "${MVN_BUILD_DEPS_DIR}"
 
+if [ -d "${MVN_TARGET_DIR}/classes" ]; then
+  # If there's a target/classes/ dir, then we want to put this ahead of any
+  # jar on the classpath; use the most recently compiled bits.
+  RTENGINE_CLASSPATH="${MVN_TARGET_DIR}/classes:$RTENGINE_CLASSPATH"
+fi
+
 # Try for a rtengine jar in the mvn target dir first, in case we 
 # are running this from a development environment.
 RTENGINE_JAR="${RTENGINE_JAR:-${MVN_TARGET_DIR}/rtengine.jar}"
@@ -56,9 +62,8 @@ if [ ! -e "${RTENGINE_JAR}" ]; then
   # Couldn't find one there. Look in /lib next (release dir).
   RTENGINE_JAR=`ls -1 ${LIB_DIR}/rtengine.jar|head -1`
   if [ ! -e "${RTENGINE_JAR}" ]; then
-    echo "Could not find rtengine.jar! You should specify one as \$$RTENGINE_JAR."
+    echo "Could not find rtengine.jar! You should specify one as \$RTENGINE_JAR."
     echo "(Are you sure this deployment isn't busted?)"
-    exit 1
   fi
 fi
 

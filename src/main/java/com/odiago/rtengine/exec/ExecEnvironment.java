@@ -21,6 +21,11 @@ public abstract class ExecEnvironment {
    */
   public abstract void connect() throws InterruptedException, IOException;
 
+  /**
+   * @return true if we are connected to the execution environment.
+   */
+  public abstract boolean isConnected();
+
   /** @return the name of this execution environment. e.g. "local",
    * or perhaps the server you're connected to, etc.
    */

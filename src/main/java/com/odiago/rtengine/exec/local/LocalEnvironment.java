@@ -433,6 +433,9 @@ public class LocalEnvironment extends ExecEnvironment {
   /** The thread that does the actual flow execution. */
   private LocalEnvThread mLocalThread;
 
+  /** set to true after connect(). */
+  private boolean mConnected;
+
   /**
    * Queue of control events passed from the console thread to the worker thread
    * (e.g., "deploy stream", "cancel stream", etc.)
@@ -474,6 +477,12 @@ public class LocalEnvironment extends ExecEnvironment {
   @Override
   public void connect() throws IOException {
     mLocalThread.start();
+    mConnected = true;
+  }
+
+  @Override
+  public boolean isConnected() {
+    return mConnected;
   }
 
   @Override
@@ -587,6 +596,7 @@ public class LocalEnvironment extends ExecEnvironment {
     mControlQueue.put(new ControlOp(ControlOp.Code.CancelAll, null));
     mControlQueue.put(new ControlOp(ControlOp.Code.ShutdownThread, null));
     mLocalThread.join();
+    mConnected = false;
   }
 }
 
