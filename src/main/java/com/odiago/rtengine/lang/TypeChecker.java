@@ -12,6 +12,7 @@ import com.odiago.rtengine.lang.TypeChecker;
 import com.odiago.rtengine.parser.CreateStreamStmt;
 import com.odiago.rtengine.parser.DescribeStmt;
 import com.odiago.rtengine.parser.DropStmt;
+import com.odiago.rtengine.parser.EntityTarget;
 import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.FieldList;
 import com.odiago.rtengine.parser.LiteralSource;
@@ -42,7 +43,23 @@ public class TypeChecker extends Visitor {
 
   @Override
   protected void visit(DropStmt s) throws VisitException {
-    // Nothing to do.
+    // Check that the DROP ____ type matches the type of the object to be dropped.
+    SymbolTable symtab = mSymTableContext.top();
+    String name = s.getName();
+    Symbol sym = symtab.resolve(name);
+    if (null == sym) {
+      throw new TypeCheckException("No such object at top level: " + name);
+    }
+    EntityTarget targetType = s.getType();
+    Type.TypeName symType = sym.getType().getTypeName();
+    // Check that the DROP ___ type matches the symbol type.
+    if (EntityTarget.Stream.equals(targetType)
+        && !Type.TypeName.STREAM.equals(symType)) {
+      throw new TypeCheckException("Entity " + name + " has incorrect type: " + symType);
+    } else if (EntityTarget.Flow.equals(targetType)
+        && !Type.TypeName.FLOW.equals(symType)) {
+      throw new TypeCheckException("Entity " + name + " has incorrect type: " + symType);
+    }
   }
 
   @Override

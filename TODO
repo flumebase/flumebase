@@ -3,8 +3,6 @@ Next on the list:
 
   Write more unit tests as outlined at the bottom of TestSelect.
 
-  dropnode typechecker stuff below.
-
   The current unbounded-buffer coupling between FE's is unnecessary and poor form.
   Instead, we should have a much better set of coupling options:
   - FE classes should have static methods advertising whether event generation is
@@ -26,12 +24,13 @@ Next on the list:
 
 
 
+Aggregation:
 
+  - Implement an RBTree with a ranged iterator for use in windowed aggregation.
+  - Implement COUNT(*), COUNT(foo).
 
 
 Bugs:
-  - Checks on the symbol type in DropNode should be performed by the TypeChecker instead.
-
   - It is possible in the LocalEnvironment that the control queue is filled with
     externally-placed entries. If the LocalEnvThread itself must add entries to
     the control queue (e.g., because of a CompletionEvent posted by

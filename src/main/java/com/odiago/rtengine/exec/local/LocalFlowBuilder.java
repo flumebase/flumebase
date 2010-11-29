@@ -161,22 +161,13 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       String name = dropNode.getName();
       Symbol sym = mRootSymbolTable.resolve(name);
       if (null == sym) {
+        // Shouldn't happen; the type checker already accepted this statement.
         throw new DAGOperatorException("No such object at top level: " + name);
       }
       EntityTarget targetType = dropNode.getType();
-      Type.TypeName symType = sym.getType().getTypeName();
-      // Check that the DROP ___ type matches the symbol type.
-      if (EntityTarget.Stream.equals(targetType)
-          && !Type.TypeName.STREAM.equals(symType)) {
-        throw new DAGOperatorException("Entity " + name + " has incorrect type: " + symType);
-      } else if (EntityTarget.Flow.equals(targetType)
-          && !Type.TypeName.FLOW.equals(symType)) {
-        throw new DAGOperatorException("Entity " + name + " has incorrect type: " + symType);
-      } else {
-        // Perform the operation.
-        mRootSymbolTable.remove(name);
-        System.out.println("DROP " + targetType.toString().toUpperCase());
-      }
+      // Perform the operation.
+      mRootSymbolTable.remove(name);
+      System.out.println("DROP " + targetType.toString().toUpperCase());
     } else if (node instanceof NamedSourceNode) {
       NamedSourceNode namedInput = (NamedSourceNode) node;
       String streamName = namedInput.getStreamName();
