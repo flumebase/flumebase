@@ -124,8 +124,9 @@ public class SelectStmt extends SQLStatement {
     // Start with all the fields the user explicitly selected.
     FieldList fieldList = getFields();
     if (fieldList.isAllFields()) {
-      // TODO(aaron): Figure out how to get a concrete list of names from this.
-      throw new RuntimeException("Do not know how to project to field list '*'");
+      // Use all field names listed as outputs from the source's output context.
+      allRequiredFieldNames.addAll(sourceOutCtxt.getOutFields());
+      consoleFields.addAll(sourceOutCtxt.getOutFields());
     } else {
       for (String field : fieldList) {
         allRequiredFieldNames.add(field);
@@ -171,18 +172,26 @@ public class SelectStmt extends SQLStatement {
 
       // SELECT as a sub-query needs to create an output context with a
       // symbol table that contains the fields we expose through projection. 
+      // We also need to set the output field names and output schema in our
+      // returned context.
       outContext = new PlanContext(planContext);
       SymbolTable inTable = planContext.getSymbolTable();
       SymbolTable outTable = new HashSymbolTable(inTable);
-      Set<String> outputFieldNames = new HashSet<String>();
+      List<String> outputFieldNames = new ArrayList<String>();
+      SymbolTable sourceSymTable = sourceOutCtxt.getSymbolTable();
+      Iterable<String> projectedFields;
       if (fieldList.isAllFields()) {
-        // TODO(aaron): Build a way to get the source to enumerate all fields it exposes.
-        throw new RuntimeException("Cannot project to field list '*' in a subquery yet.");
+        // User did a "SELECT *"; use all field names provided by our own source.
+        projectedFields = sourceOutCtxt.getOutFields();
       } else {
-        // Resolve the list of fields against the symbols exposed by the source.
-        // Copy those symbols we're interested in to the returned symbol table. 
-        SymbolTable sourceSymTable = sourceOutCtxt.getSymbolTable();
-        for (String fieldName : fieldList) {
+        // Use the field names literally provided in the SELECT clause.
+        projectedFields = fieldList;
+      }
+
+      // Resolve the list of fields against the symbols exposed by the source.
+      // Copy those symbols we're interested in to the returned symbol table. 
+      for (String fieldName : projectedFields) {
+        if (!outputFieldNames.contains(fieldName)) {
           outTable.addSymbol(sourceSymTable.resolve(fieldName));
           outputFieldNames.add(fieldName);
         }
@@ -195,6 +204,7 @@ public class SelectStmt extends SQLStatement {
 
       outContext.setSymbolTable(outTable);
       outContext.setSchema(outputSchema);
+      outContext.setOutFields(outputFieldNames);
     }
 
     return outContext;

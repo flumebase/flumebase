@@ -2,6 +2,10 @@
 
 package com.odiago.rtengine.plan;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.avro.Schema;
 
 import org.apache.hadoop.conf.Configuration;
@@ -29,6 +33,13 @@ public class PlanContext {
    */
   private Schema mSchema;
 
+
+  /**
+   * The list of field names provided as output from the plan of a source statement.
+   * i.e., the set of fields returned by a nested SELECT or named source.
+   */
+  private List<String> mOutFields;
+
   /**
    * Set to true if we should explain the plan after it is all fully-processed,
    * but not actually execute it.
@@ -55,6 +66,7 @@ public class PlanContext {
     mIsRoot = true;
     mSchema = null;
     mIsExplain = false;
+    mOutFields = new ArrayList<String>();
   }
 
   public PlanContext(PlanContext other) {
@@ -65,6 +77,7 @@ public class PlanContext {
     mIsRoot = other.mIsRoot;
     mSchema = other.mSchema;
     mIsExplain = other.mIsExplain;
+    mOutFields = other.mOutFields;
   }
 
   public Configuration getConf() {
@@ -73,6 +86,14 @@ public class PlanContext {
 
   public void setConf(Configuration conf) {
     mConf = conf;
+  }
+
+  public List<String> getOutFields() {
+    return mOutFields;
+  }
+
+  public void setOutFields(Collection<String> outFields) {
+    this.mOutFields = new ArrayList<String>(outFields);
   }
 
   public boolean isRoot() {

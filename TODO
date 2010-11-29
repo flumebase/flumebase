@@ -1,18 +1,43 @@
 
 Next on the list:
 
-  Write additional TestSelect tests.
+  Write more unit tests as outlined at the bottom of TestSelect.
+
+  dropnode typechecker stuff below.
+
+  The current unbounded-buffer coupling between FE's is unnecessary and poor form.
+  Instead, we should have a much better set of coupling options:
+  - FE classes should have static methods advertising whether event generation is
+    performed in-thread (e.g., projection), or in an external thread (e.g., the sources).
+  - When we build FE's, we should consider the number of input and output FEs that will
+    be joined to a given FE.
+    -- if we are in-thread and have a single downstream, we should directly call it
+       with no buffering.
+    -- if we are out-of-thread, we should buffer into target queues for the downstream FE.
+    -- if we have multiple downstreams, we should deliver to them with direct calls.
+
+  Event delivery queues should be receipt queues, not delivery queues. They're wired
+  backwards. Such queues should be bounded, to allow cross-thread backpressure.
+
+  Need to rewrite a BoundedQueue implementation that implements a "Selectable" interface,
+  then write a "Select" class that can be notified when any dependency isSelectable().
+  Use the 'reverse wait object' pattern also used by joinFlow().
+
+
+
+
+
 
 
 Bugs:
+  - Checks on the symbol type in DropNode should be performed by the TypeChecker instead.
+
   - It is possible in the LocalEnvironment that the control queue is filled with
     externally-placed entries. If the LocalEnvThread itself must add entries to
     the control queue (e.g., because of a CompletionEvent posted by
     FlowElementContext.notifyCompletion()), it might deadlock on itself. We need
     a data structure that allows bounded puts from other threads, but the internal
     thread is allowed to override the limit.
-
-  - Cannot SELECT *; individual fields must be explicitly specified.
 
   - DelimitedEventParser: if the expected type of a column is a union (e.g., because it is  
     nullable), we need to put the parsed entity into a generic union object of the appropriate
@@ -37,11 +62,6 @@ Bugs:
     ... it also emits a scary looking error message, that we should suppress for
     hygeine's sake.
 
-  - The following operates in a weird way:
-      CREATE STREAM foo (a STRING NOT NULL) FROM LOCAL SOURCE "text(\"/var/log/messages\")";
-      SELECT a FROM foo;
-
-    ... Message bodies seem to be truncated. Why?
 
 Features:
 

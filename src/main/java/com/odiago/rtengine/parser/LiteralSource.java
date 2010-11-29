@@ -2,9 +2,8 @@
 
 package com.odiago.rtengine.parser;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.avro.Schema;
 
@@ -62,10 +61,13 @@ public class LiteralSource extends SQLStatement {
     // Guaranteed to be a non-null StreamSymbol by the typechecker.
     StreamSymbol streamSym = (StreamSymbol) inTable.resolve(mSourceName);
     List<TypedField> fields = streamSym.getFields();
-    Set<String> fieldNames = new HashSet<String>();
+    List<String> fieldNames = new ArrayList<String>();
     for (TypedField field : fields) {
-      outTable.addSymbol(new Symbol(field.getName(), field.getType()));
-      fieldNames.add(field.getName());
+      String fieldName = field.getName();
+      if (!fieldNames.contains(fieldName)) {
+        outTable.addSymbol(new Symbol(field.getName(), field.getType()));
+        fieldNames.add(fieldName);
+      }
     }
 
     PlanNode node = new NamedSourceNode(mSourceName, fields);
@@ -75,6 +77,7 @@ public class LiteralSource extends SQLStatement {
     // we can emit.
     Schema outSchema = createFieldSchema(fieldNames, outTable);
     outContext.setSchema(outSchema);
+    outContext.setOutFields(fieldNames);
     node.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, outSchema);
 
     return outContext;

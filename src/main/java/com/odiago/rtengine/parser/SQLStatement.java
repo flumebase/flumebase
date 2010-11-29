@@ -3,8 +3,8 @@
 package com.odiago.rtengine.parser;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.avro.Schema;
 
@@ -80,7 +80,8 @@ public abstract class SQLStatement {
    * @param symTab the symbol table populated with definitions for all these
    * fields.
    */
-  protected static Schema createFieldSchema(Set<String> requiredFields, SymbolTable symTab) {
+  protected static Schema createFieldSchema(Collection<String> requiredFields,
+      SymbolTable symTab) {
     List<Schema.Field> avroFields = new ArrayList<Schema.Field>();
     Schema record = Schema.createRecord(AVRO_RECORD_NAME, null, null, false);
     for (String fieldName : requiredFields) {
