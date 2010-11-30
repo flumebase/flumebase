@@ -3,14 +3,15 @@
 package com.odiago.rtengine.parser;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
+import com.odiago.rtengine.exec.Symbol;
+import com.odiago.rtengine.exec.SymbolTable;
 
 /**
  * A list of fields in a select statement, GROUP BY, etc.
  */
-public class FieldList implements Iterable<String> {
+public class FieldList {
   private List<String> mNames;
 
   protected FieldList() {
@@ -30,9 +31,23 @@ public class FieldList implements Iterable<String> {
     return false;
   }
 
-  @Override
-  public Iterator<String> iterator() {
-    return mNames.iterator();
+  public List<String> getFieldNames() {
+    return mNames;
+  }
+
+  /**
+   * Return a list of TypedField objects taken by resolving the literal names
+   * in this field list against the specified symbol table.
+   */
+  public List<TypedField> getFields(SymbolTable symtab) {
+    List<TypedField> out = new ArrayList<TypedField>();
+
+    for (String name : mNames) {
+      Symbol sym = symtab.resolve(name);
+      out.add(new TypedField(name, sym.getType()));
+    }
+
+    return out;
   }
 
   public void addField(String fieldName) {

@@ -4,8 +4,6 @@ package com.odiago.rtengine.exec;
 
 import java.io.IOException;
 
-import com.cloudera.flume.core.Event;
-
 /**
  * Basic implementation of some key FlowElement methods.
  * FlowElement implementations should subclass this.
@@ -27,7 +25,7 @@ public abstract class FlowElementImpl extends FlowElement {
   /**
    * Emit an event to the next stage in the processing pipeline.
    */
-  protected void emit(Event e) throws IOException, InterruptedException {
+  protected void emit(EventWrapper e) throws IOException, InterruptedException {
     mContext.emit(e);
   }
 

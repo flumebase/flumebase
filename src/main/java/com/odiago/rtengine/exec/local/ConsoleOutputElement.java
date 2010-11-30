@@ -8,16 +8,11 @@ import java.util.List;
 
 import org.apache.avro.Schema;
 
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumReader;
-
-import org.apache.avro.io.BinaryDecoder;
-import org.apache.avro.io.DecoderFactory;
-
-import com.cloudera.flume.core.Event;
-
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowElementImpl;
+
+import com.odiago.rtengine.parser.TypedField;
 
 import com.odiago.rtengine.util.StringUtils;
 
@@ -25,31 +20,21 @@ import com.odiago.rtengine.util.StringUtils;
  * FlowElement that prints events to the console.
  */
 public class ConsoleOutputElement extends FlowElementImpl {
-  private List<String> mFieldNames;
-
-  // Members used to decode Avro into fields.
-  private DecoderFactory mDecoderFactory;
-  private BinaryDecoder mDecoder;
-  private GenericData.Record mRecord;
-  private GenericDatumReader<GenericData.Record> mGenericReader;
+  private List<TypedField> mFields;
 
   public ConsoleOutputElement(FlowElementContext context, Schema inputSchema,
-      List<String> fieldNames) {
+      List<TypedField> fields) {
     super(context);
 
-    mDecoderFactory = new DecoderFactory();
-    mRecord = new GenericData.Record(inputSchema);
-    mGenericReader = new GenericDatumReader<GenericData.Record>(inputSchema);
-
-    mFieldNames = fieldNames;
+    mFields = fields;
   }
 
   private void printHeader() {
     StringBuilder sb = new StringBuilder();
     sb.append("timestamp");
-    for (String field : mFieldNames) {
+    for (TypedField field : mFields) {
       sb.append("\t");
-      sb.append(field);
+      sb.append(field.getName());
     }
     System.out.println(sb);
   }
@@ -60,17 +45,15 @@ public class ConsoleOutputElement extends FlowElementImpl {
   }
 
   @Override
-  public void takeEvent(Event e) throws IOException {
+  public void takeEvent(EventWrapper e) throws IOException {
     StringBuilder sb = new StringBuilder();
-    long ts = e.getTimestamp();
+    long ts = e.getEvent().getTimestamp();
     sb.append(ts);
 
     // Extract the Avro record from the event.
-    mDecoder = mDecoderFactory.createBinaryDecoder(e.getBody(), mDecoder);
-    mRecord = mGenericReader.read(mRecord, mDecoder);
-    for (String field : mFieldNames) {
+    for (TypedField field : mFields) {
       sb.append('\t');
-      Object fieldVal = mRecord.get(field);
+      Object fieldVal = e.getField(field);
       if (null == fieldVal) {
         sb.append("null");
       } else {
@@ -84,7 +67,7 @@ public class ConsoleOutputElement extends FlowElementImpl {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("ConsoleOutput(");
-    StringUtils.formatList(sb, mFieldNames);
+    StringUtils.formatList(sb, mFields);
     sb.append(")");
     return sb.toString();
   }

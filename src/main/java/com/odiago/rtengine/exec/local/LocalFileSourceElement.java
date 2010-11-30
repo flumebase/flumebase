@@ -6,20 +6,21 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.avro.Schema;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.flume.core.Event;
-
 import com.cloudera.flume.core.Event.Priority;
 import com.cloudera.flume.core.EventImpl;
 
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElementContext;
-import com.odiago.rtengine.exec.ParsingFlowElementImpl;
+import com.odiago.rtengine.exec.FlowElementImpl;
+import com.odiago.rtengine.exec.ParsingEventWrapper;
+
+import com.odiago.rtengine.io.DelimitedEventParser;
 
 import com.odiago.rtengine.parser.TypedField;
 
@@ -30,13 +31,14 @@ import com.odiago.rtengine.parser.TypedField;
  *
  * The integer on each line specifies the timestamp of the event.
  */
-public class LocalFileSourceElement extends ParsingFlowElementImpl {
+public class LocalFileSourceElement extends FlowElementImpl {
   private static final Logger LOG = LoggerFactory.getLogger(
       LocalFileSourceElement.class.getName());
 
   private String mFilename;
   private EventGenThread mEventGenThread;
   private volatile boolean mIsFinished;
+  private List<String> mFieldNames;
 
   /**
    * Additional thread that actually reads the file and converts it
@@ -72,11 +74,11 @@ public class LocalFileSourceElement extends ParsingFlowElementImpl {
           try {
             long timestamp = Long.parseLong(line.substring(0, tabIdx));
             byte [] body = line.substring(tabIdx + 1).getBytes();
-            EventImpl inputEvent = new EventImpl(body, timestamp, Priority.INFO, 0, "localhost");
-            Event outputEvent = parseEvent(inputEvent);
-            if (null != outputEvent) {
-              emit(outputEvent);
-            }
+            EventImpl event = new EventImpl(body, timestamp, Priority.INFO, 0, "localhost");
+            EventWrapper wrapper = new ParsingEventWrapper(new DelimitedEventParser(),
+                mFieldNames);
+            wrapper.reset(event);
+            emit(wrapper);
           } catch (NumberFormatException nfe) {
             LOG.warn("Could not parse timestamp: " + nfe);
           }
@@ -106,9 +108,13 @@ public class LocalFileSourceElement extends ParsingFlowElementImpl {
   }
 
   public LocalFileSourceElement(FlowElementContext context, String fileName,
-      Schema outputSchema, List<TypedField> fields) {
-    super(context, outputSchema, fields);
+      List<TypedField> fields) {
+    super(context);
     mFilename = fileName;
+    mFieldNames = new ArrayList<String>();
+    for (TypedField field : fields) {
+      mFieldNames.add(field.getName());
+    }
   }
 
   @Override
@@ -127,7 +133,8 @@ public class LocalFileSourceElement extends ParsingFlowElementImpl {
     super.close();
   }
 
-  public void takeEvent(Event e) {
+  @Override
+  public void takeEvent(EventWrapper e) {
     // We generate our own events; nothing should be upstream from us.
     throw new RuntimeException("LocalFileSourceElement does not support incoming events");
   }

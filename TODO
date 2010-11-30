@@ -3,6 +3,9 @@ Next on the list:
 
   Write more unit tests as outlined at the bottom of TestSelect.
 
+
+Rewriting the coupling between FlowElements in the LocalEnvironment:
+
   The current unbounded-buffer coupling between FE's is unnecessary and poor form.
   Instead, we should have a much better set of coupling options:
   - FE classes should have static methods advertising whether event generation is
@@ -23,11 +26,37 @@ Next on the list:
 
 
 
+SQL Features (in rough priority order):
+  - General expression parsing
+  -- scalar functions
+  - Filtering (WHERE)
+  - Aggregation and aggregate functions
+  - Join
+  - Filtering (HAVING)
+  - LIMIT
+  - ORDER BY
+
+
+Expression Parsing and Function Application:
+
+  Need to be able to handle SELECT a, b, c, 2 * d, 1 + 1 FROM foo;
+  Need to be able to handle SELECT LENGTH(a) FROM foo;
+
+  Modify SELECT to take an expression_list instead of a field_list.
+  An expression_list is a list of expressions
+  expressions include:
+    a single field
+    "*" / all-fields
+    fn(e, e, e...)
+    e1 bop e2
+    (e)
+
+  bop ::= * / + - % == != > < <= >=
 
 Aggregation:
 
-  - Implement an RBTree with a ranged iterator for use in windowed aggregation.
   - Implement COUNT(*), COUNT(foo).
+  - Implement windowing.
 
 
 Bugs:
@@ -79,4 +108,9 @@ Optimizations:
   - ProjectionNode immediately after NamedSource should be fused.
   -- longer term: projection (and filtering) should be pushed up into previous
      FlowElements, when we use DAG tiling.
+  - AvroEventWrapper could be improved by deserializing only the fields necessary
+    for a given combined set of FE's in advance, knowing the input, output, and also
+    internal-use schemas. (We may take in <int, string> and emit <int, string> but
+    only query the int component; we could project onto that as we deserialize, and
+    then save ourselves the trouble on the string.)
 

@@ -4,12 +4,11 @@ package com.odiago.rtengine.parser;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.avro.Schema;
-
-import com.odiago.rtengine.exec.Symbol;
-import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.lang.Type;
 import com.odiago.rtengine.lang.VisitException;
@@ -73,23 +72,40 @@ public abstract class SQLStatement {
   }
 
   /**
+   * @return a list of fields representing the unique entries in inFields.
+   */
+  protected static List<TypedField> distinctFields(List<TypedField> inFields) {
+    List<TypedField> out = new ArrayList<TypedField>();
+    Set<String> fieldNames = new HashSet<String>();
+
+    for (TypedField field : inFields) {
+      String fieldName = field.getName();
+      if (fieldNames.contains(fieldName)) {
+        continue;
+      }
+
+      fieldNames.add(fieldName);
+      out.add(field);
+    }
+
+    return out;
+  }
+
+  /**
    * Given a set of fields required as output from a layer of a logical plan,
    * return an Avro schema that encompasses all these fields with the correct
    * Avro types for the fields based on the symbol table entry for each field.
-   * @param requiredFields the field names to be included in this schema.
-   * @param symTab the symbol table populated with definitions for all these
-   * fields.
+   * @param requiredFields the field names and types to be included in this schema.
    */
-  protected static Schema createFieldSchema(Collection<String> requiredFields,
-      SymbolTable symTab) {
+  protected static Schema createFieldSchema(Collection<TypedField> requiredFields) {
     List<Schema.Field> avroFields = new ArrayList<Schema.Field>();
     Schema record = Schema.createRecord(AVRO_RECORD_NAME, null, null, false);
-    for (String fieldName : requiredFields) {
-      Symbol sym = symTab.resolve(fieldName);
-      Type t = sym.getType();
+    for (TypedField field : requiredFields) {
+      String fieldName = field.getName();
+      Type t = field.getType();
       Schema fieldSchema = t.getAvroSchema();
-      Schema.Field field = new Schema.Field(fieldName, fieldSchema, null, null);
-      avroFields.add(field);
+      Schema.Field avroField = new Schema.Field(fieldName, fieldSchema, null, null);
+      avroFields.add(avroField);
     }
     record.setFields(avroFields);
     return record;

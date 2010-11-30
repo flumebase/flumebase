@@ -110,7 +110,7 @@ public class TypeChecker extends Visitor {
       SymbolTable fieldsSymTab = mSymTableContext.top();
       FieldList fields = s.getFields();
       if (!fields.isAllFields()) {
-        for (String fieldName : fields) {
+        for (String fieldName : fields.getFieldNames()) {
           // Check that this field is defined by one of the input sources.
           // Since the source pushed a symbol table on the stack, just check
           // that we have a symbol table, and that this is a primitive value.

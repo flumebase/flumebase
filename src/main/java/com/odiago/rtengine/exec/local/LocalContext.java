@@ -9,8 +9,7 @@ import java.util.AbstractQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import com.cloudera.flume.core.Event;
-
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 
@@ -40,8 +39,8 @@ public abstract class LocalContext extends FlowElementContext {
    * Post an event to the output queue, to deliver to the specified target
    * FlowElement.
    */
-  protected void post(FlowElement target, Event event) {
-    mOutputQueue.add(new PendingEvent(target, event));
+  protected void post(FlowElement target, EventWrapper wrapper) {
+    mOutputQueue.add(new PendingEvent(target, wrapper));
 
     // If the control queue is empty, put a no-op in there to ensure that we fall-thru
     // and process the pending event.

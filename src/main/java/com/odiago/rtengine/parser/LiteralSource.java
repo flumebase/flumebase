@@ -75,9 +75,14 @@ public class LiteralSource extends SQLStatement {
 
     // Create an Avro output schema for this node, specifying all the fields
     // we can emit.
-    Schema outSchema = createFieldSchema(fieldNames, outTable);
+    List<TypedField> outFields = new ArrayList<TypedField>();
+    for (String fieldName : fieldNames) {
+      Symbol sym = outTable.resolve(fieldName);
+      outFields.add(new TypedField(fieldName, sym.getType()));
+    }
+    Schema outSchema = createFieldSchema(outFields);
     outContext.setSchema(outSchema);
-    outContext.setOutFields(fieldNames);
+    outContext.setOutFields(outFields);
     node.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, outSchema);
 
     return outContext;

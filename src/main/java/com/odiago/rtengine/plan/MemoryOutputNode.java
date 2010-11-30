@@ -4,6 +4,8 @@ package com.odiago.rtengine.plan;
 
 import java.util.List;
 
+import com.odiago.rtengine.parser.TypedField;
+
 import com.odiago.rtengine.util.StringUtils;
 
 /**
@@ -12,7 +14,7 @@ import com.odiago.rtengine.util.StringUtils;
 public class MemoryOutputNode extends PlanNode {
   
   /** The set of field names and types to emit to the console. */
-  private List<String> mOutputFields;
+  private List<TypedField> mOutputFields;
 
   /**
    * The name to bind the MemoryOutputElement to, for later retrieval
@@ -20,12 +22,12 @@ public class MemoryOutputNode extends PlanNode {
    */
   private String mBufferName;
 
-  public MemoryOutputNode(String memoryBufferName, List<String> fields) {
+  public MemoryOutputNode(String memoryBufferName, List<TypedField> fields) {
     mBufferName = memoryBufferName;
     mOutputFields = fields;
   }
 
-  public List<String> getFields() {
+  public List<TypedField> getFields() {
     return mOutputFields;
   }
 

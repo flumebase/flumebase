@@ -4,8 +4,6 @@ package com.odiago.rtengine.exec;
 
 import java.io.IOException;
 
-import com.cloudera.flume.core.Event;
-
 /**
  * A flow element is a worker in a flow; it has an input side
  * and an output side, and some function. 
@@ -40,7 +38,7 @@ public abstract class FlowElement {
    * Process another input event in the current window.
    * May emit output events if there is a 1-to-1 (non-aggregate) correlation.
    */
-  public abstract void takeEvent(Event e) throws IOException, InterruptedException;
+  public abstract void takeEvent(EventWrapper e) throws IOException, InterruptedException;
 
   /**
    * Finish any aggregation associated with this window, and emit any output

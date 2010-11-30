@@ -25,8 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.flume.core.Event;
-
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.ExecEnvironment;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowId;
@@ -368,7 +367,7 @@ public class LocalEnvironment extends ExecEnvironment {
               while (!queue.isEmpty()) {
                 PendingEvent pe = queue.remove();
                 FlowElement fe = pe.getFlowElement();
-                Event e = pe.getEvent();
+                EventWrapper e = pe.getEvent();
                 try {
                   fe.takeEvent(e);
                 } catch (IOException ioe) {

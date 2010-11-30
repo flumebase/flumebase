@@ -2,8 +2,7 @@
 
 package com.odiago.rtengine.exec.local;
 
-import com.cloudera.flume.core.Event;
-
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElement;
 
 /**
@@ -11,14 +10,14 @@ import com.odiago.rtengine.exec.FlowElement;
  */
 public class PendingEvent {
   private final FlowElement mTarget;
-  private final Event mEvent;
+  private final EventWrapper mEvent;
 
-  public PendingEvent(FlowElement fe, Event event) {
+  public PendingEvent(FlowElement fe, EventWrapper event) {
     mTarget = fe;
     mEvent = event;
   }
 
-  public Event getEvent() {
+  public EventWrapper getEvent() {
     return mEvent;
   }
 
@@ -30,7 +29,7 @@ public class PendingEvent {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("(\"");
-    String eventStr = new String(mEvent.getBody());
+    String eventStr = new String(mEvent.getEvent().getBody());
     sb.append(eventStr);
     sb.append("\" -> ");
     sb.append(mTarget);

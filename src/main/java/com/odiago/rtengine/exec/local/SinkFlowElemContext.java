@@ -4,8 +4,7 @@ package com.odiago.rtengine.exec.local;
 
 import java.io.IOException;
 
-import com.cloudera.flume.core.Event;
-
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowId;
 
 /**
@@ -22,7 +21,7 @@ public class SinkFlowElemContext extends LocalContext {
   }
 
   @Override
-  public void emit(Event e) throws IOException, InterruptedException {
+  public void emit(EventWrapper e) throws IOException {
     throw new IOException("Cannot emit event without downstream element");
   }
 

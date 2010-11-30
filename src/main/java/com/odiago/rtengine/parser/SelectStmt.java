@@ -3,9 +3,7 @@
 package com.odiago.rtengine.parser;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.avro.Schema;
 
@@ -13,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.odiago.rtengine.exec.HashSymbolTable;
+import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.plan.ConsoleOutputNode;
@@ -79,7 +78,7 @@ public class SelectStmt extends SQLStatement {
       pad(sb, depth + 1);
       sb.append("(all)\n");
     } else {
-      for (String fieldName : mFields) {
+      for (String fieldName : mFields.getFieldNames()) {
         pad(sb, depth + 1);
         sb.append(fieldName);
         sb.append("\n");
@@ -109,6 +108,7 @@ public class SelectStmt extends SQLStatement {
     sourceInCtxt.setRoot(false);
     sourceInCtxt.setFlowSpec(new FlowSpecification());
     PlanContext sourceOutCtxt = source.createExecPlan(sourceInCtxt);
+    SymbolTable srcOutSymbolTable = sourceOutCtxt.getSymbolTable();
 
     // Now incorporate that entire plan into our plan.
     FlowSpecification flowSpec = planContext.getFlowSpec();
@@ -116,33 +116,35 @@ public class SelectStmt extends SQLStatement {
 
     // Add a projection level that grabs only the fields we care about.
     Schema sourceSchema = sourceOutCtxt.getSchema();
-    Set<String> allRequiredFieldNames = new HashSet<String>();
+    List<TypedField> allRequiredFields = new ArrayList<TypedField>();
 
     // Create a list containing the (ordered) set of fields we want emitted to the console.
-    List<String> consoleFields = new ArrayList<String>();
+    List<TypedField> consoleFields = new ArrayList<TypedField>();
 
     // Start with all the fields the user explicitly selected.
     FieldList fieldList = getFields();
     if (fieldList.isAllFields()) {
       // Use all field names listed as outputs from the source's output context.
-      allRequiredFieldNames.addAll(sourceOutCtxt.getOutFields());
-      consoleFields.addAll(sourceOutCtxt.getOutFields());
+      for (TypedField outField : sourceOutCtxt.getOutFields()) {
+        consoleFields.add(outField);
+        allRequiredFields.add(outField);
+      }
     } else {
-      for (String field : fieldList) {
-        allRequiredFieldNames.add(field);
-        consoleFields.add(field);
+      for (TypedField typedField : fieldList.getFields(srcOutSymbolTable)) {
+        consoleFields.add(typedField);
+        allRequiredFields.add(typedField);
       }
     }
 
     if (null != where) {
       // Add to this all the fields required by the where clause.
-      allRequiredFieldNames.addAll(where.getRequiredFields());
+      allRequiredFields.addAll(where.getRequiredFields(srcOutSymbolTable));
     }
 
     // Create the projected schema based on the symbol table returned by our source. 
-    Schema projectedSchema = createFieldSchema(allRequiredFieldNames,
-        sourceOutCtxt.getSymbolTable());
-    ProjectionNode projectionNode = new ProjectionNode();
+    allRequiredFields = distinctFields(allRequiredFields);
+    Schema projectedSchema = createFieldSchema(allRequiredFields);
+    ProjectionNode projectionNode = new ProjectionNode(allRequiredFields);
     projectionNode.setAttr(PlanNode.INPUT_SCHEMA_ATTR, sourceSchema);
     projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, projectedSchema);
     flowSpec.attachToLastLayer(projectionNode);
@@ -163,7 +165,8 @@ public class SelectStmt extends SQLStatement {
         flowSpec.attachToLastLayer(new ConsoleOutputNode(consoleFields));
       } else {
         // Client has specified that outputs of this root query go to a named memory buffer.
-        flowSpec.attachToLastLayer(new MemoryOutputNode(selectTarget, consoleFields));
+        flowSpec.attachToLastLayer(new MemoryOutputNode(selectTarget,
+            distinctFields(consoleFields)));
       }
     } else {
       // If the initial projection contained both explicitly selected fields as
@@ -177,34 +180,34 @@ public class SelectStmt extends SQLStatement {
       outContext = new PlanContext(planContext);
       SymbolTable inTable = planContext.getSymbolTable();
       SymbolTable outTable = new HashSymbolTable(inTable);
-      List<String> outputFieldNames = new ArrayList<String>();
-      SymbolTable sourceSymTable = sourceOutCtxt.getSymbolTable();
-      Iterable<String> projectedFields;
+      List<TypedField> outputFields = new ArrayList<TypedField>();
+      Iterable<TypedField> projectedFields;
       if (fieldList.isAllFields()) {
         // User did a "SELECT *"; use all field names provided by our own source.
         projectedFields = sourceOutCtxt.getOutFields();
       } else {
         // Use the field names literally provided in the SELECT clause.
-        projectedFields = fieldList;
+        projectedFields = fieldList.getFields(srcOutSymbolTable);
       }
 
       // Resolve the list of fields against the symbols exposed by the source.
       // Copy those symbols we're interested in to the returned symbol table. 
-      for (String fieldName : projectedFields) {
-        if (!outputFieldNames.contains(fieldName)) {
-          outTable.addSymbol(sourceSymTable.resolve(fieldName));
-          outputFieldNames.add(fieldName);
+      for (TypedField field : projectedFields) {
+        if (!outputFields.contains(field)) {
+          Symbol fieldSym = srcOutSymbolTable.resolve(field.getName());
+          outTable.addSymbol(fieldSym);
+          outputFields.add(field);
         }
       }
-      Schema outputSchema = createFieldSchema(outputFieldNames,
-          sourceOutCtxt.getSymbolTable());
-      ProjectionNode cleanupProjection = new ProjectionNode();
+      outputFields = distinctFields(outputFields);
+      Schema outputSchema = createFieldSchema(outputFields);
+      ProjectionNode cleanupProjection = new ProjectionNode(outputFields);
       projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, outputSchema);
       flowSpec.attachToLastLayer(cleanupProjection);
 
       outContext.setSymbolTable(outTable);
       outContext.setSchema(outputSchema);
-      outContext.setOutFields(outputFieldNames);
+      outContext.setOutFields(outputFields);
     }
 
     return outContext;

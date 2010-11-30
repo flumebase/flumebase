@@ -4,8 +4,7 @@ package com.odiago.rtengine.exec.local;
 
 import java.io.IOException;
 
-import com.cloudera.flume.core.Event;
-
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElement;
 
 /**
@@ -26,7 +25,7 @@ public class DirectCoupledFlowElemContext extends LocalContext {
    * {@inheritDoc}
    */
   @Override
-  public void emit(Event e) throws IOException, InterruptedException {
+  public void emit(EventWrapper e) throws IOException, InterruptedException {
     post(mDownstream, e);
   }
 

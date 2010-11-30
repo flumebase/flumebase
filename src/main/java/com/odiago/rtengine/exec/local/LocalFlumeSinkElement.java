@@ -11,8 +11,7 @@ import org.apache.avro.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.flume.core.Event;
-
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowElementImpl;
 
@@ -78,7 +77,7 @@ public class LocalFlumeSinkElement extends FlowElementImpl {
   }
 
   @Override
-  public void takeEvent(Event e) {
+  public void takeEvent(EventWrapper e) {
     // We generate our own events; nothing should be upstream from us.
     throw new RuntimeException("LocalFlumeSinkElement does not support incoming events");
   }

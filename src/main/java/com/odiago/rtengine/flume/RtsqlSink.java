@@ -4,14 +4,21 @@ package com.odiago.rtengine.flume;
 
 import java.io.IOException;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
 
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElementContext;
-import com.odiago.rtengine.exec.ParsingFlowElementImpl;
+import com.odiago.rtengine.exec.ParsingEventWrapper;
+
+import com.odiago.rtengine.io.DelimitedEventParser;
+
+import com.odiago.rtengine.parser.TypedField;
 
 /**
  * EventSink that receives events from upstream in a Flume pipeline.
@@ -27,13 +34,6 @@ public class RtsqlSink extends EventSink.Base {
    */
   private String mContextSourceName;
 
-
-  /**
-   * An internal FlowElement we use to parse the incoming event into Avro
-   * records and dispatch internally.
-   */
-  private ParsingFlowElementImpl mParsingElement;
-
   /**
    * The container for all the state initialized elsewhere in the engine
    * required for processing events at this sink.
@@ -45,6 +45,11 @@ public class RtsqlSink extends EventSink.Base {
    * where we insert events we receive from Flume.
    */
   private FlowElementContext mWriteContext;
+
+  /**
+   * List of field names contained in each element.
+   */
+  private List<String> mFieldNames;
 
   public RtsqlSink(String contextSourceName) {
     mContextSourceName = contextSourceName;
@@ -60,13 +65,8 @@ public class RtsqlSink extends EventSink.Base {
           + mContextSourceName);
     }
     mWriteContext = mSinkContext.getFlowElementContext();
-    mParsingElement = new ParsingFlowElementImpl(mWriteContext,
-      mSinkContext.getOutputSchema(), mSinkContext.getFieldTypes());
-    try {
-      mParsingElement.open();
-    } catch (InterruptedException ie) {
-      // TODO - when flume lets us throw this naturally, just do so.
-      throw new IOException(ie);
+    for (TypedField field : mSinkContext.getFieldTypes()) {
+      mFieldNames.add(field.getName());
     }
   }
 
@@ -78,10 +78,15 @@ public class RtsqlSink extends EventSink.Base {
     }
 
     try {
+      // TODO - Support other input types, delimiters, etc.
+      
+      EventWrapper wrapper = new ParsingEventWrapper(new DelimitedEventParser(),
+          mFieldNames);
+      wrapper.reset(e);
+      mWriteContext.emit(wrapper);
       // TODO(aaron): In local mode, this appends to an unbounded queue. We should
       // ensure that we can apply some sort of backpressure by blocking if this
       // is actually getting out of hand.
-      mParsingElement.takeEvent(e);
     } catch (InterruptedException ie) {
       // TODO(aaron): When Flume's api lets us throw InterruptedException, do so directly.
       throw new IOException(ie);
@@ -93,12 +98,11 @@ public class RtsqlSink extends EventSink.Base {
   public void close() throws IOException {
     LOG.info("Closing Flume sink for flow/source: " + mContextSourceName);
     try {
-      mParsingElement.close();
+      mWriteContext.notifyCompletion();
     } catch (InterruptedException ie) {
-      throw new IOException(ie); // TODO(aaron): Throw this naturally when Flume allows.
+      throw new IOException(ie); // TODO - don't wrap this.
     }
 
-    mParsingElement = null;
     mWriteContext = null;
   }
 }

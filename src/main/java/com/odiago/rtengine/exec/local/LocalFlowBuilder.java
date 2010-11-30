@@ -23,8 +23,6 @@ import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 
-import com.odiago.rtengine.lang.Type;
-
 import com.odiago.rtengine.parser.EntityTarget;
 
 import com.odiago.rtengine.plan.ConsoleOutputNode;
@@ -190,7 +188,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       case File:
         String fileName = streamSymbol.getSource();
         newElem = new LocalFileSourceElement(newContext, fileName,
-            (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR), namedInput.getFields());
+            namedInput.getFields());
         break;
       case Sink:
         String flumeSource = streamSymbol.getSource();
@@ -209,7 +207,6 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
         break;
       case Memory:
         newElem = new LocalInMemSourceElement(newContext,
-            (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
             namedInput.getFields(), (InMemStreamSymbol) streamSymbol);
         break;
       default:
@@ -222,9 +219,8 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       newElem = new StrMatchFilterElement(newContext, matchStr);
     } else if (node instanceof ProjectionNode) {
       ProjectionNode projNode = (ProjectionNode) node;
-      Schema inSchema = (Schema) projNode.getAttr(PlanNode.INPUT_SCHEMA_ATTR);
       Schema outSchema = (Schema) projNode.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
-      newElem = new ProjectionElement(newContext, inSchema, outSchema);
+      newElem = new ProjectionElement(newContext, outSchema, projNode.getFields());
     } else {
       throw new DAGOperatorException("Cannot create FlowElement for PlanNode of type: "
           + node.getClass().getName());

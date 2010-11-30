@@ -10,18 +10,16 @@ import java.util.List;
 import org.apache.avro.Schema;
 
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumReader;
-
-import org.apache.avro.io.BinaryDecoder;
-import org.apache.avro.io.DecoderFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.flume.core.Event;
-
+import com.odiago.rtengine.exec.AvroEventWrapper;
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowElementImpl;
+
+import com.odiago.rtengine.parser.TypedField;
 
 import com.odiago.rtengine.util.StringUtils;
 
@@ -31,35 +29,37 @@ import com.odiago.rtengine.util.StringUtils;
 public class MemoryOutputElement extends FlowElementImpl {
   private static final Logger LOG = LoggerFactory.getLogger(
       MemoryOutputElement.class.getName());
-  private List<String> mFieldNames;
+  private List<TypedField> mFields;
   private List<GenericData.Record> mOutputRecords;
 
   // Members used to decode Avro into fields.
-  private DecoderFactory mDecoderFactory;
-  private BinaryDecoder mDecoder;
-  private GenericDatumReader<GenericData.Record> mGenericReader;
+  private Schema mInputSchema;
 
   public MemoryOutputElement(FlowElementContext context, Schema inputSchema,
-      List<String> fieldNames) {
+      List<TypedField> fields) {
     super(context);
 
-    mDecoderFactory = new DecoderFactory();
-    mGenericReader = new GenericDatumReader<GenericData.Record>(inputSchema);
-
-    mFieldNames = fieldNames;
+    mInputSchema = inputSchema;
+    mFields = fields;
     mOutputRecords = new ArrayList<GenericData.Record>();
   }
 
   @Override
-  public void takeEvent(Event e) throws IOException {
-    StringBuilder sb = new StringBuilder();
-    long ts = e.getTimestamp();
-    sb.append(ts);
-
-    // Extract the Avro record from the event.
-    mDecoder = mDecoderFactory.createBinaryDecoder(e.getBody(), mDecoder);
-    GenericData.Record record = mGenericReader.read(null, mDecoder);
-    mOutputRecords.add(record);
+  public void takeEvent(EventWrapper wrapper) throws IOException {
+    if (wrapper instanceof AvroEventWrapper) {
+      // Pull the record directly from here.
+      GenericData.Record record = ((AvroEventWrapper) wrapper).getRecord();
+      LOG.info("Take Avro event direct: " + record);
+      mOutputRecords.add(record);
+    } else {
+      // Parse out all the fields into Avro ourselves.
+      GenericData.Record outRecord = new GenericData.Record(mInputSchema);
+      for (TypedField field : mFields) {
+        outRecord.put(field.getName(), wrapper.getField(field));
+      }
+      LOG.info("Spun up: " + outRecord);
+      mOutputRecords.add(outRecord);
+    }
   }
 
   /** @return the collected output records. */
@@ -71,7 +71,7 @@ public class MemoryOutputElement extends FlowElementImpl {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("MemoryOutput(");
-    StringUtils.formatList(sb, mFieldNames);
+    StringUtils.formatList(sb, mFields);
     sb.append(")");
     return sb.toString();
   }

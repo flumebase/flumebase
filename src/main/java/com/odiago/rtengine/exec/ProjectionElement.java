@@ -5,21 +5,24 @@ package com.odiago.rtengine.exec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.avro.Schema;
 
-import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 
-import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.BinaryEncoder;
-import org.apache.avro.io.DecoderFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
+
+import com.odiago.rtengine.parser.TypedField;
 
 /**
  * Transform each binary-encoded Avro event we receive, projecting from its
@@ -28,43 +31,45 @@ import com.cloudera.flume.core.EventImpl;
 public class ProjectionElement extends FlowElementImpl {
   private static final Logger LOG = LoggerFactory.getLogger(
       ProjectionElement.class.getName());
-
-  // Avro encoder/decoder components reused in our internal workflow.
-  private DecoderFactory mDecoderFactory;
-  private BinaryDecoder mDecoder;
+  // Avro encoder components reused in our internal workflow.
   private BinaryEncoder mEncoder;
-  private GenericDatumReader<GenericRecord> mDatumReader;
   private GenericDatumWriter<GenericRecord> mDatumWriter;
-  private GenericRecord mRecord;
   private ByteArrayOutputStream mOutputBytes;
+  private Schema mOutputSchema;
 
-  public ProjectionElement(FlowElementContext ctxt, Schema inputSchema, Schema outputSchema) {
+  private List<TypedField> mOutputFields;
+
+  public ProjectionElement(FlowElementContext ctxt, Schema outputSchema,
+      List<TypedField> outputFields) {
     super(ctxt);
-    mDecoderFactory = new DecoderFactory();
-    mDatumReader = new GenericDatumReader<GenericRecord>(inputSchema, outputSchema);
     mDatumWriter = new GenericDatumWriter<GenericRecord>(outputSchema);
     mOutputBytes = new ByteArrayOutputStream();
     mEncoder = new BinaryEncoder(mOutputBytes);
+    mOutputSchema = outputSchema;
+    mOutputFields = new ArrayList<TypedField>(outputFields);
   }
 
   @Override
-  public void takeEvent(Event e) throws IOException, InterruptedException {
-    byte[] body = e.getBody();
-    mDecoder = mDecoderFactory.createBinaryDecoder(body, mDecoder);
-    try {
-      mRecord = mDatumReader.read(mRecord, mDecoder);
-    } catch (ArrayIndexOutOfBoundsException oob) {
-      // Could not read fields of this event.
-      return;
+  public void takeEvent(EventWrapper e) throws IOException, InterruptedException {
+    GenericData.Record record = new GenericData.Record(mOutputSchema);
+
+    for (TypedField field : mOutputFields) {
+      String fieldName = field.getName();
+      record.put(fieldName, e.getField(field));
     }
+
+    LOG.info("Projection emits: " + record);
 
     // TODO: BAOS.toByteArray() creates a new byte array, as does the
     // creation of the event. That's at least one more array copy than
     // necessary.
     mOutputBytes.reset();
-    mDatumWriter.write(mRecord, mEncoder);
+    mDatumWriter.write(record, mEncoder);
+    Event inEvent = e.getEvent();
     Event out = new EventImpl(mOutputBytes.toByteArray(),
-        e.getTimestamp(), e.getPriority(), e.getNanos(), e.getHost()); 
-    emit(out);
+        inEvent.getTimestamp(), inEvent.getPriority(), inEvent.getNanos(), inEvent.getHost()); 
+    AvroEventWrapper outWrapper = new AvroEventWrapper(mOutputSchema);
+    outWrapper.reset(out);
+    emit(outWrapper);
   }
 }

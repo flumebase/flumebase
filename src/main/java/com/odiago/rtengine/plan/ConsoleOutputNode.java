@@ -4,6 +4,8 @@ package com.odiago.rtengine.plan;
 
 import java.util.List;
 
+import com.odiago.rtengine.parser.TypedField;
+
 import com.odiago.rtengine.util.StringUtils;
 
 /**
@@ -12,13 +14,13 @@ import com.odiago.rtengine.util.StringUtils;
 public class ConsoleOutputNode extends PlanNode {
   
   /** The set of field names and types to emit to the console. */
-  private List<String> mOutputFields;
+  private List<TypedField> mOutputFields;
 
-  public ConsoleOutputNode(List<String> fields) {
+  public ConsoleOutputNode(List<TypedField> fields) {
     mOutputFields = fields;
   }
 
-  public List<String> getFields() {
+  public List<TypedField> getFields() {
     return mOutputFields;
   }
 

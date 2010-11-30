@@ -13,6 +13,8 @@ import org.apache.hadoop.conf.Configuration;
 import com.odiago.rtengine.exec.HashSymbolTable;
 import com.odiago.rtengine.exec.SymbolTable;
 
+import com.odiago.rtengine.parser.TypedField;
+
 /**
  * Container for state associated with the plan-formation process
  * when operating over the statement AST.
@@ -35,10 +37,10 @@ public class PlanContext {
 
 
   /**
-   * The list of field names provided as output from the plan of a source statement.
+   * The list of field names and types provided as output from the plan of a source statement.
    * i.e., the set of fields returned by a nested SELECT or named source.
    */
-  private List<String> mOutFields;
+  private List<TypedField> mOutFields;
 
   /**
    * Set to true if we should explain the plan after it is all fully-processed,
@@ -66,7 +68,7 @@ public class PlanContext {
     mIsRoot = true;
     mSchema = null;
     mIsExplain = false;
-    mOutFields = new ArrayList<String>();
+    mOutFields = new ArrayList<TypedField>();
   }
 
   public PlanContext(PlanContext other) {
@@ -88,12 +90,12 @@ public class PlanContext {
     mConf = conf;
   }
 
-  public List<String> getOutFields() {
+  public List<TypedField> getOutFields() {
     return mOutFields;
   }
 
-  public void setOutFields(Collection<String> outFields) {
-    this.mOutFields = new ArrayList<String>(outFields);
+  public void setOutFields(Collection<TypedField> outFields) {
+    this.mOutFields = new ArrayList<TypedField>(outFields);
   }
 
   public boolean isRoot() {
