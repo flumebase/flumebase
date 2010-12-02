@@ -37,6 +37,7 @@ public class Type {
     TIMESPAN,
     NULLABLE, // nullable instance of a primitive type (int, bigint, etc).
     FLOW, // An executing flow.
+    ANY, // 'null' constant can be cast to any type.
   };
 
   
@@ -81,6 +82,7 @@ public class Type {
     NULLABLE_TYPES.put(TypeName.STRING, new NullableType(TypeName.STRING));
     NULLABLE_TYPES.put(TypeName.TIMESTAMP, new NullableType(TypeName.TIMESTAMP));
     NULLABLE_TYPES.put(TypeName.TIMESPAN, new NullableType(TypeName.TIMESPAN));
+    NULLABLE_TYPES.put(TypeName.ANY, new NullableType(TypeName.ANY));
   }
 
   /**

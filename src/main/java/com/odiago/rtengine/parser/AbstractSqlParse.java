@@ -43,7 +43,8 @@ public abstract class AbstractSqlParse extends Parser {
    * Remove "double quotes" from around a string, if present.
    */
   protected final String unquote(String srcName) {
-    if (srcName.startsWith("\"") && srcName.endsWith("\"")) {
+    if ((srcName.startsWith("\"") && srcName.endsWith("\""))
+        || (srcName.startsWith("\'") && srcName.endsWith("\'"))) {
       return srcName.substring(1, srcName.length() - 1);
     } else {
       return srcName;
@@ -51,9 +52,9 @@ public abstract class AbstractSqlParse extends Parser {
   }
 
   /**
-   * Given an input string which was of the form "some text",
+   * Given an input string which was of the form "some text" or 'some text',
    * where the inner text may include escape characters, remove the enclosing
-   * double quotes and transform any escape sequences into their respective
+   * [double] quotes and transform any escape sequences into their respective
    * proper characters.
    */
   protected final String unescape(String inputStr) {

@@ -18,12 +18,14 @@ DESCRIBE : D E S C R I B E ;
 DOUBLE : D O U B L E ;
 DROP : D R O P ;
 EXPLAIN : E X P L A I N ;
+FALSE : F A L S E ;
 FILE : F I L E ;
 FLOAT : F L O A T ;
 FLOW : F L O W ;
 FLOWS : F L O W S ;
 FROM : F R O M ;
 INT_KW : I N T ;
+IS : I S ;
 LOCAL : L O C A L ;
 NOT : N O T ;
 NULL : N U L L ;
@@ -34,18 +36,41 @@ STREAM : S T R E A M ;
 STREAMS : S T R E A M S ;
 STRING_KW : S T R I N G ;
 TIMESTAMP : T I M E S T A M P ;
+TRUE : T R U E ;
 WHERE : W H E R E ;
+L_AND : A N D ;
+L_OR : O R ;
 
 ID  : ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'0'..'9'|'_')*
     ;
 
-ALL_FIELDS : '*';
+STAR : '*';
 
 LPAREN : '(';
 
 RPAREN : ')';
 
 COMMA : ',';
+
+PLUS : '+';
+
+MINUS : '-';
+
+SLASH : '/';
+
+PERCENT : '%';
+
+GTEQ : '>' '=';
+
+GT : '>';
+
+LTEQ : '<' '=';
+
+LT : '<';
+
+EQ : '=';
+
+NEQ : '!' '=';
 
 INT : '0'..'9'+
     ;
@@ -62,9 +87,14 @@ WS  :   ( ' '
         ) {skip();}
     ;
 
-STRING
+QQ_STRING
     :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"'
     ;
+
+Q_STRING
+    : '\'' ( ESC_SEQ | ~('\\'|'\'') )* '\''
+    ;
+
 
 fragment
 HEX_DIGIT : ('0'..'9'|'a'..'f'|'A'..'F') ;

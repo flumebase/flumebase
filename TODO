@@ -4,6 +4,22 @@ Next on the list:
   Write more unit tests as outlined at the bottom of TestSelect.
 
 
+Expressions:
+  - SELECT statement should take ALL_FIELDS (STAR) or Expr lists
+  - check parsing with EXPLAIN.
+  - write the type checker for all these types.
+  - Need a Type.promotesTo(Type) -> boolean
+    -- NULLABLE(ANY) promotes to any type.
+  - Need an EvaluationNode and EvaluationElement
+    -- put these after the initial projection.
+    ..... consider operating directly on the AST elements for these.
+  - Need to handle scalar fns
+    -- need a BuiltInSymbolTable to hold some functions
+    -- need function API
+    -- need to add functions like LENGTH, CURRENT_TIMESTAMP(), etc.
+    ---- reflect these into BuiltInSymbolTable by walking the package.
+
+
 Rewriting the coupling between FlowElements in the LocalEnvironment:
 
   The current unbounded-buffer coupling between FE's is unnecessary and poor form.
