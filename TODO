@@ -5,11 +5,7 @@ Next on the list:
 
 
 Expressions:
-  - SELECT statement should take ALL_FIELDS (STAR) or Expr lists
-  - check parsing with EXPLAIN.
-  - write the type checker for all these types.
-  - Need a Type.promotesTo(Type) -> boolean
-    -- NULLABLE(ANY) promotes to any type.
+  - TypedField -- is displayName always equal to mName?
   - Need an EvaluationNode and EvaluationElement
     -- put these after the initial projection.
     ..... consider operating directly on the AST elements for these.
@@ -18,7 +14,10 @@ Expressions:
     -- need function API
     -- need to add functions like LENGTH, CURRENT_TIMESTAMP(), etc.
     ---- reflect these into BuiltInSymbolTable by walking the package.
-
+  - IS NULL and IS NOT NULL are unary expressions, not binary.
+  - Need more tests in TestTypeChecker; see TODO in comments.
+  - Refine user_sel rule (or TypeChecker) so that it cannot accept identifier names that
+    end in "_". (We need these for internal field identifiers in avro.)
 
 Rewriting the coupling between FlowElements in the LocalEnvironment:
 

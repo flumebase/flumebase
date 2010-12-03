@@ -37,7 +37,7 @@ public class Type {
     TIMESPAN,
     NULLABLE, // nullable instance of a primitive type (int, bigint, etc).
     FLOW, // An executing flow.
-    ANY, // 'null' constant can be cast to any type.
+    ANY, // 'null' constant can be cast to any type. Only valid inside NULLABLE.
   };
 
   
@@ -117,9 +117,140 @@ public class Type {
     return true;
   }
 
+  /** @return true if this is a numeric type. */
+  public boolean isNumeric() {
+    switch (mTypeName) {
+    case INT:
+    case BIGINT:
+    case FLOAT:
+    case DOUBLE:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  /** @return true if there is an ordering over values of this type (i.e., it
+   * supports operators &gt;, &lt;, &gt;=, &lt;=).
+   */
+  public boolean isComparable() {
+    return isNumeric() || this.equals(Type.getPrimitive(Type.TypeName.STRING));
+  }
+
   /** @return an Avro schema describing this type. */
   public Schema getAvroSchema() {
     return getAvroSchema(mTypeName);
+  }
+
+  /**
+   * @return true if a value of this type can be represented in the form of 'other'.
+   * For example, INT promotesTo NULLABLE(INT).
+   *
+   * <p>The general rules are as follows:</p>
+   * <ul>
+   *   <li>X promotesTo X (reflexivity)</li>
+   *   <li>X promotesTo Y &amp;&amp; Y promotesTo Z =&gt; X promotesTo Z (transitivity)</li>
+   *   <li>X promotesTo NULLABLE(Y) for any scalar X if X promotesTo Y</li>
+   *   <li>NULLABLE(ANY) promotesTo NULLABLE(X) for any X</li>
+   *   <li>X promotesTo STRING for any scalar X</li>
+   *   <li>NULLABLE(X) promotesTo NULLABLE(STRING) for any scalar X</li>
+   *   <li>INT promotesTo BIGINT</li>
+   *   <li>BIGINT promotesTo FLOAT</li>
+   *   <li>FLOAT promotesTo DOUBLE</li>
+   *   <li>(TODO: unimplemented)
+   *       FLOW(t1, ..., tn) promotesTo FLOW(t'1, ..., t'n) iff t_i promotesTo t'_i.</li>
+   * </ul>
+   */
+  public boolean promotesTo(Type other) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Checking: " + this + " promotesTo " + other);
+    }
+
+    if (null == other) {
+      return false; // invalid input.
+    } else if (this.equals(other)) {
+      return true; // reflexivity rule.
+    } else if (isPrimitive() && other.isNullable()) {
+      if (isNullable()) {
+        NullableType nullableThis = (NullableType) this;
+        NullableType nullableOther = (NullableType) other;
+
+        TypeName myTypeName = nullableThis.getNullableTypeName();
+        TypeName otherTypeName = nullableOther.getNullableTypeName();
+        if (TypeName.ANY.equals(myTypeName)) {
+          // NULLABLE(ANY) promotesTo any nullable other type.
+          return true;
+        } else if (Type.getPrimitive(myTypeName).promotesTo(Type.getPrimitive(otherTypeName))) {
+          // NULLABLE (X) promotesTo NULLABLE (Y) if X promotesTo Y.
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        // X promotesTo NULLABLE(Y) if X promotesTo Y.
+        NullableType nullableOther = (NullableType) other;
+        Type nonNullVer = Type.getPrimitive(nullableOther.getNullableTypeName());
+        return promotesTo(nonNullVer);
+      }
+    } else if (isPrimitive() && !isNullable() && other.isPrimitive()) {
+      TypeName otherName = other.getTypeName();
+      if (TypeName.STRING.equals(otherName)) {
+        // any primitive type promotes to STRING.
+        return true;
+      } else if (numericPromotesTo(mTypeName, otherName)) {
+        // our numeric type promotes to the other type.
+        return true;
+      } else {
+        // Transitive widening case: If our numeric type can be widened, see
+        // if that promotes to the target type (recursively).
+        Type widerPrimitive = widen();
+        if (null != widerPrimitive) {
+          return widerPrimitive.promotesTo(other);
+        } else {
+          return false; // can't widen.
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * @return true if smaller is a numeric TypeName, and smaller promotesTo larger.
+   */
+  private boolean numericPromotesTo(TypeName smaller, TypeName larger) {
+    if (TypeName.INT.equals(smaller) && TypeName.BIGINT.equals(larger)) {
+      return true;
+    } else if (TypeName.BIGINT.equals(smaller) && TypeName.FLOAT.equals(larger)) {
+      return true;
+    } else if (TypeName.FLOAT.equals(smaller) && TypeName.DOUBLE.equals(larger)) {
+      return true;
+    } else if (smaller.equals(larger)) {
+      // reflexive case.
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * For numeric types, returns the next more permissive numeric type in the tower.
+   * <p>INT -&gt; BIGINT -&gt; FLOAT -&gt; DOUBLE.</p>
+   * <p>widen(DOUBLE) returns null.</p>
+   * <p>X widensTo Y =&gt; NULLABLE(X) widensTo NULLABLE(Y).
+   * (Handled in NullableType.widen())</p>
+   */
+  public Type widen() {
+    if (TypeName.INT.equals(mTypeName)) {
+      return Type.getPrimitive(TypeName.BIGINT);
+    } else if (TypeName.BIGINT.equals(mTypeName)) {
+      return Type.getPrimitive(TypeName.FLOAT);
+    } else if (TypeName.FLOAT.equals(mTypeName)) {
+      return Type.getPrimitive(TypeName.DOUBLE);
+    }
+
+    // Cannot widen this type.
+    return null;
   }
 
   /** @return an Avro schema describing the specified TypeName. */

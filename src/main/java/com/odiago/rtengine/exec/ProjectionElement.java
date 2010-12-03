@@ -58,8 +58,6 @@ public class ProjectionElement extends FlowElementImpl {
       record.put(fieldName, e.getField(field));
     }
 
-    LOG.info("Projection emits: " + record);
-
     // TODO: BAOS.toByteArray() creates a new byte array, as does the
     // creation of the event. That's at least one more array copy than
     // necessary.

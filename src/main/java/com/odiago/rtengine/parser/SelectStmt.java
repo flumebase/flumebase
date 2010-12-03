@@ -43,20 +43,22 @@ public class SelectStmt extends SQLStatement {
   /** The default for rtsql.client.select.target is to use the console. */
   public static final String DEFAULT_CLIENT_SELECT_TARGET = CONSOLE_SELECT_TARGET;
 
-  private FieldList mFields;
+  /** Set of fields or other expressions to select */
+  private List<AliasedExpr> mSelectExprs;
+
   // Source stream for the FROM clause. must be a LiteralSource or a SelectStmt.
   // (That fact is proven by a TypeChecker visitor.)
   private SQLStatement mSource;
   private WhereConditions mWhere;
 
-  public SelectStmt(FieldList fields, SQLStatement source, WhereConditions where) {
-    mFields = fields;
+  public SelectStmt(List<AliasedExpr> selExprs, SQLStatement source, WhereConditions where) {
+    mSelectExprs = selExprs;
     mSource = source;
     mWhere = where;
   }
 
-  public FieldList getFields() {
-    return mFields;
+  public List<AliasedExpr> getSelectExprs() {
+    return mSelectExprs;
   }
 
   public SQLStatement getSource() {
@@ -73,16 +75,9 @@ public class SelectStmt extends SQLStatement {
     sb.append("SELECT");
     sb.append("\n");
     pad(sb, depth);
-    sb.append("fields:\n");
-    if (mFields.isAllFields()) {
-      pad(sb, depth + 1);
-      sb.append("(all)\n");
-    } else {
-      for (String fieldName : mFields.getFieldNames()) {
-        pad(sb, depth + 1);
-        sb.append(fieldName);
-        sb.append("\n");
-      }
+    sb.append("expressions:\n");
+    for (AliasedExpr ae : mSelectExprs) {
+      ae.format(sb, depth + 1);
     }
     pad(sb, depth);
     sb.append("FROM:\n");
@@ -114,7 +109,7 @@ public class SelectStmt extends SQLStatement {
     FlowSpecification flowSpec = planContext.getFlowSpec();
     flowSpec.addNodesFromDAG(sourceOutCtxt.getFlowSpec());
 
-    // Add a projection level that grabs only the fields we care about.
+    // Add a projection level that grabs all the fields we care about.
     Schema sourceSchema = sourceOutCtxt.getSchema();
     List<TypedField> allRequiredFields = new ArrayList<TypedField>();
 
@@ -122,17 +117,24 @@ public class SelectStmt extends SQLStatement {
     List<TypedField> consoleFields = new ArrayList<TypedField>();
 
     // Start with all the fields the user explicitly selected.
-    FieldList fieldList = getFields();
-    if (fieldList.isAllFields()) {
-      // Use all field names listed as outputs from the source's output context.
-      for (TypedField outField : sourceOutCtxt.getOutFields()) {
-        consoleFields.add(outField);
-        allRequiredFields.add(outField);
-      }
-    } else {
-      for (TypedField typedField : fieldList.getFields(srcOutSymbolTable)) {
-        consoleFields.add(typedField);
-        allRequiredFields.add(typedField);
+    List<AliasedExpr> exprList = getSelectExprs();
+    for (AliasedExpr aliasExpr : exprList) {
+      Expr e = aliasExpr.getExpr();
+      if (e instanceof AllFieldsExpr) {
+        // Use all field names listed as outputs from the source's output context.
+        for (TypedField outField : sourceOutCtxt.getOutFields()) {
+          consoleFields.add(outField);
+          allRequiredFields.add(outField);
+        }
+      } else {
+        // Get the type within the expression, and add the appropriate labels.
+        // These have been already assigned by a visitor pass.
+        TypedField field = new TypedField(
+          aliasExpr.getUserLabel(), e.getType(srcOutSymbolTable),
+          aliasExpr.getAvroLabel(), aliasExpr.getUserLabel());
+        consoleFields.add(field);
+
+        allRequiredFields.addAll(e.getRequiredFields(srcOutSymbolTable));
       }
     }
 
@@ -180,26 +182,11 @@ public class SelectStmt extends SQLStatement {
       outContext = new PlanContext(planContext);
       SymbolTable inTable = planContext.getSymbolTable();
       SymbolTable outTable = new HashSymbolTable(inTable);
-      List<TypedField> outputFields = new ArrayList<TypedField>();
-      Iterable<TypedField> projectedFields;
-      if (fieldList.isAllFields()) {
-        // User did a "SELECT *"; use all field names provided by our own source.
-        projectedFields = sourceOutCtxt.getOutFields();
-      } else {
-        // Use the field names literally provided in the SELECT clause.
-        projectedFields = fieldList.getFields(srcOutSymbolTable);
+      List<TypedField> outputFields = distinctFields(consoleFields);
+      for (TypedField field : outputFields) {
+        Symbol fieldSym = new Symbol(field.getName(), field.getType());
+        outTable.addSymbol(fieldSym);
       }
-
-      // Resolve the list of fields against the symbols exposed by the source.
-      // Copy those symbols we're interested in to the returned symbol table. 
-      for (TypedField field : projectedFields) {
-        if (!outputFields.contains(field)) {
-          Symbol fieldSym = srcOutSymbolTable.resolve(field.getName());
-          outTable.addSymbol(fieldSym);
-          outputFields.add(field);
-        }
-      }
-      outputFields = distinctFields(outputFields);
       Schema outputSchema = createFieldSchema(outputFields);
       ProjectionNode cleanupProjection = new ProjectionNode(outputFields);
       projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, outputSchema);

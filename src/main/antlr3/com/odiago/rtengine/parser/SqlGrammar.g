@@ -50,8 +50,8 @@ stmt_explain returns [ExplainStmt val]:
   EXPLAIN s=stmt {$val = new ExplainStmt($s.val);};
 
 stmt_select returns [SelectStmt val]:
-  SELECT f=field_list FROM s=source_definition w=optional_where_conditions
-  {$val = new SelectStmt($f.val, $s.val, $w.val);};
+  SELECT e=aliased_expr_list FROM s=source_definition w=optional_where_conditions
+  {$val = new SelectStmt($e.val, $s.val, $w.val);};
 
 stmt_show returns [ShowStmt val]:
     SHOW FLOWS {$val = new ShowStmt(EntityTarget.Flow);}
@@ -76,6 +76,17 @@ stmt_drop returns [DropStmt val]:
 //   function call:             f(e1, e2, e3...)
 //   identifiers and constants: x  42 'hello!'
 // Lowest priority
+
+
+// Set of expressions that may have a name applied to them ("SELECT 1+1 AS two ...").
+aliased_expr_list returns [List<AliasedExpr> val]:
+    ( e1=aliased_expr { $val = new ArrayList<AliasedExpr>(); $val.add($e1.val); }
+      ( COMMA e2=aliased_expr { $val.add($e2.val); } )* )?;
+
+aliased_expr returns [AliasedExpr val]:
+    e=expr { $val = new AliasedExpr($e.val); }
+        ( AS? u=user_sel { ((AliasedExpr) $val).setUserLabel($u.val); } )?
+  ;
 
 expr returns [Expr val]: e=or_expr { $val=$e.val; };
 
@@ -165,9 +176,11 @@ atom_expr returns [Expr val]:
   | i=INT { $val = new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf($i.text)); }
   | NULL { $val = new ConstExpr(Type.getNullable(Type.TypeName.ANY), null); }
   | s=Q_STRING { $val = new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), unescape($s.text)); }
+  | STAR { $val = new AllFieldsExpr(); }
   ;
 
 // This is a selector for fields; it can be '*' or 'foo, bar, "baz and quux", biff, buff...'
+// NOTE: This is not used in SELECT; it's hanging out here waiting to be applied in GROUP BY, etc.
 field_list returns [FieldList val]:
     STAR { $val = new AllFieldsList(); }
   | e=explicit_field_list { $val = $e.val; };

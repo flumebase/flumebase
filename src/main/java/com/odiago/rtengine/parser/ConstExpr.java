@@ -2,6 +2,11 @@
 
 package com.odiago.rtengine.parser;
 
+import java.util.Collections;
+import java.util.List;
+
+import com.odiago.rtengine.exec.SymbolTable;
+
 import com.odiago.rtengine.lang.Type;
 
 /**
@@ -25,6 +30,7 @@ public class ConstExpr extends Expr {
     return mValue;
   }
 
+  @Override
   public void format(StringBuilder sb, int depth) {
     pad(sb, depth);
     sb.append("ConstExpr\n");
@@ -41,5 +47,24 @@ public class ConstExpr extends Expr {
     }
     sb.append("\n");
   }
-  
+
+  @Override
+  public String toStringOneLine() {
+    // TODO: This needs to escape/enclose literal strings in 'single quotes with \'escapes\''.
+    if (null == mValue) {
+      return "NULL";
+    } else {
+      return mValue.toString();
+    }
+  }
+
+  @Override
+  public Type getType(SymbolTable symTab) {
+    return getType();
+  }
+    
+  @Override
+  public List<TypedField> getRequiredFields(SymbolTable symtab) {
+    return Collections.emptyList();
+  }
 }

@@ -11,6 +11,7 @@ options {
   package com.odiago.rtengine.parser;
 }
 
+AS : A S ;
 BIGINT : B I G I N T ;
 BOOLEAN : B O O L E A N ;
 CREATE : C R E A T E ;

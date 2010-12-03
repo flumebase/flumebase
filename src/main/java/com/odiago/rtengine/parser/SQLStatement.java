@@ -101,7 +101,7 @@ public abstract class SQLStatement {
     List<Schema.Field> avroFields = new ArrayList<Schema.Field>();
     Schema record = Schema.createRecord(AVRO_RECORD_NAME, null, null, false);
     for (TypedField field : requiredFields) {
-      String fieldName = field.getName();
+      String fieldName = field.getAvroName();
       Type t = field.getType();
       Schema fieldSchema = t.getAvroSchema();
       Schema.Field avroField = new Schema.Field(fieldName, fieldSchema, null, null);

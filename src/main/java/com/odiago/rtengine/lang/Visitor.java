@@ -2,6 +2,11 @@
 
 package com.odiago.rtengine.lang;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.odiago.rtengine.parser.AliasedExpr;
+import com.odiago.rtengine.parser.AllFieldsExpr;
 import com.odiago.rtengine.parser.BinExpr;
 import com.odiago.rtengine.parser.ConstExpr;
 import com.odiago.rtengine.parser.CreateStreamStmt;
@@ -20,6 +25,7 @@ import com.odiago.rtengine.parser.UnaryExpr;
  * Interface implemented by all visitor-pattern AST actors.
  */
 public abstract class Visitor {
+  private static final Logger LOG = LoggerFactory.getLogger(Visitor.class.getName());
 
   public void visit(SQLStatement stmt) throws VisitException {
     if (stmt instanceof CreateStreamStmt) {
@@ -46,45 +52,77 @@ public abstract class Visitor {
       visit((IdentifierExpr) stmt);
     } else if (stmt instanceof UnaryExpr) {
       visit((UnaryExpr) stmt);
+    } else if (stmt instanceof AllFieldsExpr) {
+      visit((AllFieldsExpr) stmt);
+    } else if (stmt instanceof AliasedExpr) {
+      visit((AliasedExpr) stmt);
     } else {
       throw new VisitException("No visit() method for type: " + stmt.getClass().getName()
           + " in class: " + getClass().getName());
     }
   }
+  
+  private void warnEmptyVisit(SQLStatement stmt) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Using default (empty) visit() method for visitor type=" + getClass().getName()
+          + " and argument type=" + stmt.getClass().getName());
+    }
+  }
 
   protected void visit(CreateStreamStmt s) throws VisitException {
+    warnEmptyVisit(s);
   }
 
   protected void visit(LiteralSource s) throws VisitException {
+    warnEmptyVisit(s);
   }
 
   protected void visit(SelectStmt s) throws VisitException {
+    warnEmptyVisit(s);
   }
 
   protected void visit(ExplainStmt s) throws VisitException {
+    warnEmptyVisit(s);
   }
 
   protected void visit(DescribeStmt s) throws VisitException {
+    warnEmptyVisit(s);
   }
 
   protected void visit(ShowStmt s) throws VisitException {
+    warnEmptyVisit(s);
   }
 
   protected void visit(DropStmt s) throws VisitException {
+    warnEmptyVisit(s);
   }
 
   protected void visit(ConstExpr e) throws VisitException {
+    warnEmptyVisit(e);
   }
 
   protected void visit(BinExpr e) throws VisitException {
+    warnEmptyVisit(e);
   }
 
   protected void visit(FnCallExpr e) throws VisitException {
+    warnEmptyVisit(e);
   }
 
   protected void visit(IdentifierExpr e) throws VisitException {
+    warnEmptyVisit(e);
   }
 
   protected void visit(UnaryExpr e) throws VisitException {
+    warnEmptyVisit(e);
+  }
+
+  protected void visit(AllFieldsExpr e) throws VisitException {
+    warnEmptyVisit(e);
+  }
+
+  protected void visit(AliasedExpr e) throws VisitException {
+    warnEmptyVisit(e);
   }
 }
+

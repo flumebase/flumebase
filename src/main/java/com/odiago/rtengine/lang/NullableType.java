@@ -25,6 +25,25 @@ public class NullableType extends Type {
     return true;
   }
 
+  @Override
+  public boolean isNumeric() {
+    switch (mNullableType) {
+    case ANY: // Pure null can be any type-class, including numeric.
+    case INT:
+    case BIGINT:
+    case FLOAT:
+    case DOUBLE:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  @Override
+  public boolean isComparable() {
+    return isNumeric() || this.equals(Type.getNullable(Type.TypeName.STRING));
+  }
+
   /** 
    * @return the TypeName of the non-null type being wrapped.
    */
@@ -39,6 +58,20 @@ public class NullableType extends Type {
     unionTypes.add(getAvroSchema(mNullableType));
     unionTypes.add(Schema.create(Schema.Type.NULL));
     return Schema.createUnion(unionTypes);
+  }
+
+  @Override
+  public Type widen() {
+    if (TypeName.INT.equals(mNullableType)) {
+      return Type.getNullable(TypeName.BIGINT);
+    } else if (TypeName.BIGINT.equals(mNullableType)) {
+      return Type.getNullable(TypeName.FLOAT);
+    } else if (TypeName.FLOAT.equals(mNullableType)) {
+      return Type.getNullable(TypeName.DOUBLE);
+    }
+
+    // Cannot widen this type.
+    return null;
   }
 
   @Override
