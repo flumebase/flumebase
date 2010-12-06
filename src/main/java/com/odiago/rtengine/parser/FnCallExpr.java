@@ -8,6 +8,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.lang.Type;
@@ -81,6 +82,17 @@ public class FnCallExpr extends Expr {
     }
 
     return out;
+  }
+
+  @Override
+  public Object eval(EventWrapper e) {
+    // TODO(aaron): Implement this.
+    throw new RuntimeException("Cannot evaluate function call expr.");
+  }
+
+  @Override
+  public Type getResolvedType() {
+    throw new RuntimeException("Cannot resolve type for fn call expr.");
   }
 
 }

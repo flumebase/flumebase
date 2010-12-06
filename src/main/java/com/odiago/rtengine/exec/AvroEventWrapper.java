@@ -64,7 +64,7 @@ public class AvroEventWrapper extends EventWrapper {
       decode();
     }
 
-    return mRecord.get(field.getName());
+    return mRecord.get(field.getAvroName());
   }
 
   @Override

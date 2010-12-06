@@ -11,6 +11,7 @@ import org.apache.avro.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.odiago.rtengine.exec.EvaluationElement;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowId;
@@ -29,6 +30,7 @@ import com.odiago.rtengine.plan.ConsoleOutputNode;
 import com.odiago.rtengine.plan.CreateStreamNode;
 import com.odiago.rtengine.plan.DescribeNode;
 import com.odiago.rtengine.plan.DropNode;
+import com.odiago.rtengine.plan.EvaluateExprsNode;
 import com.odiago.rtengine.plan.MemoryOutputNode;
 import com.odiago.rtengine.plan.NamedSourceNode;
 import com.odiago.rtengine.plan.PlanNode;
@@ -220,7 +222,13 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     } else if (node instanceof ProjectionNode) {
       ProjectionNode projNode = (ProjectionNode) node;
       Schema outSchema = (Schema) projNode.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
-      newElem = new ProjectionElement(newContext, outSchema, projNode.getFields());
+      newElem = new ProjectionElement(newContext, outSchema, projNode.getInputFields(),
+          projNode.getOutputFields());
+    } else if (node instanceof EvaluateExprsNode) {
+      EvaluateExprsNode evalNode = (EvaluateExprsNode) node;
+      Schema outSchema = (Schema) evalNode.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
+      newElem = new EvaluationElement(newContext, evalNode.getExprs(),
+          evalNode.getPropagateFields(), outSchema);
     } else {
       throw new DAGOperatorException("Cannot create FlowElement for PlanNode of type: "
           + node.getClass().getName());

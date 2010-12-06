@@ -2,8 +2,14 @@
 
 package com.odiago.rtengine.parser;
 
+import java.io.IOException;
+
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.lang.Type;
@@ -12,6 +18,7 @@ import com.odiago.rtengine.lang.Type;
  * Unary operator expression (negation, logical not).
  */
 public class UnaryExpr extends Expr {
+  private static final Logger LOG = LoggerFactory.getLogger(UnaryExpr.class.getName());
   private UnaryOp mOp;
   private Expr mSubExpr;
 
@@ -41,6 +48,7 @@ public class UnaryExpr extends Expr {
   public String toStringOneLine() {
     StringBuilder sb = new StringBuilder();
     sb.append(symbolForOp(mOp));
+    sb.append(" ");
     sb.append(mSubExpr.toStringOneLine());
     return sb.toString();
   }
@@ -78,4 +86,50 @@ public class UnaryExpr extends Expr {
     return this.mSubExpr.getRequiredFields(symTab);
   }
 
+  @Override
+  public Type getResolvedType() {
+    return mSubExpr.getResolvedType();
+  }
+
+  @Override
+  public Object eval(EventWrapper e) throws IOException {
+    Object childObj = mSubExpr.eval(e);
+    Type childType = mSubExpr.getResolvedType();
+    switch (mOp) {
+    case Plus:
+      // Keep the object (number) with the same sign; don't need to do anything.
+      return childObj;
+    case Minus:
+      if (childObj == null) {
+        return null;
+      }
+
+      switch (childType.getPrimitiveTypeName()) {
+      case INT:
+        return -((Integer) childObj).intValue();
+      case BIGINT:
+        return -((Long) childObj).longValue();
+      case FLOAT:
+        return -((Float) childObj).floatValue();
+      case DOUBLE:
+        return -((Double) childObj).doubleValue();
+      default:
+        // Type error; ignore this field.
+        LOG.debug("Typechecker failed; got type " + childType);
+        return null;
+      }
+    case Not:
+      Boolean b = (Boolean) childObj;
+      if (null == b) {
+        return null;
+      } else if (b.booleanValue()) {
+        return Boolean.FALSE;
+      } else {
+        return Boolean.TRUE;
+      }
+    default:
+      LOG.error("Unknown unary operator : " + mOp);
+      return null;
+    }
+  }
 }

@@ -106,6 +106,16 @@ public class Type {
   }
 
   /**
+   * If this is a primitive type, return the TypeName it represents.
+   */
+  public TypeName getPrimitiveTypeName() {
+    if (!isPrimitive()) {
+      return null;
+    }
+    return mTypeName;
+  }
+
+  /**
    * @return true if a null value may be used in this type.
    */
   public boolean isNullable() {
@@ -175,8 +185,8 @@ public class Type {
         NullableType nullableThis = (NullableType) this;
         NullableType nullableOther = (NullableType) other;
 
-        TypeName myTypeName = nullableThis.getNullableTypeName();
-        TypeName otherTypeName = nullableOther.getNullableTypeName();
+        TypeName myTypeName = nullableThis.getPrimitiveTypeName();
+        TypeName otherTypeName = nullableOther.getPrimitiveTypeName();
         if (TypeName.ANY.equals(myTypeName)) {
           // NULLABLE(ANY) promotesTo any nullable other type.
           return true;
@@ -189,7 +199,7 @@ public class Type {
       } else {
         // X promotesTo NULLABLE(Y) if X promotesTo Y.
         NullableType nullableOther = (NullableType) other;
-        Type nonNullVer = Type.getPrimitive(nullableOther.getNullableTypeName());
+        Type nonNullVer = Type.getPrimitive(nullableOther.getPrimitiveTypeName());
         return promotesTo(nonNullVer);
       }
     } else if (isPrimitive() && !isNullable() && other.isPrimitive()) {

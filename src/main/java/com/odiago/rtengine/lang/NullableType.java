@@ -44,10 +44,11 @@ public class NullableType extends Type {
     return isNumeric() || this.equals(Type.getNullable(Type.TypeName.STRING));
   }
 
+  @Override
   /** 
    * @return the TypeName of the non-null type being wrapped.
    */
-  public TypeName getNullableTypeName() {
+  public TypeName getPrimitiveTypeName() {
     return mNullableType;
   }
 

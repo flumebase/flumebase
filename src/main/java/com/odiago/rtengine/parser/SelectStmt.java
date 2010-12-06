@@ -15,6 +15,7 @@ import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.plan.ConsoleOutputNode;
+import com.odiago.rtengine.plan.EvaluateExprsNode;
 import com.odiago.rtengine.plan.FlowSpecification;
 import com.odiago.rtengine.plan.MemoryOutputNode;
 import com.odiago.rtengine.plan.PlanContext;
@@ -111,10 +112,20 @@ public class SelectStmt extends SQLStatement {
 
     // Add a projection level that grabs all the fields we care about.
     Schema sourceSchema = sourceOutCtxt.getSchema();
+
+    // List of all fields required as output from the source node.
     List<TypedField> allRequiredFields = new ArrayList<TypedField>();
+
+    // List of all fields returned from the initial projection; this layer
+    // uses the translated names from the "x AS y" clauses.
+    List<TypedField> projectedFields = new ArrayList<TypedField>();
 
     // Create a list containing the (ordered) set of fields we want emitted to the console.
     List<TypedField> consoleFields = new ArrayList<TypedField>();
+
+    // Another list holds all the fields which the EvaluateExprsNode will need to
+    // propagate from the initial projection layer forward.
+    List<TypedField> exprPropagateFields = new ArrayList<TypedField>();
 
     // Start with all the fields the user explicitly selected.
     List<AliasedExpr> exprList = getSelectExprs();
@@ -125,6 +136,8 @@ public class SelectStmt extends SQLStatement {
         for (TypedField outField : sourceOutCtxt.getOutFields()) {
           consoleFields.add(outField);
           allRequiredFields.add(outField);
+          projectedFields.add(outField);
+          exprPropagateFields.add(outField);
         }
       } else {
         // Get the type within the expression, and add the appropriate labels.
@@ -134,19 +147,40 @@ public class SelectStmt extends SQLStatement {
           aliasExpr.getAvroLabel(), aliasExpr.getUserLabel());
         consoleFields.add(field);
 
-        allRequiredFields.addAll(e.getRequiredFields(srcOutSymbolTable));
+        List<TypedField> fieldsForExpr = e.getRequiredFields(srcOutSymbolTable);
+        allRequiredFields.addAll(fieldsForExpr);
+        projectedFields.addAll(fieldsForExpr);
+
+        if (e instanceof IdentifierExpr) {
+          // The expr evaluation node needs to carry this field forward
+          // into its output. Make sure to use the aliased name as the output
+          // of the projection/expr-propagate layers, but use the original
+          // name as the output of the source layer (projection input list).
+          IdentifierExpr ident = (IdentifierExpr) e;
+
+          allRequiredFields.add(new TypedField(ident.getIdentifier(),
+              field.getType()));
+          projectedFields.add(field);
+          exprPropagateFields.add(field);
+        }
       }
     }
 
     if (null != where) {
       // Add to this all the fields required by the where clause.
-      allRequiredFields.addAll(where.getRequiredFields(srcOutSymbolTable));
+      List<TypedField> whereReqs = where.getRequiredFields(srcOutSymbolTable);
+      allRequiredFields.addAll(whereReqs);
+      projectedFields.addAll(whereReqs);
     }
 
-    // Create the projected schema based on the symbol table returned by our source. 
+    // Important: the ProjectionElement requires these to have the same arity
+    // and order.
     allRequiredFields = distinctFields(allRequiredFields);
-    Schema projectedSchema = createFieldSchema(allRequiredFields);
-    ProjectionNode projectionNode = new ProjectionNode(allRequiredFields);
+    projectedFields = distinctFields(projectedFields);
+
+    // Create the projected schema based on the symbol table returned by our source. 
+    Schema projectedSchema = createFieldSchema(projectedFields);
+    ProjectionNode projectionNode = new ProjectionNode(allRequiredFields, projectedFields);
     projectionNode.setAttr(PlanNode.INPUT_SCHEMA_ATTR, sourceSchema);
     projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, projectedSchema);
     flowSpec.attachToLastLayer(projectionNode);
@@ -157,6 +191,25 @@ public class SelectStmt extends SQLStatement {
       PlanNode filterNode = new StrMatchFilterNode(filterText);
       flowSpec.attachToLastLayer(filterNode);
     }
+
+    // Evaluate calculated-expression fields.
+    List<AliasedExpr> calculatedExprs = new ArrayList<AliasedExpr>();
+    for (AliasedExpr expr : getSelectExprs()) {
+      Expr subExpr = expr.getExpr();
+      if (!(subExpr instanceof AllFieldsExpr) && !(subExpr instanceof IdentifierExpr)) {
+        calculatedExprs.add(expr);
+      }
+    }
+
+    if (calculatedExprs.size() > 0) {
+      PlanNode exprNode = new EvaluateExprsNode(calculatedExprs, exprPropagateFields);
+      // TODO(aaron): assert that calculatedExprs UNION exprPropagateFields gives
+      // us the consoleFields list.
+      Schema exprOutSchema = createFieldSchema(consoleFields);
+      exprNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, exprOutSchema);
+      flowSpec.attachToLastLayer(exprNode);
+    }
+
 
     PlanContext outContext = planContext;
     if (planContext.isRoot()) {
@@ -188,7 +241,7 @@ public class SelectStmt extends SQLStatement {
         outTable.addSymbol(fieldSym);
       }
       Schema outputSchema = createFieldSchema(outputFields);
-      ProjectionNode cleanupProjection = new ProjectionNode(outputFields);
+      ProjectionNode cleanupProjection = new ProjectionNode(outputFields, outputFields);
       projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, outputSchema);
       flowSpec.attachToLastLayer(cleanupProjection);
 

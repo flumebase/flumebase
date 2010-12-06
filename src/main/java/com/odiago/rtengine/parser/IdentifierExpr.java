@@ -2,9 +2,12 @@
 
 package com.odiago.rtengine.parser;
 
+import java.io.IOException;
+
 import java.util.Collections;
 import java.util.List;
 
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
@@ -15,7 +18,11 @@ import com.odiago.rtengine.lang.Type;
  */
 public class IdentifierExpr extends Expr {
 
+  /** The field this represents. */
   private String mIdentifier;
+
+  /** Assigned type after symbol table resolution, in the type checker. */
+  private Type mType;
 
   public IdentifierExpr(String identifier) {
     mIdentifier = identifier;
@@ -48,10 +55,28 @@ public class IdentifierExpr extends Expr {
     }
   }
 
+  /**
+   * Specifies the type of this node to itself, after the type checker
+   * has performed all the type resolution.
+   */
+  public void setType(Type t) {
+    mType = t;
+  }
+
+  @Override
+  Type getResolvedType() {
+    return mType;
+  }
+
   @Override
   public List<TypedField> getRequiredFields(SymbolTable symTab) {
     Symbol sym = symTab.resolve(mIdentifier);
     TypedField field = new TypedField(sym.getName(), sym.getType());
     return Collections.singletonList(field);
+  }
+
+  @Override
+  public Object eval(EventWrapper e) throws IOException {
+    return e.getField(new TypedField(mIdentifier, mType));
   }
 }

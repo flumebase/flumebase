@@ -5,6 +5,7 @@ package com.odiago.rtengine.parser;
 import java.util.Collections;
 import java.util.List;
 
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.lang.StreamType;
@@ -39,5 +40,16 @@ public class AllFieldsExpr extends Expr {
     // We actually lack the context inside this expression to know what field
     // names we require. This is handled in the select statement directly.
     return Collections.emptyList();
+  }
+
+  @Override
+  public Object eval(EventWrapper e) {
+    // This object should be culled from lists of expressions before the evaluation step.
+    throw new RuntimeException("Cannot call eval() on AllFieldsExpr");
+  }
+
+  @Override
+  public Type getResolvedType() {
+    throw new RuntimeException("Cannot call getResolvedType on AllFieldsExpr");
   }
 }

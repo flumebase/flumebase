@@ -15,21 +15,30 @@ import com.odiago.rtengine.util.StringUtils;
  * flow.
  */
 public class ProjectionNode extends PlanNode {
-  private List<TypedField> mFields;
+  private List<TypedField> mInputFields;
+  private List<TypedField> mOutputFields;
 
-  public ProjectionNode(List<TypedField> fields) {
-    mFields = new ArrayList<TypedField>(fields);
+  public ProjectionNode(List<TypedField> inFields, List<TypedField> outFields) {
+    mInputFields = new ArrayList<TypedField>(inFields);
+    mOutputFields = new ArrayList<TypedField>(outFields);
   }
 
-  public List<TypedField> getFields() {
-    return mFields;
+  public List<TypedField> getInputFields() {
+    return mInputFields;
+  }
+
+  public List<TypedField> getOutputFields() {
+    return mOutputFields;
   }
 
   @Override
   public void formatParams(StringBuilder sb) {
-    sb.append("ProjectionNode fields=(");
-    StringUtils.formatList(sb, mFields);
+    sb.append("ProjectionNode inFields=(");
+    StringUtils.formatList(sb, mInputFields);
+    sb.append(") outFields=(");
+    StringUtils.formatList(sb, mOutputFields);
     sb.append(")\n");
+
     formatAttributes(sb);
   }
 }

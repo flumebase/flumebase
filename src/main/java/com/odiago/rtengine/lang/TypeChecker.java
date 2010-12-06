@@ -182,6 +182,8 @@ public class TypeChecker extends Visitor {
           + e.toStringOneLine());
     }
 
+    e.setType(expType); // Cache this value for later.
+
     Type lhsType = e.getLeftExpr().getType(symTab);
     Type rhsType = e.getRightExpr().getType(symTab);
 
@@ -272,6 +274,11 @@ public class TypeChecker extends Visitor {
       throw new TypeCheckException("Cannot select non-primitive entity \""
           + fieldName + "\"");
     }
+
+    // Let the AST node memoize its typing information from the symbol table;
+    // it will need to reference this at run time to look up values from the
+    // EventWrapper.
+    e.setType(fieldType);
   }
 
   protected void visit(UnaryExpr e) throws VisitException {

@@ -5,6 +5,7 @@ package com.odiago.rtengine.parser;
 import java.util.Collections;
 import java.util.List;
 
+import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.lang.Type;
@@ -66,5 +67,16 @@ public class ConstExpr extends Expr {
   @Override
   public List<TypedField> getRequiredFields(SymbolTable symtab) {
     return Collections.emptyList();
+  }
+
+  @Override
+  public Object eval(EventWrapper e) {
+    // return the value of this const expression; ignore our input data.
+    return getValue();
+  }
+
+  @Override
+  public Type getResolvedType() {
+    return mType;
   }
 }

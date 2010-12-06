@@ -176,19 +176,13 @@ public class DelimitedEventParser extends EventParser {
    */
   private Object parseAndCache(CharBuffer chars, int colIdx, Type expectedType)
       throws ColumnParseException {
-    Type.TypeName primitiveTypeName = expectedType.getTypeName();
+    Type.TypeName primitiveTypeName = expectedType.getPrimitiveTypeName();
 
     String debugInputString = null;
     if (LOG.isDebugEnabled()) {
       // Save this for the end. This method may consume the chars object,
       // so we need to do this up-front.
       debugInputString = chars.toString();
-    }
-
-    if (expectedType.isNullable()) {
-      // TODO: Should nullables store the nullable type name as the base so that
-      // getTypeName() returns the "right thing" here?
-      primitiveTypeName = ((NullableType) expectedType).getNullableTypeName();
     }
 
     // TODO(aaron): Handle null values (basically, empty strings.. except for the

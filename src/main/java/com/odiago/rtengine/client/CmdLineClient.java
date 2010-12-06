@@ -280,7 +280,11 @@ public class CmdLineClient {
         }
         String trimmed = line.trim();
         if (trimmed.startsWith("\\")) {
-          handleEscape(line.charAt(1));
+          if (trimmed.length() == 1) {
+            System.err.println("Control sequence '\\' requires a command character. Try \\h");
+          } else {
+            handleEscape(line.charAt(1));
+          }
           resetCmdState();
         } else if (trimmed.endsWith(";")) {
           mCmdBuilder.append(line);

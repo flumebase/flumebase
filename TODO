@@ -5,10 +5,25 @@ Next on the list:
 
 
 Expressions:
+  - The expression parse layer should actually go before the projection layer.
+    expressions rely on the original field names. 
+
+      things to test:
+        select a, a+1 from x
+        select a as b, a+1 from x; // ok
+        select a as b, b+1 from x; // should fail.
+        select a, b from x;
+        select a as b, b as a from x;
+        select a as b, b as c from x;
+
+
+
+      try all the expr types by themselves too
+
+  - select 1 - b from foo <-- cannot coerce from INT to NULLABLE INT?
+    b-1 works fine....
+    create stream foo(a string, b int) from local file "/home/aaron/foo.txt";
   - TypedField -- is displayName always equal to mName?
-  - Need an EvaluationNode and EvaluationElement
-    -- put these after the initial projection.
-    ..... consider operating directly on the AST elements for these.
   - Need to handle scalar fns
     -- need a BuiltInSymbolTable to hold some functions
     -- need function API
@@ -128,4 +143,11 @@ Optimizations:
     internal-use schemas. (We may take in <int, string> and emit <int, string> but
     only query the int component; we could project onto that as we deserialize, and
     then save ourselves the trouble on the string.)
+  - Expr.eval() should go by the wayside; what we really want is each Expr contributing
+    a set of three-addr codes to a set of basic blocks that corresponds to the set of
+    expressions the user wants emitted; then we can perform further optimization on
+    this like common subexpression elimination, etc. We need to define a RTL that can
+    handle all this. Then if our opcodes are things like AddIntInt, AddFloatFloat, etc.,
+    we can dispense with the stored Type instances inside Exprs being required at
+    run time.
 

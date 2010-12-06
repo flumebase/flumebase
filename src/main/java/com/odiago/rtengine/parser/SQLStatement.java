@@ -73,6 +73,9 @@ public abstract class SQLStatement {
 
   /**
    * @return a list of fields representing the unique entries in inFields.
+   * Callers of this method may depend on the order of outFields being the same as
+   * the order of inFields (the second, third, etc. instances of a given field
+   * are the omitted ones).
    */
   protected static List<TypedField> distinctFields(List<TypedField> inFields) {
     List<TypedField> out = new ArrayList<TypedField>();
