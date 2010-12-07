@@ -85,7 +85,7 @@ aliased_expr_list returns [List<AliasedExpr> val]:
 
 aliased_expr returns [AliasedExpr val]:
     e=expr { $val = new AliasedExpr($e.val); }
-        ( AS? u=user_sel { ((AliasedExpr) $val).setUserLabel($u.val); } )?
+        ( AS? u=user_sel { ((AliasedExpr) $val).setProjectedLabel($u.val); } )?
   ;
 
 expr returns [Expr val]: e=or_expr { $val=$e.val; };

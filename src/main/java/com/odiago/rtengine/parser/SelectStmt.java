@@ -14,6 +14,8 @@ import com.odiago.rtengine.exec.HashSymbolTable;
 import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
+import com.odiago.rtengine.lang.Type;
+
 import com.odiago.rtengine.plan.ConsoleOutputNode;
 import com.odiago.rtengine.plan.EvaluateExprsNode;
 import com.odiago.rtengine.plan.FlowSpecification;
@@ -110,21 +112,21 @@ public class SelectStmt extends SQLStatement {
     FlowSpecification flowSpec = planContext.getFlowSpec();
     flowSpec.addNodesFromDAG(sourceOutCtxt.getFlowSpec());
 
-    // Add a projection level that grabs all the fields we care about.
-    Schema sourceSchema = sourceOutCtxt.getSchema();
-
     // List of all fields required as output from the source node.
     List<TypedField> allRequiredFields = new ArrayList<TypedField>();
 
-    // List of all fields returned from the initial projection; this layer
+    // List of all fields with their input names that should be read by the ProjectionNode.
+    List<TypedField> projectionInputs = new ArrayList<TypedField>();
+
+    // List of all fields returned from the ProjectionNode; this layer
     // uses the translated names from the "x AS y" clauses.
-    List<TypedField> projectedFields = new ArrayList<TypedField>();
+    List<TypedField> projectionOutputs = new ArrayList<TypedField>();
 
     // Create a list containing the (ordered) set of fields we want emitted to the console.
     List<TypedField> consoleFields = new ArrayList<TypedField>();
 
     // Another list holds all the fields which the EvaluateExprsNode will need to
-    // propagate from the initial projection layer forward.
+    // propagate from the initial source layer forward.
     List<TypedField> exprPropagateFields = new ArrayList<TypedField>();
 
     // Start with all the fields the user explicitly selected.
@@ -136,32 +138,38 @@ public class SelectStmt extends SQLStatement {
         for (TypedField outField : sourceOutCtxt.getOutFields()) {
           consoleFields.add(outField);
           allRequiredFields.add(outField);
-          projectedFields.add(outField);
+          projectionInputs.add(outField);
+          projectionOutputs.add(outField);
           exprPropagateFields.add(outField);
         }
       } else {
         // Get the type within the expression, and add the appropriate labels.
         // These have been already assigned by a visitor pass.
-        TypedField field = new TypedField(
-          aliasExpr.getUserLabel(), e.getType(srcOutSymbolTable),
-          aliasExpr.getAvroLabel(), aliasExpr.getUserLabel());
-        consoleFields.add(field);
 
+        Type t = e.getType(srcOutSymbolTable);
+        TypedField projectionInField = new TypedField(
+          aliasExpr.getProjectedLabel(), t,
+          aliasExpr.getAvroLabel(), aliasExpr.getDisplayLabel());
+
+        projectionInputs.add(projectionInField);
+
+        TypedField finalField = new TypedField(
+          aliasExpr.getProjectedLabel(), t,
+          aliasExpr.getProjectedLabel(), aliasExpr.getDisplayLabel());
+
+        projectionOutputs.add(finalField);
+        consoleFields.add(finalField);
+
+        // Make sure our dependencies are pulled out of the source layer.
         List<TypedField> fieldsForExpr = e.getRequiredFields(srcOutSymbolTable);
         allRequiredFields.addAll(fieldsForExpr);
-        projectedFields.addAll(fieldsForExpr);
 
         if (e instanceof IdentifierExpr) {
           // The expr evaluation node needs to carry this field forward
           // into its output. Make sure to use the aliased name as the output
           // of the projection/expr-propagate layers, but use the original
           // name as the output of the source layer (projection input list).
-          IdentifierExpr ident = (IdentifierExpr) e;
-
-          allRequiredFields.add(new TypedField(ident.getIdentifier(),
-              field.getType()));
-          projectedFields.add(field);
-          exprPropagateFields.add(field);
+          exprPropagateFields.add(projectionInField);
         }
       }
     }
@@ -170,20 +178,14 @@ public class SelectStmt extends SQLStatement {
       // Add to this all the fields required by the where clause.
       List<TypedField> whereReqs = where.getRequiredFields(srcOutSymbolTable);
       allRequiredFields.addAll(whereReqs);
-      projectedFields.addAll(whereReqs);
     }
 
+    allRequiredFields = distinctFields(allRequiredFields);
+    exprPropagateFields = distinctFields(exprPropagateFields);
     // Important: the ProjectionElement requires these to have the same arity
     // and order.
-    allRequiredFields = distinctFields(allRequiredFields);
-    projectedFields = distinctFields(projectedFields);
-
-    // Create the projected schema based on the symbol table returned by our source. 
-    Schema projectedSchema = createFieldSchema(projectedFields);
-    ProjectionNode projectionNode = new ProjectionNode(allRequiredFields, projectedFields);
-    projectionNode.setAttr(PlanNode.INPUT_SCHEMA_ATTR, sourceSchema);
-    projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, projectedSchema);
-    flowSpec.attachToLastLayer(projectionNode);
+    projectionInputs = distinctFields(projectionInputs);
+    projectionOutputs = distinctFields(projectionOutputs);
 
     if (where != null) {
       // Non-null filter conditions; apply the filter to all of our sources.
@@ -204,11 +206,17 @@ public class SelectStmt extends SQLStatement {
     if (calculatedExprs.size() > 0) {
       PlanNode exprNode = new EvaluateExprsNode(calculatedExprs, exprPropagateFields);
       // TODO(aaron): assert that calculatedExprs UNION exprPropagateFields gives
-      // us the consoleFields list.
-      Schema exprOutSchema = createFieldSchema(consoleFields);
+      // us the projectionInputs list.
+      Schema exprOutSchema = createFieldSchema(projectionInputs);
       exprNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, exprOutSchema);
       flowSpec.attachToLastLayer(exprNode);
     }
+
+    // Create the projected schema based on the symbol table returned by our source. 
+    Schema projectedSchema = createFieldSchema(projectionOutputs);
+    ProjectionNode projectionNode = new ProjectionNode(projectionInputs, projectionOutputs);
+    projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, projectedSchema);
+    flowSpec.attachToLastLayer(projectionNode);
 
 
     PlanContext outContext = planContext;
@@ -237,7 +245,7 @@ public class SelectStmt extends SQLStatement {
       SymbolTable outTable = new HashSymbolTable(inTable);
       List<TypedField> outputFields = distinctFields(consoleFields);
       for (TypedField field : outputFields) {
-        Symbol fieldSym = new Symbol(field.getName(), field.getType());
+        Symbol fieldSym = new Symbol(field.getProjectedName(), field.getType());
         outTable.addSymbol(fieldSym);
       }
       Schema outputSchema = createFieldSchema(outputFields);

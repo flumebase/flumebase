@@ -82,7 +82,7 @@ public abstract class SQLStatement {
     Set<String> fieldNames = new HashSet<String>();
 
     for (TypedField field : inFields) {
-      String fieldName = field.getName();
+      String fieldName = field.getAvroName();
       if (fieldNames.contains(fieldName)) {
         continue;
       }

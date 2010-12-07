@@ -4,11 +4,16 @@ package com.odiago.rtengine.exec;
 
 import java.io.IOException;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.avro.generic.GenericData;
 
+import org.junit.Ignore;
 import org.junit.Test;
+
+import com.cloudera.util.Pair;
 
 import com.odiago.rtengine.exec.local.LocalEnvironment;
 import com.odiago.rtengine.exec.local.MemoryOutputElement;
@@ -98,7 +103,6 @@ public class TestSelect extends RtsqlTestCase {
     assertNotNull(outRecords);
     assertEquals(0, outRecords.size());
   }
-
 
   /**
    * Run a test where three records of two integer-typed fields are selected.
@@ -272,6 +276,194 @@ public class TestSelect extends RtsqlTestCase {
     // Test that it's ok to use a keyword as a field name, if you quote it.
     runTwoFieldTest("memstream", "a", "b", "SELECT * FROM memstream",
         true, true);
+  }
+
+  /**
+   * Run a test where three records of two integer-typed fields are selected.
+   * @param streamName the stream to create and populate with one record.
+   * @param leftFieldName the name to assign to the first field.
+   * @param rightFieldName the name to assign to the second field.
+   * @param query the query string to submit to the execution engine.
+   * @param checkFields a list of (string, object) pairs naming an output field and
+   * its value to verify.
+   */
+  private void runFreeSelectTest(String streamName, String leftFieldName, String rightFieldName,
+      String query, List<Pair<String, Object>> checkFields)
+      throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder(streamName);
+
+    streamBuilder.addField(new TypedField(leftFieldName, Type.getPrimitive(Type.TypeName.INT)));
+    streamBuilder.addField(new TypedField(rightFieldName, Type.getNullable(Type.TypeName.INT)));
+    streamBuilder.addEvent("1,2");
+    StreamSymbol stream = streamBuilder.build();
+    getSymbolTable().addSymbol(stream);
+
+    getConf().set(SelectStmt.CLIENT_SELECT_TARGET_KEY, "testSelect");
+
+    // With all configuration complete, connect to the environment.
+    LocalEnvironment env = getEnvironment();
+    env.connect();
+
+    // Run the query.
+    QuerySubmitResponse response = env.submitQuery(query);
+    FlowId id = response.getFlowId();
+    assertNotNull(response.getMessage(), id);
+    env.joinFlow(id);
+
+    // Examine the response records.
+    MemoryOutputElement output = getOutput("testSelect");
+    assertNotNull(output);
+
+    List<GenericData.Record> outRecords = output.getRecords();
+    GenericData.Record firstRecord = outRecords.get(0);
+    for (Pair<String, Object> check : checkFields) {
+      String checkName = check.getLeft();
+      Object checkVal = check.getRight();
+      assertEquals(checkVal, firstRecord.get(checkName));
+    }
+  }
+
+  @Test
+  public void testAddExpr() throws IOException, InterruptedException {
+    // Test that we can add a value to the first field and select it.
+    runFreeSelectTest("memstream", "a", "b", "SELECT a, b, 3 + a AS c FROM memstream",
+        Collections.singletonList(new Pair<String, Object>("c", Integer.valueOf(4))));
+  }
+
+  @Test
+  public void testAddExpr2() throws IOException, InterruptedException {
+    // Test that we can add a value to the first field and select it.
+    runFreeSelectTest("memstream", "a", "b", "SELECT a, b, a + 3 AS c FROM memstream",
+        Collections.singletonList(new Pair<String, Object>("c", Integer.valueOf(4))));
+  }
+
+  @Test
+  public void testAddExpr3() throws IOException, InterruptedException {
+    // Test that we can add a value to the first field and select it.
+    runFreeSelectTest("memstream", "a", "b", "SELECT a + b AS c FROM memstream",
+        Collections.singletonList(new Pair<String, Object>("c", Integer.valueOf(3))));
+  }
+
+  @Test
+  public void testSub1() throws IOException, InterruptedException {
+    // Test that we can add a value to the first field and select it.
+    runFreeSelectTest("memstream", "a", "b", "SELECT b - 1 AS c FROM memstream",
+        Collections.singletonList(new Pair<String, Object>("c", Integer.valueOf(1))));
+  }
+
+  @Test
+  public void testSub2() throws IOException, InterruptedException {
+    // Test that we can add a value to the first field and select it.
+    runFreeSelectTest("memstream", "a", "b", "SELECT 1 - b AS c FROM memstream",
+        Collections.singletonList(new Pair<String, Object>("c", Integer.valueOf(-1))));
+  }
+
+  @Test
+  public void testBoolean() throws IOException, InterruptedException {
+    // Test that we can add a value to the first field and select it.
+    runFreeSelectTest("memstream", "a", "b", "SELECT true AS c FROM memstream",
+        Collections.singletonList(new Pair<String, Object>("c", Boolean.TRUE)));
+  }
+ 
+  @Test
+  public void testAnd() throws IOException, InterruptedException {
+    // Test that we can add a value to the first field and select it.
+    runFreeSelectTest("memstream", "a", "b", "SELECT true AND true AS c FROM memstream",
+        Collections.singletonList(new Pair<String, Object>("c", Boolean.TRUE)));
+  }
+ 
+  @Test
+  public void testAnd2() throws IOException, InterruptedException {
+    // Test that we can add a value to the first field and select it.
+    runFreeSelectTest("memstream", "a", "b", "SELECT false AND true AS c FROM memstream",
+        Collections.singletonList(new Pair<String, Object>("c", Boolean.FALSE)));
+  }
+ 
+  @Test
+  public void testOr() throws IOException, InterruptedException {
+    // Test that we can add a value to the first field and select it.
+    runFreeSelectTest("memstream", "a", "b", "SELECT false OR true AS c FROM memstream",
+        Collections.singletonList(new Pair<String, Object>("c", Boolean.TRUE)));
+  }
+ 
+  @Test
+  public void testMultiExpr() throws IOException, InterruptedException {
+    // Test that we can add a value to the first field and select it.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("c", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("d", Integer.valueOf(2)));
+    runFreeSelectTest("memstream", "a", "b", "SELECT 1 AS c, 2 as d FROM memstream",
+        checks);
+  }
+ 
+  @Test
+  public void testAliasAToB() throws IOException, InterruptedException {
+    // Test that we can select 'a' as 'b' when b would otherwise exist.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(1)));
+    runFreeSelectTest("memstream", "a", "b", "SELECT a AS b FROM memstream",
+        checks);
+  }
+ 
+  @Test
+  public void testAliasBoth() throws IOException, InterruptedException {
+    // Test that we can select 'a' as 'b' and b to a.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("a", Integer.valueOf(2)));
+    runFreeSelectTest("memstream", "a", "b", "SELECT a AS b, b AS a FROM memstream",
+        checks);
+  }
+ 
+  @Test
+  public void testAliasBoth2() throws IOException, InterruptedException {
+    // Test that order doesn't matter.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("a", Integer.valueOf(2)));
+    runFreeSelectTest("memstream", "a", "b", "SELECT b AS a, a AS b FROM memstream",
+        checks);
+  }
+ 
+  @Test
+  public void testAliasBoth3() throws IOException, InterruptedException {
+    // Test that we can select 'a' as 'b' and b to c.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("c", Integer.valueOf(2)));
+    runFreeSelectTest("memstream", "a", "b", "SELECT a AS b, b AS c FROM memstream",
+        checks);
+  }
+ 
+  @Test
+  public void testAliasAndExpr() throws IOException, InterruptedException {
+    // Test that expressions run with the unprojected column names.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("c", Integer.valueOf(2)));
+    runFreeSelectTest("memstream", "a", "b", "SELECT a AS b, a + 1 AS c FROM memstream",
+        checks);
+  }
+ 
+  @Test
+  public void testAliasAndExpr2() throws IOException, InterruptedException {
+    // Test that expressions run with the unprojected column names.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("c", Integer.valueOf(2)));
+
+    boolean failed = false;
+    try {
+      runFreeSelectTest("memstream", "a", "b", "SELECT a AS x, x + 1 AS c FROM memstream",
+          checks);
+      failed = true;
+    } catch (AssertionError ae) {
+      // expected.
+    }
+
+    if (failed) {
+      fail("Failed; this should have had an error, since x is not a real field.");
+    }
   }
 
   // TODO: Write the following tests:

@@ -63,9 +63,9 @@ public class LiteralSource extends SQLStatement {
     List<TypedField> fields = streamSym.getFields();
     List<String> fieldNames = new ArrayList<String>();
     for (TypedField field : fields) {
-      String fieldName = field.getName();
+      String fieldName = field.getAvroName();
       if (!fieldNames.contains(fieldName)) {
-        outTable.addSymbol(new Symbol(field.getName(), field.getType()));
+        outTable.addSymbol(new Symbol(field.getAvroName(), field.getType()));
         fieldNames.add(fieldName);
       }
     }

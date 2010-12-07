@@ -12,10 +12,13 @@ public class AliasedExpr extends SQLStatement {
   private Expr mExpr;
 
   /** The user-displayed label. */
-  private String mUserLabel;
+  private String mDisplayLabel;
 
   /** The label to apply to the field of a serialized record. */
   private String mAvroLabel;
+
+  /** The label to apply after projection. */
+  private String mProjectedLabel;
 
   public AliasedExpr(Expr e) {
     mExpr = e;
@@ -28,8 +31,8 @@ public class AliasedExpr extends SQLStatement {
   /**
    * @return the label to present to the user for this column.
    */
-  public String getUserLabel() {
-    return mUserLabel;
+  public String getDisplayLabel() {
+    return mDisplayLabel;
   }
 
   /**
@@ -39,12 +42,23 @@ public class AliasedExpr extends SQLStatement {
     return mAvroLabel;
   }
 
-  public void setUserLabel(String userLabel) {
-    mUserLabel = userLabel;
+  /**
+   * @return the label to use for this field in a serialized record after projection.
+   */
+  public String getProjectedLabel() {
+    return mProjectedLabel;
+  }
+
+  public void setDisplayLabel(String displayLabel) {
+    mDisplayLabel = displayLabel;
   }
 
   public void setAvroLabel(String avroLabel) {
     mAvroLabel = avroLabel;
+  }
+
+  public void setProjectedLabel(String projectedLabel) {
+    mProjectedLabel = projectedLabel;
   }
 
   @Override
@@ -52,12 +66,16 @@ public class AliasedExpr extends SQLStatement {
     pad(sb, depth);
     sb.append("AliasedExpr\n");
     pad(sb, depth + 1);
-    sb.append("mUserLabel=");
-    sb.append(mUserLabel);
+    sb.append("mDisplayLabel=");
+    sb.append(mDisplayLabel);
     sb.append("\n");
     pad(sb, depth + 1);
     sb.append("mAvroLabel=");
     sb.append(mAvroLabel);
+    sb.append("\n");
+    pad(sb, depth + 1);
+    sb.append("mProjectedLabel=");
+    sb.append(mProjectedLabel);
     sb.append("\n");
     pad(sb, depth + 1);
     sb.append("wrapped expr:\n");

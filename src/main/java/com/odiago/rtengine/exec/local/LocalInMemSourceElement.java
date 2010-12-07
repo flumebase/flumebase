@@ -79,7 +79,7 @@ public class LocalInMemSourceElement extends FlowElementImpl {
     mStreamSymbol = streamSymbol;
     mFieldNames = new ArrayList<String>();
     for (TypedField field : fields) {
-      mFieldNames.add(field.getName());
+      mFieldNames.add(field.getAvroName());
     }
   }
 

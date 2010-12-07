@@ -8,21 +8,9 @@ Expressions:
   - The expression parse layer should actually go before the projection layer.
     expressions rely on the original field names. 
 
-      things to test:
-        select a, a+1 from x
-        select a as b, a+1 from x; // ok
-        select a as b, b+1 from x; // should fail.
-        select a, b from x;
-        select a as b, b as a from x;
-        select a as b, b as c from x;
+  - Test: SELECT a, b AS c, 1 + 2 AS b
+  - Test nested selects.
 
-
-
-      try all the expr types by themselves too
-
-  - select 1 - b from foo <-- cannot coerce from INT to NULLABLE INT?
-    b-1 works fine....
-    create stream foo(a string, b int) from local file "/home/aaron/foo.txt";
   - TypedField -- is displayName always equal to mName?
   - Need to handle scalar fns
     -- need a BuiltInSymbolTable to hold some functions

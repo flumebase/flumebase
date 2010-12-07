@@ -113,7 +113,7 @@ public class LocalFileSourceElement extends FlowElementImpl {
     mFilename = fileName;
     mFieldNames = new ArrayList<String>();
     for (TypedField field : fields) {
-      mFieldNames.add(field.getName());
+      mFieldNames.add(field.getAvroName());
     }
   }
 

@@ -55,7 +55,7 @@ public class MemoryOutputElement extends FlowElementImpl {
       // Parse out all the fields into Avro ourselves.
       GenericData.Record outRecord = new GenericData.Record(mInputSchema);
       for (TypedField field : mFields) {
-        outRecord.put(field.getName(), wrapper.getField(field));
+        outRecord.put(field.getAvroName(), wrapper.getField(field));
       }
       LOG.info("Spun up: " + outRecord);
       mOutputRecords.add(outRecord);

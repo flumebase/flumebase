@@ -98,7 +98,7 @@ public class TypeChecker extends Visitor {
     SymbolTable sourceTable = new HashSymbolTable(symtab);
 
     for (TypedField field : streamSym.getFields()) {
-      String fieldName = field.getName();
+      String fieldName = field.getProjectedName();
       sourceTable.addSymbol(new Symbol(fieldName, field.getType()));
     }
 
@@ -154,7 +154,7 @@ public class TypeChecker extends Visitor {
 
     // If the sub-expression is just a '*', this can't have an alias.
     // ("SELECT * AS bla FROM ..." is illegal.)
-    if (subExpr instanceof AllFieldsExpr && e.getUserLabel() != null) {
+    if (subExpr instanceof AllFieldsExpr && e.getProjectedLabel() != null) {
       throw new TypeCheckException("Cannot assign field label to '*' operator.");
     }
 

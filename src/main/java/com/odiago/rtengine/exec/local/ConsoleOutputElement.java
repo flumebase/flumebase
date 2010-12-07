@@ -34,7 +34,7 @@ public class ConsoleOutputElement extends FlowElementImpl {
     sb.append("timestamp");
     for (TypedField field : mFields) {
       sb.append("\t");
-      sb.append(field.getName());
+      sb.append(field.getDisplayName());
     }
     System.out.println(sb);
   }

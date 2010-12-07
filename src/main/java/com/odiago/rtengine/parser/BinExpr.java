@@ -287,8 +287,6 @@ public class BinExpr extends Expr {
    * from valType into targetType.
    */
   private Object coerce(Object val, Type valType, Type targetType) {
-    System.out.println("valtype: " + valType + " pt=" + valType.getPrimitiveTypeName());
-    System.out.println("targettype: " + targetType + " pt=" + targetType.getPrimitiveTypeName());
     if (targetType.getPrimitiveTypeName().equals(Type.TypeName.STRING)) {
       // coerce this object to a string.
       StringBuilder sb = new StringBuilder();

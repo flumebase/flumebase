@@ -47,7 +47,7 @@ public class ParsingEventWrapper extends EventWrapper {
 
   @Override
   public Object getField(TypedField field) throws IOException {
-    int pos = mFieldNames.indexOf(field.getName());
+    int pos = mFieldNames.indexOf(field.getAvroName());
     return getField(pos, field.getType());
   }
 

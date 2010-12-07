@@ -66,7 +66,7 @@ public class RtsqlSink extends EventSink.Base {
     }
     mWriteContext = mSinkContext.getFlowElementContext();
     for (TypedField field : mSinkContext.getFieldTypes()) {
-      mFieldNames.add(field.getName());
+      mFieldNames.add(field.getAvroName());
     }
   }
 
