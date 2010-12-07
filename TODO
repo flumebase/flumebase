@@ -5,9 +5,6 @@ Next on the list:
 
 
 Expressions:
-  - Test nested selects.
-
-  - TypedField -- is displayName always equal to mName?
   - Need to handle scalar fns
     -- need a BuiltInSymbolTable to hold some functions
     -- need function API
@@ -41,9 +38,7 @@ Rewriting the coupling between FlowElements in the LocalEnvironment:
 
 
 SQL Features (in rough priority order):
-  - General expression parsing
-  -- scalar functions
-  - Filtering (WHERE)
+  - scalar functions
   - Aggregation and aggregate functions
   - Join
   - Filtering (HAVING)
@@ -53,19 +48,7 @@ SQL Features (in rough priority order):
 
 Expression Parsing and Function Application:
 
-  Need to be able to handle SELECT a, b, c, 2 * d, 1 + 1 FROM foo;
   Need to be able to handle SELECT LENGTH(a) FROM foo;
-
-  Modify SELECT to take an expression_list instead of a field_list.
-  An expression_list is a list of expressions
-  expressions include:
-    a single field
-    "*" / all-fields
-    fn(e, e, e...)
-    e1 bop e2
-    (e)
-
-  bop ::= * / + - % == != > < <= >=
 
 Aggregation:
 
@@ -99,7 +82,6 @@ Bugs:
   - Flume is super-chatty when you start it up locally. We should squash its logs,
     unless we're in debug mode.
 
-  - We have precious few automated end-to-end tests. This is hugely problematic.
   - Quitting is very slow due to the Flume shutdown. Can we improve this?
     ... it also emits a scary looking error message, that we should suppress for
     hygeine's sake.

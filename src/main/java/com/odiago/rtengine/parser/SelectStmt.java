@@ -18,12 +18,12 @@ import com.odiago.rtengine.lang.Type;
 
 import com.odiago.rtengine.plan.ConsoleOutputNode;
 import com.odiago.rtengine.plan.EvaluateExprsNode;
+import com.odiago.rtengine.plan.FilterNode;
 import com.odiago.rtengine.plan.FlowSpecification;
 import com.odiago.rtengine.plan.MemoryOutputNode;
 import com.odiago.rtengine.plan.PlanContext;
 import com.odiago.rtengine.plan.PlanNode;
 import com.odiago.rtengine.plan.ProjectionNode;
-import com.odiago.rtengine.plan.StrMatchFilterNode;
 
 /**
  * SELECT statement.
@@ -52,12 +52,12 @@ public class SelectStmt extends SQLStatement {
   // Source stream for the FROM clause. must be a LiteralSource or a SelectStmt.
   // (That fact is proven by a TypeChecker visitor.)
   private SQLStatement mSource;
-  private WhereConditions mWhere;
+  private Expr mWhereExpr;
 
-  public SelectStmt(List<AliasedExpr> selExprs, SQLStatement source, WhereConditions where) {
+  public SelectStmt(List<AliasedExpr> selExprs, SQLStatement source, Expr where) {
     mSelectExprs = selExprs;
     mSource = source;
-    mWhere = where;
+    mWhereExpr = where;
   }
 
   public List<AliasedExpr> getSelectExprs() {
@@ -68,8 +68,8 @@ public class SelectStmt extends SQLStatement {
     return mSource;
   }
 
-  public WhereConditions getWhereConditions() {
-    return mWhere;
+  public Expr getWhereConditions() {
+    return mWhereExpr;
   }
 
   @Override
@@ -85,19 +85,21 @@ public class SelectStmt extends SQLStatement {
     pad(sb, depth);
     sb.append("FROM:\n");
     mSource.format(sb, depth + 1);
-    if (null != mWhere) {
+    if (null != mWhereExpr) {
       pad(sb, depth);
-      sb.append("WHERE:\n");
-      pad(sb, depth + 1);
-      sb.append(mWhere.getText());
-      sb.append("\n");
+      if (null == mWhereExpr) {
+        sb.append("WHERE: (null)\n");
+      } else {
+        sb.append("WHERE\n");
+        mWhereExpr.format(sb, depth + 1);
+      }
     }
   }
 
   @Override
   public PlanContext createExecPlan(PlanContext planContext) {
     SQLStatement source = getSource();
-    WhereConditions where = getWhereConditions();
+    Expr where = getWhereConditions();
 
     // Create an execution plan to build the source (it may be a single node
     // representing a Flume source or file, or it may be an entire DAG because
@@ -189,8 +191,7 @@ public class SelectStmt extends SQLStatement {
 
     if (where != null) {
       // Non-null filter conditions; apply the filter to all of our sources.
-      String filterText = where.getText();
-      PlanNode filterNode = new StrMatchFilterNode(filterText);
+      PlanNode filterNode = new FilterNode(where);
       flowSpec.attachToLastLayer(filterNode);
     }
 

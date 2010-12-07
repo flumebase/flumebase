@@ -245,8 +245,8 @@ source_definition returns [SQLStatement val]:
   | LPAREN st=stmt_select RPAREN { $val = $st.val; };
 
 // WHERE conditions for a SELECT statement. May be omitted.
-// Currently takes a string as a regex. TODO(aaron): Make this a proper bexp.
-optional_where_conditions returns [WhereConditions val] :
+// Returns an expression to be evaluated, or null if it is omitted.
+optional_where_conditions returns [Expr val] :
     {$val=null;}
-  | WHERE s=Q_STRING {$val=new WhereConditions(unescape($s.text));};
+  | WHERE e=expr {$val=$e.val;};
 

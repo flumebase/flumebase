@@ -279,7 +279,7 @@ public class TestSelect extends RtsqlTestCase {
   }
 
   /**
-   * Run a test where three records of two integer-typed fields are selected.
+   * Run a test where a record of two integer-typed fields is selected.
    * @param streamName the stream to create and populate with one record.
    * @param leftFieldName the name to assign to the first field.
    * @param rightFieldName the name to assign to the second field.

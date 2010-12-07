@@ -144,7 +144,18 @@ public class TypeChecker extends Visitor {
         }
       }
 
-      // TODO(aaron): Check the where clause for validity if it's nonnull.
+      // Check the where clause for validity if it's non-null.
+      Expr where = s.getWhereConditions();
+      if (null != where) {
+        where.accept(this);
+        // The where clause must evaluate to a boolean value.
+        Type whereType = where.getType(exprTable);
+        if (!Type.getPrimitive(Type.TypeName.BOOLEAN).equals(whereType)) {
+          throw new TypeCheckException("Expected where clause with boolean type, not "
+              + whereType);
+        }
+      }
+
     } finally {
       // Pop the source's symbol table from the stack.
       mSymTableContext.pop();

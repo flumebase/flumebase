@@ -17,7 +17,7 @@ import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowId;
 import com.odiago.rtengine.exec.InMemStreamSymbol;
 import com.odiago.rtengine.exec.ProjectionElement;
-import com.odiago.rtengine.exec.StrMatchFilterElement;
+import com.odiago.rtengine.exec.FilterElement;
 import com.odiago.rtengine.exec.StreamSymbol;
 import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
@@ -25,6 +25,7 @@ import com.odiago.rtengine.exec.SymbolTable;
 import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 
 import com.odiago.rtengine.parser.EntityTarget;
+import com.odiago.rtengine.parser.Expr;
 
 import com.odiago.rtengine.plan.ConsoleOutputNode;
 import com.odiago.rtengine.plan.CreateStreamNode;
@@ -35,7 +36,7 @@ import com.odiago.rtengine.plan.MemoryOutputNode;
 import com.odiago.rtengine.plan.NamedSourceNode;
 import com.odiago.rtengine.plan.PlanNode;
 import com.odiago.rtengine.plan.ProjectionNode;
-import com.odiago.rtengine.plan.StrMatchFilterNode;
+import com.odiago.rtengine.plan.FilterNode;
 
 import com.odiago.rtengine.util.DAG;
 import com.odiago.rtengine.util.DAGOperatorException;
@@ -215,10 +216,10 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
         throw new DAGOperatorException("Unhandled stream source type: "
             + streamSymbol.getSourceType());
       }
-    } else if (node instanceof StrMatchFilterNode) {
-      StrMatchFilterNode matchNode = (StrMatchFilterNode) node;
-      String matchStr = matchNode.getMatchString();
-      newElem = new StrMatchFilterElement(newContext, matchStr);
+    } else if (node instanceof FilterNode) {
+      FilterNode filterNode = (FilterNode) node;
+      Expr filterExpr = filterNode.getFilterExpr();
+      newElem = new FilterElement(newContext, filterExpr);
     } else if (node instanceof ProjectionNode) {
       ProjectionNode projNode = (ProjectionNode) node;
       Schema outSchema = (Schema) projNode.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
