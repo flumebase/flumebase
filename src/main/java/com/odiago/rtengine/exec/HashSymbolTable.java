@@ -24,10 +24,12 @@ public class HashSymbolTable extends SymbolTable {
     mTable = new HashMap<String, Symbol>();
   }
 
-  protected SymbolTable getParent() {
+  @Override
+  public SymbolTable getParent() {
     return mParent;
   }
 
+  @Override
   public Symbol resolve(String symName) {
     Symbol sym = mTable.get(symName);
     if (null == sym && null != mParent) {
@@ -37,15 +39,23 @@ public class HashSymbolTable extends SymbolTable {
     }
   }
 
+  @Override
   public void addSymbol(Symbol sym) {
     mTable.put(sym.getName(), sym);
   }
 
+  @Override
   public void remove(String name) {
     mTable.remove(name);
   }
 
+  @Override
   public Iterator<Symbol> iterator() {
     return new LinkedIterator(mTable.values().iterator());
+  }
+
+  @Override
+  public Iterator<Symbol> levelIterator() {
+    return mTable.values().iterator();
   }
 }

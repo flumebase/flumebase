@@ -466,6 +466,106 @@ public class TestSelect extends RtsqlTestCase {
     }
   }
 
+  @Test
+  public void testOverlaps() throws IOException, InterruptedException {
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("c", Integer.valueOf(2)));
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(3)));
+
+    runFreeSelectTest("memstream", "a", "b", "SELECT a, b AS c, 1 + 2 as b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testNestedSelect1() throws IOException, InterruptedException {
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
+
+    runFreeSelectTest("memstream", "a", "b",
+        "SELECT * FROM (SELECT a, b FROM memstream)",
+        checks);
+  }
+
+  @Test
+  public void testNestedSelect2() throws IOException, InterruptedException {
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
+
+    runFreeSelectTest("memstream", "a", "b",
+        "SELECT b, a FROM (SELECT a, b FROM memstream)",
+        checks);
+  }
+
+  @Test
+  public void testNestedSelect3() throws IOException, InterruptedException {
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", Integer.valueOf(2)));
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(1)));
+
+    runFreeSelectTest("memstream", "a", "b",
+        "SELECT b, a FROM (SELECT a as b, b as a FROM memstream)",
+        checks);
+  }
+
+  @Test
+  public void testNestedSelect4() throws IOException, InterruptedException {
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("c", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("d", Integer.valueOf(2)));
+
+    runFreeSelectTest("memstream", "a", "b",
+        "SELECT c, d FROM (SELECT a as c, b as d FROM memstream)",
+        checks);
+  }
+
+  @Test
+  public void testNestedSelect5() throws IOException, InterruptedException {
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("c", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("d", Integer.valueOf(4)));
+    checks.add(new Pair<String, Object>("e", Integer.valueOf(42)));
+
+    runFreeSelectTest("memstream", "a", "b",
+        "SELECT c, d, e FROM (SELECT a as c, 2 * b as d, 42 e FROM memstream)",
+        checks);
+  }
+
+  @Test
+  public void testNestedSelect6() throws IOException, InterruptedException {
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
+
+    runFreeSelectTest("memstream", "a", "b",
+        "SELECT B, A FROM (SELECT a, b FROM memstream)",
+        checks);
+  }
+
+  @Test
+  public void testNestedSelect7() throws IOException, InterruptedException {
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
+
+    runFreeSelectTest("memstream", "a", "b",
+        "SELECT B, A FROM (SELECT * FROM memstream)",
+        checks);
+  }
+
+  @Test
+  public void testNestedSelect8() throws IOException, InterruptedException {
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
+
+    runFreeSelectTest("memstream", "a", "b",
+        "SELECT * FROM (SELECT * FROM memstream)",
+        checks);
+  }
+
   // TODO: Write the following tests:
   //   Test string fields.
   //   Test long integer fields.

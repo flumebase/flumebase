@@ -514,8 +514,8 @@ public class LocalEnvironment extends ExecEnvironment {
         return new QuerySubmitResponse(msgBuilder.toString(), null);
       }
 
-      stmt.accept(new TypeChecker(mRootSymbolTable));
       stmt.accept(new AssignFieldLabelsVisitor());
+      stmt.accept(new TypeChecker(mRootSymbolTable));
       PlanContext planContext = new PlanContext();
       planContext.setConf(mConf);
       planContext.setSymbolTable(mRootSymbolTable);

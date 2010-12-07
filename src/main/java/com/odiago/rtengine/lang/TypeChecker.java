@@ -2,6 +2,8 @@
 
 package com.odiago.rtengine.lang;
 
+import java.util.Iterator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,6 +110,8 @@ public class TypeChecker extends Visitor {
 
   @Override
   protected void visit(SelectStmt s) throws VisitException {
+    SymbolTable outTable = null;
+
     SQLStatement source = s.getSource();
     if (source instanceof SelectStmt || source instanceof LiteralSource) {
       // This pushes a symbol table on the stack, declaring the fields of this source.
@@ -119,15 +123,37 @@ public class TypeChecker extends Visitor {
     }
 
     try {
-      // Type check all the selected expressions.
+      SymbolTable exprTable = mSymTableContext.top();
+      outTable = new HashSymbolTable(exprTable.getParent());
+      // Type check all the selected expressions using the symbols from our source.
       for (AliasedExpr aliasedExpr : s.getSelectExprs()) {
         aliasedExpr.accept(this);
+        // Add our output symbols to the output symbol table.
+        if (!(aliasedExpr.getExpr() instanceof AllFieldsExpr)) {
+          // NOTE: This relies on aliasedExpr.getProjectedLabel() being filled;
+          // this is done in the AssignFieldLabelsVisitor, which is run first.
+          outTable.addSymbol(new Symbol(aliasedExpr.getProjectedLabel(),
+              aliasedExpr.getExpr().getType(exprTable)));
+        } else {
+          // Add all symbols in the source's table into this one,
+          // to add fields pulled in by the "*" operator.
+          Iterator<Symbol> sourceSymbols = exprTable.levelIterator();
+          while (sourceSymbols.hasNext()) {
+            outTable.addSymbol(sourceSymbols.next());
+          }
+        }
       }
 
       // TODO(aaron): Check the where clause for validity if it's nonnull.
     } finally {
       // Pop the source's symbol table from the stack.
       mSymTableContext.pop();
+    }
+
+    // Push our output symbols on the stack so any higher-level select stmt can
+    // type check against them.
+    if (null != outTable) {
+      mSymTableContext.push(outTable);
     }
   }
 

@@ -5,10 +5,6 @@ Next on the list:
 
 
 Expressions:
-  - The expression parse layer should actually go before the projection layer.
-    expressions rely on the original field names. 
-
-  - Test: SELECT a, b AS c, 1 + 2 AS b
   - Test nested selects.
 
   - TypedField -- is displayName always equal to mName?

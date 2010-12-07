@@ -20,7 +20,7 @@ public abstract class SymbolTable implements Iterable<Symbol> {
   /**
    * @return the parent symbol table, or null if this is the root.
    */
-  protected abstract SymbolTable getParent();
+  public abstract SymbolTable getParent();
 
   /**
    * @return the Symbol object associated with symName, or null if that
@@ -42,6 +42,12 @@ public abstract class SymbolTable implements Iterable<Symbol> {
    * @return An iterator over all symbols available in this scope.
    */
   public abstract Iterator<Symbol> iterator(); 
+
+  /**
+   * @return An iterator over all symbols in the current table level only.
+   * (a non-recursive iterator.)
+   */
+  public abstract Iterator<Symbol> levelIterator();
 
   /**
    * An iterator that will wrap around an iterator for the current level,
