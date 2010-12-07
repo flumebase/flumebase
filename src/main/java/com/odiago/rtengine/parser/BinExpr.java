@@ -116,7 +116,7 @@ public class BinExpr extends Expr {
     mLhsType = mLeftExpr.getType(symTab);
     mRhsType = mRightExpr.getType(symTab);
     Type sharedType = null;
-    if (mLhsType.promotesTo(mLhsType)) {
+    if (mLhsType.promotesTo(mRhsType)) {
       sharedType = mRhsType;
     } else if (mRhsType.promotesTo(mLhsType)) {
       sharedType = mLhsType;

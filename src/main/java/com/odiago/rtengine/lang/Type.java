@@ -144,7 +144,8 @@ public class Type {
    * supports operators &gt;, &lt;, &gt;=, &lt;=).
    */
   public boolean isComparable() {
-    return isNumeric() || this.equals(Type.getPrimitive(Type.TypeName.STRING));
+    return isNumeric() || this.equals(Type.getPrimitive(Type.TypeName.BOOLEAN))
+        || this.equals(Type.getPrimitive(Type.TypeName.STRING));
   }
 
   /** @return an Avro schema describing this type. */
