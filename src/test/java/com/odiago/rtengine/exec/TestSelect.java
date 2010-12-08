@@ -779,6 +779,57 @@ public class TestSelect extends RtsqlTestCase {
         checks);
   }
 
+  @Test
+  public void testNullIsNull() throws IOException, InterruptedException {
+    // Test that the IS NULL operator works.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("c", Boolean.TRUE));
+    checks.add(new Pair<String, Object>("b", new Utf8("def")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList("\\N,def"),
+        "SELECT a IS NULL AS c, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testNonNullIsNotNull() throws IOException, InterruptedException {
+    // Test that the IS NOT NULL operator works.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("c", Boolean.FALSE));
+    checks.add(new Pair<String, Object>("d", Boolean.TRUE));
+    checks.add(new Pair<String, Object>("b", new Utf8("def")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList("\\N,def"),
+        "SELECT a IS NOT NULL AS c, b IS NOT NULL AS d, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testUnaryOperatorPriority() throws IOException, InterruptedException {
+    // Test that the IS NULL operator and the NOT operator have the
+    // correct parser priority with respect to one another.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("c", Boolean.TRUE));
+    checks.add(new Pair<String, Object>("d", Boolean.FALSE));
+    checks.add(new Pair<String, Object>("b", new Utf8("def")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList("\\N,def"),
+        "SELECT NOT a IS NOT NULL AS c, NOT b IS NOT NULL AS d, b FROM memstream",
+        checks);
+  }
+
 
   // TODO: Write the following tests:
   //   Test non-null string fields.
@@ -793,3 +844,4 @@ public class TestSelect extends RtsqlTestCase {
   //
   //
 }
+

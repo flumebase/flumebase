@@ -31,6 +31,33 @@ public class TestBinExpr extends ExprTestCase {
     assertEquals(Integer.valueOf(8), value);
 
     binExpr = new BinExpr(
+        new ConstExpr(Type.getNullable(Type.TypeName.INT), Integer.valueOf(4)),
+        BinOp.Times,
+        new ConstExpr(Type.getNullable(Type.TypeName.INT), Integer.valueOf(2)));
+    checker = new TypeChecker(new HashSymbolTable());
+    binExpr.accept(checker);
+    value = binExpr.eval(getEmptyEventWrapper());
+    assertEquals(Integer.valueOf(8), value);
+
+    binExpr = new BinExpr(
+        new ConstExpr(Type.getNullable(Type.TypeName.INT), null),
+        BinOp.Times,
+        new ConstExpr(Type.getNullable(Type.TypeName.INT), Integer.valueOf(2)));
+    checker = new TypeChecker(new HashSymbolTable());
+    binExpr.accept(checker);
+    value = binExpr.eval(getEmptyEventWrapper());
+    assertEquals(null, value);
+
+    binExpr = new BinExpr(
+        new ConstExpr(Type.getNullable(Type.TypeName.INT), Integer.valueOf(4)),
+        BinOp.Times,
+        new ConstExpr(Type.getNullable(Type.TypeName.INT), null));
+    checker = new TypeChecker(new HashSymbolTable());
+    binExpr.accept(checker);
+    value = binExpr.eval(getEmptyEventWrapper());
+    assertEquals(null, value);
+
+    binExpr = new BinExpr(
         new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(4)),
         BinOp.Times,
         new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(-2)));

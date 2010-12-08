@@ -68,11 +68,12 @@ stmt_drop returns [DropStmt val]:
 // All operators evaluate left-to-right.
 //
 // Highest priority
+//   unary null operators:      IS NULL, IS NOT NULL
 //   unary operators:           + - NOT
 //   multiplicative:            * / %
 //   additive:                  + -
 //   comparison:                > < <= >=
-//   equality:                  = != IS  IS NOT
+//   equality:                  = !=
 //   logical AND:               AND
 //   logical OR:                OR
 //   function call:             f(e1, e2, e3...)
@@ -102,7 +103,6 @@ and_expr returns [Expr val]:
         ( L_AND a2=eq_expr { $val = new BinExpr($val, BinOp.And, $a2.val); } )*
   ;
 
-// TODO: Figure out how to add "IS NOT" without violating LL(*)
 eq_expr returns [Expr val]:
     a1=comp_expr { $val=$a1.val; }
         ( op=eq_op a2=comp_expr { $val = new BinExpr($val, $op.val, $a2.val); } )*
@@ -111,7 +111,6 @@ eq_expr returns [Expr val]:
 eq_op returns [BinOp val]:
     EQ { $val = BinOp.Eq; }
   | NEQ { $val = BinOp.NotEq; }
-  | IS { $val = BinOp.Is; }
   ;
 
 comp_expr returns [Expr val]:
@@ -148,8 +147,8 @@ mul_op returns [BinOp val]:
   ;
 
 unary_expr returns [Expr val]:
-    op=un_op pe=atom_expr { $val = new UnaryExpr($op.val, $pe.val); }
-  | a=atom_expr { $val = $a.val; }
+    op=un_op pe=unary_null_expr { $val = new UnaryExpr($op.val, $pe.val); }
+  | a=unary_null_expr { $val = $a.val; }
   ;
 
 un_op returns [UnaryOp val]:
@@ -157,6 +156,12 @@ un_op returns [UnaryOp val]:
   | MINUS { $val = UnaryOp.Minus; }
   | NOT { $val = UnaryOp.Not; }
   ;
+
+unary_null_expr returns [Expr val]:
+    e=atom_expr { $val = $e.val; }
+    (IS { $val = new UnaryExpr(UnaryOp.IsNull, $e.val); }
+     (n=NOT { if ($n != null) { ((UnaryExpr)$val).setOp(UnaryOp.IsNotNull); } } )?
+     NULL)?;
 
 // TODO: numbers with a decimal place. BIGINT-valued integers.
 atom_expr returns [Expr val]:

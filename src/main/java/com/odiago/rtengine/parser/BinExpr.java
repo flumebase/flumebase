@@ -97,10 +97,6 @@ public class BinExpr extends Expr {
       return "=";
     case NotEq:
       return "!=";
-    case IsNot:
-      return "IS NOT";
-    case Is:
-      return "IS";
     case And:
       return "AND";
     case Or:
@@ -139,8 +135,6 @@ public class BinExpr extends Expr {
     case LessEq:
     case Eq:
     case NotEq:
-    case IsNot:
-    case Is:
     case And:
     case Or:
       return Type.getPrimitive(Type.TypeName.BOOLEAN);
@@ -266,10 +260,6 @@ public class BinExpr extends Expr {
       return Boolean.valueOf(lhs.equals(rhs));
     case NotEq:
       return Boolean.valueOf(!lhs.equals(rhs));
-    case IsNot:
-      LOG.error("do not know how to compute IS NOT as Boolexp");
-    case Is:
-      LOG.error("do not know how to compute IS as Boolexp");
     case And:
       return Boolean.valueOf(((Boolean) lhs).booleanValue()
           && ((Boolean) rhs).booleanValue());

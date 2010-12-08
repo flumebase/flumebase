@@ -31,6 +31,10 @@ public class UnaryExpr extends Expr {
     return mOp;
   }
 
+  public void setOp(UnaryOp op) {
+    mOp = op;
+  }
+
   public Expr getSubExpr() {
     return mSubExpr;
   }
@@ -47,9 +51,17 @@ public class UnaryExpr extends Expr {
   @Override
   public String toStringOneLine() {
     StringBuilder sb = new StringBuilder();
-    sb.append(symbolForOp(mOp));
-    sb.append(" ");
-    sb.append(mSubExpr.toStringOneLine());
+    if (mOp == UnaryOp.IsNull || mOp == UnaryOp.IsNotNull) {
+      // These operators are written after their expression.
+      sb.append(mSubExpr.toStringOneLine());
+      sb.append(" ");
+      sb.append(symbolForOp(mOp));
+    } else {
+      // Unary operator comes first in the normal case.
+      sb.append(symbolForOp(mOp));
+      sb.append(" ");
+      sb.append(mSubExpr.toStringOneLine());
+    }
     return sb.toString();
   }
 
@@ -61,6 +73,10 @@ public class UnaryExpr extends Expr {
       return "-";
     case Not:
       return "NOT";
+    case IsNotNull:
+      return "IS NOT NULL";
+    case IsNull:
+      return "IS NULL";
     default:
       throw new RuntimeException("symbolForOp does not understand " + op);
     }
@@ -75,6 +91,10 @@ public class UnaryExpr extends Expr {
       return mSubExpr.getType(symTab);
     case Not:
       // logical operator returns boolean.
+      return Type.getNullable(Type.TypeName.BOOLEAN);
+    case IsNull:
+    case IsNotNull:
+      // IS (NOT) NULL operators return a non-null boolean.
       return Type.getPrimitive(Type.TypeName.BOOLEAN);
     default:
       throw new RuntimeException("Unary getType() cannot handle operator " + mOp);
@@ -123,6 +143,18 @@ public class UnaryExpr extends Expr {
       if (null == b) {
         return null;
       } else if (b.booleanValue()) {
+        return Boolean.FALSE;
+      } else {
+        return Boolean.TRUE;
+      }
+    case IsNull:
+      if (null == childObj) {
+        return Boolean.TRUE;
+      } else {
+        return Boolean.FALSE;
+      }
+    case IsNotNull:
+      if (null == childObj) {
         return Boolean.FALSE;
       } else {
         return Boolean.TRUE;

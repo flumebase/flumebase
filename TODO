@@ -1,12 +1,6 @@
 
 
-  Test NULL string and integer fields in a SELECT stmt from memory.
-  Test FormatSpec options; set a different delimiter, null.sequence.
-  Implement IS NULL, IS NOT NULL. 
-
-
 Expressions:
-  - IS NULL and IS NOT NULL are unary expressions, not binary.
   - Refine user_sel rule (or TypeChecker) so that it cannot accept identifier names that
     end in "_". (We need these for internal field identifiers in avro.)
 

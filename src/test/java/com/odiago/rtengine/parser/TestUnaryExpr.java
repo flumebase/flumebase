@@ -35,6 +35,13 @@ public class TestUnaryExpr extends ExprTestCase {
     assertEquals(Boolean.FALSE, value);
 
     unaryExpr = new UnaryExpr(UnaryOp.Not,
+        new ConstExpr(Type.getNullable(Type.TypeName.BOOLEAN), null));
+    checker = new TypeChecker(new HashSymbolTable());
+    unaryExpr.accept(checker);
+    value = unaryExpr.eval(getEmptyEventWrapper());
+    assertEquals(null, value);
+
+    unaryExpr = new UnaryExpr(UnaryOp.Not,
         new UnaryExpr(UnaryOp.Not,
           new ConstExpr(Type.getPrimitive(Type.TypeName.BOOLEAN), Boolean.TRUE)));
     checker = new TypeChecker(new HashSymbolTable());
@@ -102,6 +109,13 @@ public class TestUnaryExpr extends ExprTestCase {
     assertEquals(Double.valueOf(42), value);
 
     unaryExpr = new UnaryExpr(UnaryOp.Minus,
+        new ConstExpr(Type.getNullable(Type.TypeName.DOUBLE), null));
+    checker = new TypeChecker(new HashSymbolTable());
+    unaryExpr.accept(checker);
+    value = unaryExpr.eval(getEmptyEventWrapper());
+    assertEquals(null, value);
+
+    unaryExpr = new UnaryExpr(UnaryOp.Minus,
         new UnaryExpr(UnaryOp.Minus,
           new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(12))));
     checker = new TypeChecker(new HashSymbolTable());
@@ -118,6 +132,76 @@ public class TestUnaryExpr extends ExprTestCase {
     } catch (TypeCheckException tce) {
       // expected this -- ok.
     }
+  }
+
+  @Test
+  public void testIsNull() throws Exception {
+    Expr unaryExpr;
+    TypeChecker checker;
+    Object value;
+
+    unaryExpr = new UnaryExpr(UnaryOp.IsNull,
+        new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(10)));
+    checker = new TypeChecker(new HashSymbolTable());
+    unaryExpr.accept(checker);
+    value = unaryExpr.eval(getEmptyEventWrapper());
+    assertEquals(Boolean.FALSE, value);
+
+    unaryExpr = new UnaryExpr(UnaryOp.IsNull,
+        new ConstExpr(Type.getNullable(Type.TypeName.INT), Integer.valueOf(10)));
+    checker = new TypeChecker(new HashSymbolTable());
+    unaryExpr.accept(checker);
+    value = unaryExpr.eval(getEmptyEventWrapper());
+    assertEquals(Boolean.FALSE, value);
+
+    unaryExpr = new UnaryExpr(UnaryOp.IsNull,
+        new ConstExpr(Type.getNullable(Type.TypeName.INT), null));
+    checker = new TypeChecker(new HashSymbolTable());
+    unaryExpr.accept(checker);
+    value = unaryExpr.eval(getEmptyEventWrapper());
+    assertEquals(Boolean.TRUE, value);
+
+    unaryExpr = new UnaryExpr(UnaryOp.IsNull,
+        new ConstExpr(Type.getNullable(Type.TypeName.STRING), null));
+    checker = new TypeChecker(new HashSymbolTable());
+    unaryExpr.accept(checker);
+    value = unaryExpr.eval(getEmptyEventWrapper());
+    assertEquals(Boolean.TRUE, value);
+  }
+
+  @Test
+  public void testIsNotNull() throws Exception {
+    Expr unaryExpr;
+    TypeChecker checker;
+    Object value;
+
+    unaryExpr = new UnaryExpr(UnaryOp.IsNotNull,
+        new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(10)));
+    checker = new TypeChecker(new HashSymbolTable());
+    unaryExpr.accept(checker);
+    value = unaryExpr.eval(getEmptyEventWrapper());
+    assertEquals(Boolean.TRUE, value);
+
+    unaryExpr = new UnaryExpr(UnaryOp.IsNotNull,
+        new ConstExpr(Type.getNullable(Type.TypeName.INT), Integer.valueOf(10)));
+    checker = new TypeChecker(new HashSymbolTable());
+    unaryExpr.accept(checker);
+    value = unaryExpr.eval(getEmptyEventWrapper());
+    assertEquals(Boolean.TRUE, value);
+
+    unaryExpr = new UnaryExpr(UnaryOp.IsNotNull,
+        new ConstExpr(Type.getNullable(Type.TypeName.INT), null));
+    checker = new TypeChecker(new HashSymbolTable());
+    unaryExpr.accept(checker);
+    value = unaryExpr.eval(getEmptyEventWrapper());
+    assertEquals(Boolean.FALSE, value);
+
+    unaryExpr = new UnaryExpr(UnaryOp.IsNotNull,
+        new ConstExpr(Type.getNullable(Type.TypeName.STRING), null));
+    checker = new TypeChecker(new HashSymbolTable());
+    unaryExpr.accept(checker);
+    value = unaryExpr.eval(getEmptyEventWrapper());
+    assertEquals(Boolean.FALSE, value);
   }
 
   @Test

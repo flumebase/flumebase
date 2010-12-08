@@ -17,8 +17,6 @@ public enum BinOp {
   LessEq,
   Eq,
   NotEq,
-  IsNot,
-  Is,
   And, // Logical And
   Or,  // Logical Or
 }

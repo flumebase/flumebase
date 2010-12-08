@@ -158,7 +158,7 @@ public class TypeChecker extends Visitor {
         where.accept(this);
         // The where clause must evaluate to a boolean value.
         Type whereType = where.getType(exprTable);
-        if (!Type.getPrimitive(Type.TypeName.BOOLEAN).equals(whereType)) {
+        if (!whereType.promotesTo(Type.getNullable(Type.TypeName.BOOLEAN))) {
           throw new TypeCheckException("Expected where clause with boolean type, not "
               + whereType);
         }
@@ -275,11 +275,6 @@ public class TypeChecker extends Visitor {
         throw new TypeCheckException("Cannot test for equality on non-primitive rhs");
       }
       break;
-    case IsNot:
-    case Is:
-      // TODO(aaron): These are unary operators; treat them as such.
-      LOG.warn("IsNot/Is binops are not supported by the type checker");
-      break;
     case And:
     case Or:
       // Both arguments must be boolean.
@@ -354,9 +349,17 @@ public class TypeChecker extends Visitor {
       }
       break;
     case Not:
-      if (!subType.equals(Type.getPrimitive(Type.TypeName.BOOLEAN))) {
+      if (!subType.promotesTo(Type.getNullable(Type.TypeName.BOOLEAN))) {
         throw new TypeCheckException("Unary " + e.getOp()
             + " operator requires boolean argument");
+      }
+      break;
+    case IsNull:
+    case IsNotNull:
+      // Any primitive type works here.
+      if (!subType.isPrimitive()) {
+        throw new TypeCheckException("Unary " + e.getOp()
+            + " operator expects primitive argument");
       }
       break;
     default:
