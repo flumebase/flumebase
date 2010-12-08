@@ -5,6 +5,7 @@ package com.odiago.rtengine.io;
 import java.nio.CharBuffer;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 import org.apache.avro.util.Utf8;
 
@@ -13,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.core.Event;
 
-import com.odiago.rtengine.lang.NullableType;
 import com.odiago.rtengine.lang.Type;
 
 /**
@@ -25,6 +25,14 @@ public class DelimitedEventParser extends EventParser {
 
   private static final Logger LOG = LoggerFactory.getLogger(
       DelimitedEventParser.class.getName());
+
+  /** key in the stream properties map specifying the field delimiter. */
+  public static final String DELIMITER_PARAM = "delimiter";
+  public static final char DEFAULT_DELIMITER = ',';
+
+  /** key in the stream properties map specifying an escape to signify a null string. */
+  public static final String NULL_STR_PARAM = "null.sequence";
+  public static final String DEFAULT_NULL_STR = "\\N";
 
   /** The event we're processing. */
   private Event mEvent;
@@ -41,6 +49,9 @@ public class DelimitedEventParser extends EventParser {
   /** The delimiter character we're using. */
   private char mDelimiter;
 
+  /** An escape sequence that specifies that the current field is a null string. */
+  private String mNullStr;
+
   /** Index of the field we will walk across next. */ 
   private int mCurField;
 
@@ -55,7 +66,6 @@ public class DelimitedEventParser extends EventParser {
    * in question, but determined the value to be null. */
   private ArrayList<Boolean> mColumnNulls;
   
-  public static final char DEFAULT_DELIMITER = ',';
 
   public DelimitedEventParser() {
     this(DEFAULT_DELIMITER);
@@ -63,6 +73,29 @@ public class DelimitedEventParser extends EventParser {
 
   public DelimitedEventParser(char delimiter) {
     mDelimiter = delimiter;
+    mNullStr = DEFAULT_NULL_STR;
+    init();
+  }
+
+  public DelimitedEventParser(Map<String, String> params) {
+    // Set the delimiter character.
+    String delimStr = params.get(DELIMITER_PARAM);
+    if (null == delimStr || delimStr.length() == 0) {
+      mDelimiter = DEFAULT_DELIMITER;
+    } else {
+      mDelimiter = delimStr.charAt(0);
+    }
+
+    // Specify a char sequence that represents a null string.
+    mNullStr = params.get(NULL_STR_PARAM);
+    if (null == mNullStr) {
+      mNullStr = DEFAULT_NULL_STR;
+    }
+
+    init();
+  }
+
+  private void init() {
     mColTexts = new ArrayList<CharBuffer>();
     mColumnValues = new ArrayList<Object>();
     mColumnNulls = new ArrayList<Boolean>();
@@ -185,8 +218,7 @@ public class DelimitedEventParser extends EventParser {
       debugInputString = chars.toString();
     }
 
-    // TODO(aaron): Handle null values (basically, empty strings.. except for the
-    // STRING type?).
+    // TODO(aaron): Test how this handles a field that is an empty string.
     Object out = null;
     switch (primitiveTypeName) {
     case BOOLEAN:
@@ -205,7 +237,12 @@ public class DelimitedEventParser extends EventParser {
       out = CharBufferUtils.parseDouble(chars);
       break;
     case STRING:
-      out = CharBufferUtils.parseString(chars);
+      String asStr = chars.toString();
+      if (expectedType.isNullable() && asStr.equals(mNullStr)) {
+        out = null;
+      } else {
+        out = asStr;
+      }
       break;
     case TIMESTAMP:
       out = CharBufferUtils.parseLong(chars);

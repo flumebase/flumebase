@@ -191,7 +191,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       case File:
         String fileName = streamSymbol.getSource();
         newElem = new LocalFileSourceElement(newContext, fileName,
-            namedInput.getFields());
+            namedInput.getFields(), streamSymbol);
         break;
       case Sink:
         String flumeSource = streamSymbol.getSource();

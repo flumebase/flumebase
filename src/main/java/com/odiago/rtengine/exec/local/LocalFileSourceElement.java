@@ -19,8 +19,7 @@ import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowElementImpl;
 import com.odiago.rtengine.exec.ParsingEventWrapper;
-
-import com.odiago.rtengine.io.DelimitedEventParser;
+import com.odiago.rtengine.exec.StreamSymbol;
 
 import com.odiago.rtengine.parser.TypedField;
 
@@ -39,6 +38,7 @@ public class LocalFileSourceElement extends FlowElementImpl {
   private EventGenThread mEventGenThread;
   private volatile boolean mIsFinished;
   private List<String> mFieldNames;
+  private StreamSymbol mStream;
 
   /**
    * Additional thread that actually reads the file and converts it
@@ -75,7 +75,7 @@ public class LocalFileSourceElement extends FlowElementImpl {
             long timestamp = Long.parseLong(line.substring(0, tabIdx));
             byte [] body = line.substring(tabIdx + 1).getBytes();
             EventImpl event = new EventImpl(body, timestamp, Priority.INFO, 0, "localhost");
-            EventWrapper wrapper = new ParsingEventWrapper(new DelimitedEventParser(),
+            EventWrapper wrapper = new ParsingEventWrapper(mStream.getEventParser(),
                 mFieldNames);
             wrapper.reset(event);
             emit(wrapper);
@@ -108,10 +108,11 @@ public class LocalFileSourceElement extends FlowElementImpl {
   }
 
   public LocalFileSourceElement(FlowElementContext context, String fileName,
-      List<TypedField> fields) {
+      List<TypedField> fields, StreamSymbol streamSym) {
     super(context);
     mFilename = fileName;
     mFieldNames = new ArrayList<String>();
+    mStream = streamSym;
     for (TypedField field : fields) {
       mFieldNames.add(field.getAvroName());
     }

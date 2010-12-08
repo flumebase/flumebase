@@ -14,6 +14,7 @@ import com.odiago.rtengine.parser.DescribeStmt;
 import com.odiago.rtengine.parser.DropStmt;
 import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.FnCallExpr;
+import com.odiago.rtengine.parser.FormatSpec;
 import com.odiago.rtengine.parser.IdentifierExpr;
 import com.odiago.rtengine.parser.LiteralSource;
 import com.odiago.rtengine.parser.SQLStatement;
@@ -56,6 +57,8 @@ public abstract class Visitor {
       visit((AllFieldsExpr) stmt);
     } else if (stmt instanceof AliasedExpr) {
       visit((AliasedExpr) stmt);
+    } else if (stmt instanceof FormatSpec) {
+      visit((FormatSpec) stmt);
     } else {
       throw new VisitException("No visit() method for type: " + stmt.getClass().getName()
           + " in class: " + getClass().getName());
@@ -122,6 +125,10 @@ public abstract class Visitor {
   }
 
   protected void visit(AliasedExpr e) throws VisitException {
+    warnEmptyVisit(e);
+  }
+
+  protected void visit(FormatSpec e) throws VisitException {
     warnEmptyVisit(e);
   }
 }

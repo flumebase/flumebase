@@ -9,6 +9,7 @@ import com.odiago.rtengine.plan.PlanContext;
  * CREATE STREAM statement.
  */
 public class CreateStreamStmt extends SQLStatement {
+
   /** The name of the STREAM object in RTSQL. */
   private String mName;
   /** The type of the stream's source (file, flume sink, etc.) */
@@ -21,6 +22,9 @@ public class CreateStreamStmt extends SQLStatement {
   /** Set of fields and types within each event in the stream. */
   private TypedFieldList mFields;
 
+  /** Holds the event parsing format and properties. */
+  private FormatSpec mFormatSpec;
+
   public CreateStreamStmt(String streamName, StreamSourceType srcType,
       String sourceLocation, boolean isLocal, TypedFieldList fields) {
     mName = streamName;
@@ -28,6 +32,7 @@ public class CreateStreamStmt extends SQLStatement {
     mSrcLocation = sourceLocation;
     mIsLocal = isLocal;
     mFields = fields;
+    mFormatSpec = new FormatSpec(FormatSpec.DEFAULT_FORMAT_NAME);
   }
 
   @Override
@@ -47,6 +52,18 @@ public class CreateStreamStmt extends SQLStatement {
       sb.append(field.toString());
       sb.append("\n");
     }
+    mFormatSpec.format(sb, depth + 1);
+  }
+
+  /**
+   * If the user provides a more specific formatspec, set it here.
+   */
+  public void setFormatSpec(FormatSpec spec) {
+    mFormatSpec = spec;
+  }
+
+  public FormatSpec getFormatSpec() {
+    return mFormatSpec;
   }
 
   @Override
@@ -55,7 +72,7 @@ public class CreateStreamStmt extends SQLStatement {
     // perform the DDL operation by itself and quit.
 
     planContext.getFlowSpec().addRoot(new CreateStreamNode(mName,
-        mType, mSrcLocation, mIsLocal, mFields));
+        mType, mSrcLocation, mIsLocal, mFields, mFormatSpec));
     return planContext;
   }
 }

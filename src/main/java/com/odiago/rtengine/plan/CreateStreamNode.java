@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.odiago.rtengine.lang.Type;
 
+import com.odiago.rtengine.parser.FormatSpec;
 import com.odiago.rtengine.parser.StreamSourceType;
 import com.odiago.rtengine.parser.TypedField;
 import com.odiago.rtengine.parser.TypedFieldList;
@@ -24,9 +25,11 @@ public class CreateStreamNode extends PlanNode {
   private String mSrcLocation;
   private boolean mIsLocal;
   private List<TypedField> mFieldTypes;
+  private FormatSpec mFormatSpec;
 
   public CreateStreamNode(String streamName, StreamSourceType srcType,
-       String sourceLocation, boolean isLocal, TypedFieldList fieldTypes) {
+       String sourceLocation, boolean isLocal, TypedFieldList fieldTypes,
+       FormatSpec formatSpec) {
     mStreamName = streamName;
     mType = srcType;
     mSrcLocation = sourceLocation;
@@ -35,6 +38,11 @@ public class CreateStreamNode extends PlanNode {
     for (TypedField field : fieldTypes) {
       mFieldTypes.add(field);
     }
+    mFormatSpec = formatSpec;
+  }
+
+  public FormatSpec getFormatSpec() {
+    return mFormatSpec;
   }
 
   public String getName() {
@@ -85,7 +93,9 @@ public class CreateStreamNode extends PlanNode {
     sb.append(mIsLocal);
     sb.append(" fields=(");
     StringUtils.formatList(sb, mFieldTypes);
-    sb.append(")\n");
+    sb.append("), format=");
+    sb.append(mFormatSpec.getFormat());
+    sb.append("\n");
     formatAttributes(sb);
   }
 }

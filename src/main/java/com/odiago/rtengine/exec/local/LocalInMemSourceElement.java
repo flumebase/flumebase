@@ -21,8 +21,6 @@ import com.odiago.rtengine.exec.FlowElementImpl;
 import com.odiago.rtengine.exec.InMemStreamSymbol;
 import com.odiago.rtengine.exec.ParsingEventWrapper;
 
-import com.odiago.rtengine.io.DelimitedEventParser;
-
 import com.odiago.rtengine.parser.TypedField;
 
 /**
@@ -49,7 +47,7 @@ public class LocalInMemSourceElement extends FlowElementImpl {
         // a parsing EventWrapper; advance these to the output.
         while (iter.hasNext()) {
           Event rawEvent = iter.next();
-          EventWrapper wrapper = new ParsingEventWrapper(new DelimitedEventParser(),
+          EventWrapper wrapper = new ParsingEventWrapper(mStreamSymbol.getEventParser(),
               mFieldNames);
           wrapper.reset(rawEvent);
           context.emit(wrapper);

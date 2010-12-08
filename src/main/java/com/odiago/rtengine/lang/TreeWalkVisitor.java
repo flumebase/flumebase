@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.odiago.rtengine.parser.AliasedExpr;
 import com.odiago.rtengine.parser.BinExpr;
+import com.odiago.rtengine.parser.CreateStreamStmt;
 import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.FnCallExpr;
 import com.odiago.rtengine.parser.SelectStmt;
@@ -16,6 +17,10 @@ import com.odiago.rtengine.parser.UnaryExpr;
  * node. Subclasses should call super.visit() when they want recursion to occur.
  */
 public abstract class TreeWalkVisitor extends Visitor {
+
+  protected void visit(CreateStreamStmt s) throws VisitException {
+    s.getFormatSpec().accept(this);
+  }
 
   protected void visit(SelectStmt s) throws VisitException {
     List<AliasedExpr> exprs = s.getSelectExprs();

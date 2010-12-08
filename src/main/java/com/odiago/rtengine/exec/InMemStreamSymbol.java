@@ -9,6 +9,7 @@ import com.cloudera.flume.core.Event;
 
 import com.odiago.rtengine.lang.StreamType;
 
+import com.odiago.rtengine.parser.FormatSpec;
 import com.odiago.rtengine.parser.StreamSourceType;
 import com.odiago.rtengine.parser.TypedField;
 
@@ -21,8 +22,8 @@ public class InMemStreamSymbol extends StreamSymbol {
   private List<Event> mInputEvents;
 
   public InMemStreamSymbol(String name, StreamType type, List<Event> inputEvents,
-      List<TypedField> fields) {
-    super(name, StreamSourceType.Memory, type, null, true, fields);
+      List<TypedField> fields, FormatSpec format) {
+    super(name, StreamSourceType.Memory, type, null, true, fields, format);
     mInputEvents = inputEvents;
   }
 

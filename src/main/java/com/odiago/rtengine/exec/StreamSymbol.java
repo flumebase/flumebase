@@ -5,9 +5,12 @@ package com.odiago.rtengine.exec;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.odiago.rtengine.io.EventParser;
+
 import com.odiago.rtengine.lang.StreamType;
 import com.odiago.rtengine.lang.Type;
 
+import com.odiago.rtengine.parser.FormatSpec;
 import com.odiago.rtengine.parser.StreamSourceType;
 import com.odiago.rtengine.parser.TypedField;
 
@@ -29,6 +32,9 @@ public class StreamSymbol extends Symbol {
 
   private final List<TypedField> mFieldTypes;
 
+  /** Specifies how the fields are parsed. */
+  private final FormatSpec mFormatSpec;
+
   /** Initialize all parameters of a stream symbol explicitly.
    * @param name the name of the stream.
    * @param sourceType specifies where the source data for this stream comes from
@@ -37,9 +43,10 @@ public class StreamSymbol extends Symbol {
    * @param source the specification for how to connect to the source.
    * @param isLocal true if the source of this data is local.
    * @param fieldTypes the names and types for each field.
+   * @param fmt the FormatSpec that tells how to parse the stream events.
    */
   public StreamSymbol(String name, StreamSourceType sourceType, Type streamType,
-      String source, boolean isLocal, List<TypedField> fieldTypes) {
+      String source, boolean isLocal, List<TypedField> fieldTypes, FormatSpec fmt) {
     super(name, StreamType.getEmptyStreamType());
     mSource = source;
     mStreamType = sourceType;
@@ -48,6 +55,7 @@ public class StreamSymbol extends Symbol {
     if (null != fieldTypes) {
       mFieldTypes.addAll(fieldTypes);
     }
+    mFormatSpec = fmt;
   }
 
   /** Initialize a stream symbol from the logical plan node for a CREATE STREAM operation. */
@@ -57,6 +65,7 @@ public class StreamSymbol extends Symbol {
     mIsLocal = createNode.isLocal();
     mStreamType = createNode.getType();
     mFieldTypes = new ArrayList<TypedField>(createNode.getFields());
+    mFormatSpec = createNode.getFormatSpec();
   }
 
   /**
@@ -82,6 +91,13 @@ public class StreamSymbol extends Symbol {
     return mStreamType;
   }
 
+  /**
+   * @return an EventParser for events coming from this stream.
+   */
+  public EventParser getEventParser() {
+    return mFormatSpec.getEventParser();
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
@@ -92,6 +108,9 @@ public class StreamSymbol extends Symbol {
     sb.append("\n");
     sb.append("  source: ");
     sb.append(mSource);
+    sb.append("\n");
+    sb.append("  format: ");
+    sb.append(mFormatSpec.getFormat());
     sb.append("\n");
     if (mIsLocal) {
       sb.append("  local\n");
@@ -116,7 +135,8 @@ public class StreamSymbol extends Symbol {
     StreamSymbol otherStream = (StreamSymbol) other;
     return mIsLocal == otherStream.mIsLocal
         && mSource.equals(otherStream.mSource)
-        && mStreamType.equals(otherStream.mStreamType);
+        && mStreamType.equals(otherStream.mStreamType)
+        && mFormatSpec.equals(otherStream.mFormatSpec);
   }
 
 }

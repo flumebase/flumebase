@@ -30,17 +30,19 @@ stmt returns [SQLStatement val]:
   ;
 
 stmt_create_stream returns [CreateStreamStmt val]:
-    CREATE STREAM fid=stream_sel ft=typed_field_list FROM LOCAL FILE f=user_sel
+    CREATE STREAM fid=stream_sel ft=typed_field_list FROM LOCAL FILE f=file_spec
         {
           $val = new CreateStreamStmt($fid.val,
               StreamSourceType.File, $f.val, true, $ft.val);
         }
-  | CREATE STREAM sid=stream_sel st=typed_field_list FROM slcl=LOCAL? SOURCE src=user_sel
+      ffmt=optional_format_spec { $val.setFormatSpec($ffmt.val); }
+  | CREATE STREAM sid=stream_sel st=typed_field_list FROM slcl=LOCAL? SOURCE src=src_spec
         {
           boolean srcIsLocal = slcl != null;
           $val = new CreateStreamStmt($sid.val,
               StreamSourceType.Sink, $src.val, srcIsLocal, $st.val);
         }
+      sfmt=optional_format_spec { $val.setFormatSpec($sfmt.val); }
   ;
 
 stmt_describe returns [DescribeStmt val]:
@@ -156,12 +158,6 @@ un_op returns [UnaryOp val]:
   | NOT { $val = UnaryOp.Not; }
   ;
 
-//  |  fn=user_sel LPAREN { $val = new FnCallExpr($fn.val); }
-//      ( e1=expr { $val.addArg($e1.val); } 
-//        ( COMMA e2=expr { $val.addArg($e2.val); } )* )?
-//      RPAREN
-//  ;
-
 // TODO: numbers with a decimal place. BIGINT-valued integers.
 atom_expr returns [Expr val]:
     LPAREN e=expr RPAREN { $val=$e.val; }
@@ -238,6 +234,14 @@ user_sel returns [String val] :
     ID {$val=$ID.text.toLowerCase();}
   | QQ_STRING {$val=unescape($QQ_STRING.text);};
 
+// filename is provided as a 'single quoted string'.
+file_spec returns [String val] :
+    q=Q_STRING { $val=unescape($q.text); };
+
+// Flume source is a 'single quoted string.'
+src_spec returns [String val] :
+    q=Q_STRING { $val=unescape($q.text); };
+
 // Source for a SELECT statement (in the FROM clause). For now, must be a
 // named stream.
 source_definition returns [SQLStatement val]:
@@ -249,4 +253,16 @@ source_definition returns [SQLStatement val]:
 optional_where_conditions returns [Expr val] :
     {$val=null;}
   | WHERE e=expr {$val=$e.val;};
+
+// Specifies how input records of the stream should be parsed.
+// e.g.: CREATE STREAM .... EVENT FORMAT 'delimited' PROPERTIES ('delim.char' = '\t');
+optional_format_spec returns [FormatSpec val] :
+    { $val = new FormatSpec(); }
+  | EVENT FORMAT fmt=Q_STRING { $val = new FormatSpec(unescape($fmt.text)); }
+    PROPERTIES LPAREN ( k=Q_STRING EQ v=Q_STRING {
+        $val.setParam(unescape($k.text), unescape($v.text)); }
+        ( COMMA k2=Q_STRING EQ v2=Q_STRING {
+        $val.setParam(unescape($k2.text), unescape($v2.text)); } )*
+    )? RPAREN
+  ;
 

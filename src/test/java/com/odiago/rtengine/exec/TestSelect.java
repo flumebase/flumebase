@@ -10,7 +10,8 @@ import java.util.List;
 
 import org.apache.avro.generic.GenericData;
 
-import org.junit.Ignore;
+import org.apache.avro.util.Utf8;
+
 import org.junit.Test;
 
 import com.cloudera.util.Pair;
@@ -18,8 +19,11 @@ import com.cloudera.util.Pair;
 import com.odiago.rtengine.exec.local.LocalEnvironment;
 import com.odiago.rtengine.exec.local.MemoryOutputElement;
 
+import com.odiago.rtengine.io.DelimitedEventParser;
+
 import com.odiago.rtengine.lang.Type;
 
+import com.odiago.rtengine.parser.FormatSpec;
 import com.odiago.rtengine.parser.SelectStmt;
 import com.odiago.rtengine.parser.TypedField;
 
@@ -566,8 +570,218 @@ public class TestSelect extends RtsqlTestCase {
         checks);
   }
 
+  /**
+   * Runs a test where we can specify the delimiter and the null string sequence;
+   * then run a query over this dataset and inspect the results.
+   * Datasets are expected to have two columns 'a' and 'b' with types specified
+   * as leftType and rightType.
+   * We expect a single output record against which the (fieldname, value) pairs
+   * in 'checks' are compared.
+   */
+  private void runDelimiterTest(Type leftType, Type rightType, String delimStr,
+      String nullStr, List<String> inputs, String query, List<Pair<String, Object>> checks)
+      throws IOException, InterruptedException {
+
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("memstream");
+    streamBuilder.addField(new TypedField("a", leftType));
+    streamBuilder.addField(new TypedField("b", rightType));
+    for (String input : inputs) {
+      streamBuilder.addEvent(input);
+    }
+    FormatSpec formatSpec = new FormatSpec();
+    formatSpec.setFormat(FormatSpec.DEFAULT_FORMAT_NAME);
+    formatSpec.setParam(DelimitedEventParser.DELIMITER_PARAM, delimStr);
+    formatSpec.setParam(DelimitedEventParser.NULL_STR_PARAM, nullStr);
+    streamBuilder.setFormat(formatSpec);
+    StreamSymbol stream = streamBuilder.build();
+
+    getSymbolTable().addSymbol(stream);
+    getConf().set(SelectStmt.CLIENT_SELECT_TARGET_KEY, "testSelect");
+
+    // Connect to the environment and run it.
+    LocalEnvironment env = getEnvironment();
+    env.connect();
+
+    // Run the query.
+    QuerySubmitResponse response = env.submitQuery(query);
+    FlowId id = response.getFlowId();
+    assertNotNull(id);
+    env.joinFlow(id);
+
+    // Examine the response records.
+    MemoryOutputElement output = getOutput("testSelect");
+    assertNotNull(output);
+
+    List<GenericData.Record> outRecords = output.getRecords();
+    GenericData.Record record = outRecords.get(0);
+    for (Pair<String, Object> fieldCheck : checks) {
+      String fieldName = fieldCheck.getLeft();
+      Object expectedVal = fieldCheck.getRight();
+      Object actualVal = record.get(fieldName);
+      assertEquals("Field " + fieldName + " had value " + actualVal + "; expected "
+          + expectedVal, expectedVal, actualVal);
+    }
+  }
+
+  @Test
+  public void testExplicitDefaultDelims() throws IOException, InterruptedException {
+    // Explicitly specify ',' and "\N" as delim and null and verify that it all works.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("abc")));
+    checks.add(new Pair<String, Object>("b", new Utf8("def")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList("abc,def"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testExplicitDefaultsLeftNull() throws IOException, InterruptedException {
+    // Explicitly specify ',' and "\N" as delim and null and verify that it all works.
+    // Put the left string as null.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", null));
+    checks.add(new Pair<String, Object>("b", new Utf8("def")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList("\\N,def"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testExplicitDefaultsRightNull1() throws IOException, InterruptedException {
+    // Put the right string as null.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("abc")));
+    checks.add(new Pair<String, Object>("b", null));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList("abc,\\N"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testExplicitDefaultsRightNull2() throws IOException, InterruptedException {
+    // Put the right string as an implicit null as the field is missing.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("abc")));
+    checks.add(new Pair<String, Object>("b", null));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList("abc"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testTabDelim() throws IOException, InterruptedException {
+    // Change the delimiter from comma to tab, verify that it works.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("a,b,c")));
+    checks.add(new Pair<String, Object>("b", new Utf8("def")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        "\t", "\\N",
+        Collections.singletonList("a,b,c\tdef"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testNullSeq1() throws IOException, InterruptedException {
+    // Change the null sequence, verify that it doesn't hurt anything.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("abc")));
+    checks.add(new Pair<String, Object>("b", new Utf8("def")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "null",
+        Collections.singletonList("abc,def"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testNullSeq2() throws IOException, InterruptedException {
+    // Change the null sequence, verify that it works on the left.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", null));
+    checks.add(new Pair<String, Object>("b", new Utf8("def")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "null",
+        Collections.singletonList("null,def"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testNullSeq3() throws IOException, InterruptedException {
+    // Change the null sequence, verify that it works on the right.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("abc")));
+    checks.add(new Pair<String, Object>("b", null));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "null",
+        Collections.singletonList("abc,null"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testNullSeq4() throws IOException, InterruptedException {
+    // Change the null sequence, verify that implicit nulls work on the right.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("abc")));
+    checks.add(new Pair<String, Object>("b", null));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "null",
+        Collections.singletonList("abc"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testNullSeq5() throws IOException, InterruptedException {
+    // Change the null sequence, verify that we can read the default null sequence
+    // as a non-null string.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("\\N")));
+    checks.add(new Pair<String, Object>("b", new Utf8("def")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "null",
+        Collections.singletonList("\\N,def"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+
   // TODO: Write the following tests:
-  //   Test string fields.
+  //   Test non-null string fields.
   //   Test long integer fields.
   //   Test boolean fields.
   //   Test nullable int fields.

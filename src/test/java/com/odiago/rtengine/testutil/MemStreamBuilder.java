@@ -13,6 +13,7 @@ import com.odiago.rtengine.exec.InMemStreamSymbol;
 import com.odiago.rtengine.lang.StreamType;
 import com.odiago.rtengine.lang.Type;
 
+import com.odiago.rtengine.parser.FormatSpec;
 import com.odiago.rtengine.parser.TypedField;
 
 /**
@@ -22,6 +23,7 @@ public class MemStreamBuilder {
   private List<Event> mEvents;
   private List<TypedField> mFields;
   private String mStreamName;
+  private FormatSpec mFormatSpec;
 
   public MemStreamBuilder() {
     this(null);
@@ -31,10 +33,15 @@ public class MemStreamBuilder {
     mStreamName = name;
     mEvents = new ArrayList<Event>();
     mFields = new ArrayList<TypedField>();
+    mFormatSpec = new FormatSpec();
   }
 
   public void setName(String name) {
     mStreamName = name;
+  }
+
+  public void setFormat(FormatSpec fmt) {
+    mFormatSpec = fmt;
   }
 
   public void addEvent(Event e) {
@@ -82,6 +89,6 @@ public class MemStreamBuilder {
     }
 
     return new InMemStreamSymbol(mStreamName, makeStreamType(), new ArrayList<Event>(mEvents),
-        new ArrayList<TypedField>(mFields));
+        new ArrayList<TypedField>(mFields), mFormatSpec);
   }
 }

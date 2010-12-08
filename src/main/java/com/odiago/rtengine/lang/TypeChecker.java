@@ -25,6 +25,7 @@ import com.odiago.rtengine.parser.EntityTarget;
 import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.Expr;
 import com.odiago.rtengine.parser.FnCallExpr;
+import com.odiago.rtengine.parser.FormatSpec;
 import com.odiago.rtengine.parser.IdentifierExpr;
 import com.odiago.rtengine.parser.LiteralSource;
 import com.odiago.rtengine.parser.SQLStatement;
@@ -52,7 +53,14 @@ public class TypeChecker extends Visitor {
 
   @Override
   protected void visit(CreateStreamStmt s) throws VisitException {
-    // Nothing to do.
+    s.getFormatSpec().accept(this);
+  }
+
+  @Override
+  protected void visit(FormatSpec s) throws VisitException {
+    // TODO: Typecheck the FormatSpec; make sure the format describes
+    // a real format that exists in the symbol table (each format should
+    // have one; it should be like a builtin function).
   }
 
   @Override

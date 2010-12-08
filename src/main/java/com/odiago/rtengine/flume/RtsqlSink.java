@@ -4,6 +4,7 @@ package com.odiago.rtengine.flume;
 
 import java.io.IOException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -64,6 +65,7 @@ public class RtsqlSink extends EventSink.Base {
       throw new IOException("No context binding available for flow/source: "
           + mContextSourceName);
     }
+    mFieldNames = new ArrayList<String>();
     mWriteContext = mSinkContext.getFlowElementContext();
     for (TypedField field : mSinkContext.getFieldTypes()) {
       mFieldNames.add(field.getAvroName());
