@@ -57,9 +57,6 @@ Bugs:
     ... it also emits a scary looking error message, that we should suppress for
     hygeine's sake.
 
-  - If you put a null in a column, and it's declared as "X NOT NULL", this causes
-    a NPE and a crash. Instead, the entire record should be dropped.
-
 Features:
 
   - Need ability to create a remote physical plan

@@ -14,7 +14,7 @@ import com.odiago.rtengine.lang.Type;
 public class square_int extends ScalarFunc {
   @Override
   public Type getReturnType() {
-    return Type.getPrimitive(Type.TypeName.INT);
+    return Type.getNullable(Type.TypeName.INT);
   }
 
   @Override

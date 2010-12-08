@@ -640,6 +640,23 @@ public class TestSelect extends RtsqlTestCase {
   }
 
   @Test
+  public void testNonNullStringsMatchEscape() throws IOException, InterruptedException {
+    // Test that if we put "\\N" as a field body in a STRING NOT NULL field,
+    // it operates like the literal string "\\N".
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("\\N")));
+    checks.add(new Pair<String, Object>("b", null));
+
+    runDelimiterTest(Type.getPrimitive(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList("\\N,\\N"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
   public void testExplicitDefaultsLeftNull() throws IOException, InterruptedException {
     // Explicitly specify ',' and "\N" as delim and null and verify that it all works.
     // Put the left string as null.
