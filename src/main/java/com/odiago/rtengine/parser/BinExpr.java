@@ -282,30 +282,6 @@ public class BinExpr extends Expr {
     }
   }
 
-  /**
-   * @return an object representing the same value as 'val' but coerced
-   * from valType into targetType.
-   */
-  private Object coerce(Object val, Type valType, Type targetType) {
-    if (targetType.getPrimitiveTypeName().equals(Type.TypeName.STRING)) {
-      // coerce this object to a string.
-      StringBuilder sb = new StringBuilder();
-      sb.append(val);
-      return sb.toString();
-    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.INT)) {
-      return Integer.valueOf(((Number) val).intValue());
-    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.BIGINT)) {
-      return Long.valueOf(((Number) val).longValue());
-    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.FLOAT)) {
-      return Float.valueOf(((Number) val).floatValue());
-    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.DOUBLE)) {
-      return Double.valueOf(((Number) val).doubleValue());
-    } else {
-      throw new RuntimeException("Do not know how to coerce from " + valType
-          + " to " + targetType);
-    }
-  }
-
   // Sets the type that the expression returns
   public void setType(Type t) {
     mType = t;

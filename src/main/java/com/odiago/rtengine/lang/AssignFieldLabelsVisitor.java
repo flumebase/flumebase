@@ -3,6 +3,7 @@
 package com.odiago.rtengine.lang;
 
 import com.odiago.rtengine.parser.AliasedExpr;
+import com.odiago.rtengine.parser.AllFieldsExpr;
 import com.odiago.rtengine.parser.IdentifierExpr;
 
 /**
@@ -69,6 +70,9 @@ public class AssignFieldLabelsVisitor extends TreeWalkVisitor {
     // IdentifierExprs are projected to themselves.
     if (ae.getExpr() instanceof IdentifierExpr && ae.getProjectedLabel() == null) {
       ae.setProjectedLabel(((IdentifierExpr) ae.getExpr()).getIdentifier());
+    } else if (!(ae.getExpr() instanceof AllFieldsExpr) && ae.getProjectedLabel() == null) {
+      // Don't transform the label, just use its internal avro label.
+      ae.setProjectedLabel(ae.getAvroLabel());
     }
   }
 

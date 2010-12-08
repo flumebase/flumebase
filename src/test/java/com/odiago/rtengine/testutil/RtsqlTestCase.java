@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.odiago.rtengine.exec.BuiltInSymbolTable;
 import com.odiago.rtengine.exec.HashSymbolTable;
 import com.odiago.rtengine.exec.SymbolTable;
 
@@ -48,7 +49,7 @@ public class RtsqlTestCase {
 
   @Before
   public void setUp() {
-    mSymbolTable = new HashSymbolTable();
+    mSymbolTable = new HashSymbolTable(new BuiltInSymbolTable());
     mConf = new Configuration();
     mOutputs = Collections.synchronizedMap(new HashMap<String, MemoryOutputElement>());
     mEnvironment = new LocalEnvironment(mConf, mSymbolTable, mOutputs);

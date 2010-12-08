@@ -5,11 +5,6 @@ Next on the list:
 
 
 Expressions:
-  - Need to handle scalar fns
-    -- need a BuiltInSymbolTable to hold some functions
-    -- need function API
-    -- need to add functions like LENGTH, CURRENT_TIMESTAMP(), etc.
-    ---- reflect these into BuiltInSymbolTable by walking the package.
   - IS NULL and IS NOT NULL are unary expressions, not binary.
   - Need more tests in TestTypeChecker; see TODO in comments.
   - Refine user_sel rule (or TypeChecker) so that it cannot accept identifier names that
@@ -36,19 +31,12 @@ Rewriting the coupling between FlowElements in the LocalEnvironment:
   Use the 'reverse wait object' pattern also used by joinFlow().
 
 
-
 SQL Features (in rough priority order):
-  - scalar functions
   - Aggregation and aggregate functions
   - Join
   - Filtering (HAVING)
   - LIMIT
   - ORDER BY
-
-
-Expression Parsing and Function Application:
-
-  Need to be able to handle SELECT LENGTH(a) FROM foo;
 
 Aggregation:
 
@@ -93,10 +81,18 @@ Features:
   -- Need ability to run remote physical plan on a set of configured nodes.
   - Need a DROP FLOW operation
   - Need SHOW FLOWS operation
+  - Need ExecEnvironment.joinFlow(flowId, timeout)
   - Need ability to auto-connect to a remote Flume resource.
 
   - Need to pick different delimiters for DelimitedEventParser.
   - Need to pick different EventParser implementations for different streams.
+  - FnCallExpr currently casts all arguments to the expected types before
+    calling fn.eval(). Some functions (e.g., pow(x,y)) can take any numeric
+    type and operate on it, and should not be pre-cast. We need the ability to
+    specify that a function call should delay coercion; or else perhaps allow
+    the function to specify that an argument is of Type.getType(TYPE_CLASS_NUMERIC)
+    and so long as the argument type is in the type class, accept it without further
+    conversion.
 
 Optimizations:
 

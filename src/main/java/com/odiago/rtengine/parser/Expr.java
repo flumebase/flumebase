@@ -42,4 +42,32 @@ public abstract class Expr extends SQLStatement {
    * need to rely on a symobl table at run time.
    */
   abstract Type getResolvedType();
+
+  /**
+   * @return an object representing the same value as 'val' but coerced
+   * from valType into targetType.
+   */
+  protected Object coerce(Object val, Type valType, Type targetType) {
+    if (null == val) {
+      return null;
+    } else if (valType.equals(targetType)) {
+      return val;
+    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.STRING)) {
+      // coerce this object to a string.
+      StringBuilder sb = new StringBuilder();
+      sb.append(val);
+      return sb.toString();
+    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.INT)) {
+      return Integer.valueOf(((Number) val).intValue());
+    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.BIGINT)) {
+      return Long.valueOf(((Number) val).longValue());
+    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.FLOAT)) {
+      return Float.valueOf(((Number) val).floatValue());
+    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.DOUBLE)) {
+      return Double.valueOf(((Number) val).doubleValue());
+    } else {
+      throw new RuntimeException("Do not know how to coerce from " + valType
+          + " to " + targetType);
+    }
+  }
 }

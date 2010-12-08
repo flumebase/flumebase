@@ -288,8 +288,13 @@ public class TypeChecker extends Visitor {
   }
 
   protected void visit(FnCallExpr e) throws VisitException {
-    // TODO(aaron): Write this.
-    LOG.warn("Type-checking for function calls not yet implemented");
+    // Type-check all the argument expressions.
+    for (Expr argExpr : e.getArgExpressions()) {
+      argExpr.accept(this);
+    }
+
+    // Verify that all the actual expression types can be promoted to the argument types.
+    e.resolveArgTypes(mSymTableContext.top());
   }
 
   protected void visit(IdentifierExpr e) throws VisitException {

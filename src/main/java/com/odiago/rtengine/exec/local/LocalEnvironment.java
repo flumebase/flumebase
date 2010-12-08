@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.odiago.rtengine.exec.BuiltInSymbolTable;
 import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.ExecEnvironment;
 import com.odiago.rtengine.exec.FlowElement;
@@ -455,7 +456,8 @@ public class LocalEnvironment extends ExecEnvironment {
    * Main constructor.
    */
   public LocalEnvironment(Configuration conf) {
-    this(conf, new HashSymbolTable(), new HashMap<String, MemoryOutputElement>());
+    this(conf, new HashSymbolTable(new BuiltInSymbolTable()),
+        new HashMap<String, MemoryOutputElement>());
   }
 
   /**

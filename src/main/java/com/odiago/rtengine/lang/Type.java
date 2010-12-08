@@ -38,6 +38,7 @@ public class Type {
     NULLABLE, // nullable instance of a primitive type (int, bigint, etc).
     FLOW, // An executing flow.
     ANY, // 'null' constant can be cast to any type. Only valid inside NULLABLE.
+    SCALARFUNC, // Callable scalar function (FnType).
   };
 
   
