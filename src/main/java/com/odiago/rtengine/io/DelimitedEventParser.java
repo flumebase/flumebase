@@ -168,7 +168,16 @@ public class DelimitedEventParser extends EventParser {
     while (mCurField <= colIdx) {
       // We have to continue walking through the underlying string.
       int start = mIndex; // The field starts here.
-      if (start >= mAsCharacters.length) {
+      if (start == mAsCharacters.length && mCurField == colIdx
+          && expectedType.getPrimitiveTypeName().equals(Type.TypeName.STRING)) {
+        // We have found an empty string field at the end of the record.
+        // Return the empty string as a field.
+        cbField = CharBuffer.wrap("");
+        mColTexts.add(cbField);
+        mCurField++;
+        mIndex++;
+        return parseAndCache(cbField, colIdx, expectedType);
+      } else if (start >= mAsCharacters.length) {
         // We don't have any more fields we can parse. If we need to read
         // more fields, then this is an error; the event is too short.
         if (LOG.isDebugEnabled()) {

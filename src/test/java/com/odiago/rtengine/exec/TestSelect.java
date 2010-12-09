@@ -706,6 +706,73 @@ public class TestSelect extends RtsqlTestCase {
   }
 
   @Test
+  public void testExplicitDefaultsRightEmpty() throws IOException, InterruptedException {
+    // Since there is a field delimiter after 'abc', expect the right field
+    // to be an empty string, not null.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("abc")));
+    checks.add(new Pair<String, Object>("b", new Utf8("")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList("abc,"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testLeftEmpty() throws IOException, InterruptedException {
+    // Since there is a field delimiter after 'abc', expect the right field
+    // to be an empty string, not null.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("")));
+    checks.add(new Pair<String, Object>("b", new Utf8("def")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList(",def"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testBothEmpty() throws IOException, InterruptedException {
+    // Both fields should be non-null empty strings.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("")));
+    checks.add(new Pair<String, Object>("b", new Utf8("")));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "\\N",
+        Collections.singletonList(","),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
+  public void testEmptyIsNullOnRight() throws IOException, InterruptedException {
+    // If the null sequence is an empty string, verify that we return null
+    // when we have an empty string as the last field.
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", new Utf8("abc")));
+    checks.add(new Pair<String, Object>("b", null));
+
+    runDelimiterTest(Type.getNullable(Type.TypeName.STRING),
+        Type.getNullable(Type.TypeName.STRING),
+        ",", "",
+        Collections.singletonList("abc,"),
+        "SELECT a, b FROM memstream",
+        checks);
+  }
+
+  @Test
   public void testTabDelim() throws IOException, InterruptedException {
     // Change the delimiter from comma to tab, verify that it works.
     List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
