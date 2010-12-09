@@ -28,6 +28,20 @@ public class ShowStmt extends SQLStatement {
     sb.append("SHOW " + mTarget + "\n");
   }
 
+  /**
+   * Formats all entries of symTab with the specified symbolType into
+   * strings appended to the stringbuilder argument.
+   */
+  private void showAllSymbols(StringBuilder sb, SymbolTable symTab, Type.TypeName symbolType) {
+    for (Symbol symbol : symTab) {
+      if (symbol.getType().getTypeName().equals(symbolType)) {
+        // We've found one
+        sb.append(symbol.toString());
+        sb.append("\n");
+      }
+    }
+  }
+
   @Override
   public PlanContext createExecPlan(PlanContext planContext) {
     // Just append the requested information in the planContext's
@@ -38,13 +52,10 @@ public class ShowStmt extends SQLStatement {
 
     switch (mTarget) {
     case Stream:
-      for (Symbol symbol : symTab) {
-        if (symbol.getType().getTypeName().equals(Type.TypeName.STREAM)) {
-          // We've found a stream.
-          sb.append(symbol.toString());
-          sb.append("\n");
-        }
-      }
+      showAllSymbols(sb, symTab, Type.TypeName.STREAM);
+      break;
+    case Function:
+      showAllSymbols(sb, symTab, Type.TypeName.SCALARFUNC);
       break;
     case Flow:
     default:

@@ -27,6 +27,7 @@ FLOW : F L O W ;
 FLOWS : F L O W S ;
 FORMAT: F O R M A T ;
 FROM : F R O M ;
+FUNCTIONS : F U N C T I O N S ;
 INT_KW : I N T ;
 IS : I S ;
 LOCAL : L O C A L ;

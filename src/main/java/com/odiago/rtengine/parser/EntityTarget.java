@@ -8,4 +8,5 @@ package com.odiago.rtengine.parser;
 public enum EntityTarget {
   Flow,
   Stream,
+  Function,
 }

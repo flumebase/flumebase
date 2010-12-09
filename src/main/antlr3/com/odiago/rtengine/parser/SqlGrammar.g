@@ -57,7 +57,9 @@ stmt_select returns [SelectStmt val]:
 
 stmt_show returns [ShowStmt val]:
     SHOW FLOWS {$val = new ShowStmt(EntityTarget.Flow);}
-  | SHOW STREAMS {$val = new ShowStmt(EntityTarget.Stream);};
+  | SHOW STREAMS {$val = new ShowStmt(EntityTarget.Stream);}
+  | SHOW FUNCTIONS {$val = new ShowStmt(EntityTarget.Function);}
+  ;
 
 stmt_drop returns [DropStmt val]:
     DROP FLOW f=user_sel {$val = new DropStmt(EntityTarget.Flow, $f.val);}
