@@ -29,4 +29,16 @@ public abstract class ScalarFunc {
    * @return an ordered list containing the types expected for all arguments.
    */
   public abstract List<Type> getArgumentTypes();
+
+  /**
+   * Determines whether arguments are promoted to their specified types by
+   * the runtime. If this returns true, actual arguments are promoted to
+   * new values that match the types specified in getArgumentTypes().
+   * If false, the expressions are simply type-checked to ensure that there
+   * is a valid promotion, but are passed in as-is. The default value of
+   * this method is true.
+   */
+  public boolean autoPromoteArguments() {
+    return true;
+  }
 }

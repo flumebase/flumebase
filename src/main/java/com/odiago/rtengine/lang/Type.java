@@ -38,7 +38,13 @@ public class Type {
     NULLABLE, // nullable instance of a primitive type (int, bigint, etc).
     FLOW, // An executing flow.
     ANY, // 'null' constant can be cast to any type. Only valid inside NULLABLE.
+         // This represents the "bottom" of the promotesTo type lattice.
     SCALARFUNC, // Callable scalar function (FnType).
+    TYPECLASS_NUMERIC, // Typeclass representing all numeric types.
+    TYPECLASS_ANY,     // Typeclass representing all types. This is the "top" of
+                       // the promotesTo lattice. (nothing promotesTo ANY, but
+                       // everything promotesTo TYPECLASS_ANY.)
+    UNIVERSAL, // Represents an unbound type variable in a UniversalType instance.
   };
 
   
@@ -73,6 +79,8 @@ public class Type {
     PRIMITIVE_TYPES.put(TypeName.STRING, new Type(TypeName.STRING));
     PRIMITIVE_TYPES.put(TypeName.TIMESTAMP, new Type(TypeName.TIMESTAMP));
     PRIMITIVE_TYPES.put(TypeName.TIMESPAN, new Type(TypeName.TIMESPAN));
+    PRIMITIVE_TYPES.put(TypeName.TYPECLASS_NUMERIC, new Type(TypeName.TYPECLASS_NUMERIC));
+    PRIMITIVE_TYPES.put(TypeName.TYPECLASS_ANY, new Type(TypeName.TYPECLASS_ANY));
 
     NULLABLE_TYPES = new HashMap<TypeName, Type>();
     NULLABLE_TYPES.put(TypeName.BOOLEAN, new NullableType(TypeName.BOOLEAN));
@@ -84,6 +92,8 @@ public class Type {
     NULLABLE_TYPES.put(TypeName.TIMESTAMP, new NullableType(TypeName.TIMESTAMP));
     NULLABLE_TYPES.put(TypeName.TIMESPAN, new NullableType(TypeName.TIMESPAN));
     NULLABLE_TYPES.put(TypeName.ANY, new NullableType(TypeName.ANY));
+    NULLABLE_TYPES.put(TypeName.TYPECLASS_NUMERIC, new NullableType(TypeName.TYPECLASS_NUMERIC));
+    NULLABLE_TYPES.put(TypeName.TYPECLASS_ANY, new NullableType(TypeName.TYPECLASS_ANY));
   }
 
   /**
@@ -135,6 +145,7 @@ public class Type {
     case BIGINT:
     case FLOAT:
     case DOUBLE:
+    case TYPECLASS_NUMERIC:
       return true;
     default:
       return false;
@@ -145,8 +156,8 @@ public class Type {
    * supports operators &gt;, &lt;, &gt;=, &lt;=).
    */
   public boolean isComparable() {
-    return isNumeric() || this.equals(Type.getPrimitive(Type.TypeName.BOOLEAN))
-        || this.equals(Type.getPrimitive(Type.TypeName.STRING));
+    return isNumeric() || this.equals(Type.getPrimitive(TypeName.BOOLEAN))
+        || this.equals(Type.getPrimitive(TypeName.STRING));
   }
 
   /** @return an Avro schema describing this type. */
@@ -169,6 +180,10 @@ public class Type {
    *   <li>INT promotesTo BIGINT</li>
    *   <li>BIGINT promotesTo FLOAT</li>
    *   <li>FLOAT promotesTo DOUBLE</li>
+   *   <li>All numeric types promotesTo TYPECLASS_NUMERIC.</li>
+   *   <li>Anything promotesTo TYPECLASS_ANY (including other typeclasses).</li>
+   *   <li>X promotesTo UniversalType(C1, C2...Cn) iff X promotesTo all constraints Ci</li>
+   *
    *   <li>(TODO: unimplemented)
    *       FLOW(t1, ..., tn) promotesTo FLOW(t'1, ..., t'n) iff t_i promotesTo t'_i.</li>
    * </ul>
@@ -182,6 +197,22 @@ public class Type {
       return false; // invalid input.
     } else if (this.equals(other)) {
       return true; // reflexivity rule.
+    } else if (!isNullable() && other.equals(Type.getPrimitive(TypeName.TYPECLASS_ANY))) {
+      // Any non-null type promotes to non-null TYPECLASS_ANY.
+      return true;
+    } else if (isNullable() && other.equals(Type.getNullable(TypeName.TYPECLASS_ANY))) {
+      // Any nullable type promotes to nullable TYPECLASS_ANY.
+      return true;
+    } else if (other instanceof UniversalType) {
+      // We can promote to a constrained universal type if we can promote
+      // to all constraints of that type.
+      for (Type constraint : ((UniversalType) other).getConstraints()) {
+        if (!promotesTo(constraint)) {
+          return false;
+        }
+      }
+
+      return true;
     } else if (isPrimitive() && other.isNullable()) {
       if (isNullable()) {
         NullableType nullableThis = (NullableType) this;
@@ -231,18 +262,20 @@ public class Type {
    * @return true if smaller is a numeric TypeName, and smaller promotesTo larger.
    */
   private boolean numericPromotesTo(TypeName smaller, TypeName larger) {
-    if (TypeName.INT.equals(smaller) && TypeName.BIGINT.equals(larger)) {
-      return true;
-    } else if (TypeName.BIGINT.equals(smaller) && TypeName.FLOAT.equals(larger)) {
-      return true;
-    } else if (TypeName.FLOAT.equals(smaller) && TypeName.DOUBLE.equals(larger)) {
-      return true;
-    } else if (smaller.equals(larger)) {
-      // reflexive case.
-      return true;
-    }
-
-    return false;
+    return
+        (TypeName.INT.equals(smaller) &&
+            (TypeName.BIGINT.equals(larger)
+            || TypeName.FLOAT.equals(larger)
+            || TypeName.DOUBLE.equals(larger)
+            || TypeName.TYPECLASS_NUMERIC.equals(larger)))
+        || (TypeName.BIGINT.equals(smaller) &&
+            (TypeName.FLOAT.equals(larger)
+            || TypeName.DOUBLE.equals(larger)
+            || TypeName.TYPECLASS_NUMERIC.equals(larger)))
+        || (TypeName.FLOAT.equals(smaller) &&
+            (TypeName.DOUBLE.equals(larger)
+            || TypeName.TYPECLASS_NUMERIC.equals(larger)))
+        || smaller.equals(larger);
   }
 
   /**

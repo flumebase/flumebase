@@ -83,6 +83,17 @@ public class TestType {
         Type.getNullable(Type.TypeName.STRING)));
 
 
+    // Test typeclasses:
+    assertTrue(Type.getNullable(Type.TypeName.INT).promotesTo(
+        Type.getNullable(Type.TypeName.TYPECLASS_NUMERIC)));
+    assertTrue(Type.getPrimitive(Type.TypeName.INT).promotesTo(
+        Type.getPrimitive(Type.TypeName.TYPECLASS_NUMERIC)));
+    assertTrue(Type.getPrimitive(Type.TypeName.INT).promotesTo(
+        Type.getPrimitive(Type.TypeName.TYPECLASS_ANY)));
+    assertTrue(Type.getPrimitive(Type.TypeName.STRING).promotesTo(
+        Type.getPrimitive(Type.TypeName.TYPECLASS_ANY)));
+    assertFalse(Type.getPrimitive(Type.TypeName.STRING).promotesTo(
+        Type.getPrimitive(Type.TypeName.TYPECLASS_NUMERIC)));
 
     // And now check that the above are the *only* rules we admit.
 
@@ -119,6 +130,8 @@ public class TestType {
     // STREAM does not promote to STRING.
     assertFalse(StreamType.getEmptyStreamType().promotesTo(
         Type.getPrimitive(Type.TypeName.STRING)));
+
+
   }
 
 }

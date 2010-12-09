@@ -30,7 +30,7 @@ public class BuiltInSymbolTable extends SymbolTable {
     // Add symbols for all built-in objects in the system.
     loadBuiltinFunction(current_timestamp.class);
     loadBuiltinFunction(length.class);
-    loadBuiltinFunction(square_int.class);
+    loadBuiltinFunction(square.class);
     BUILTINS = Collections.unmodifiableMap(BUILTINS);
   }
 

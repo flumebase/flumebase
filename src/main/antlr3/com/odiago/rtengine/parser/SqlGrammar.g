@@ -30,10 +30,11 @@ stmt returns [SQLStatement val]:
   ;
 
 stmt_create_stream returns [CreateStreamStmt val]:
-    CREATE STREAM fid=stream_sel ft=typed_field_list FROM LOCAL FILE f=file_spec
+    CREATE STREAM fid=stream_sel ft=typed_field_list FROM flcl=LOCAL? FILE f=file_spec
         {
+          boolean fileIsLocal = flcl != null;
           $val = new CreateStreamStmt($fid.val,
-              StreamSourceType.File, $f.val, true, $ft.val);
+              StreamSourceType.File, $f.val, fileIsLocal, $ft.val);
         }
       ffmt=optional_format_spec { $val.setFormatSpec($ffmt.val); }
   | CREATE STREAM sid=stream_sel st=typed_field_list FROM slcl=LOCAL? SOURCE src=src_spec

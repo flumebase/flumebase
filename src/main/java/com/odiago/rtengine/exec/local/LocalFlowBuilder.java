@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.odiago.rtengine.exec.EvaluationElement;
+import com.odiago.rtengine.exec.FileSourceElement;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowId;
@@ -183,17 +184,17 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       }
 
       StreamSymbol streamSymbol = (StreamSymbol) symbol;
-      if (!streamSymbol.isLocal()) {
-        throw new DAGOperatorException("Do not know how to handle a non-local source yet.");
-      }
 
       switch (streamSymbol.getSourceType()) {
       case File:
         String fileName = streamSymbol.getSource();
-        newElem = new LocalFileSourceElement(newContext, fileName,
+        newElem = new FileSourceElement(newContext, fileName, streamSymbol.isLocal(),
             namedInput.getFields(), streamSymbol);
         break;
       case Sink:
+        if (!streamSymbol.isLocal()) {
+          throw new DAGOperatorException("Do not know how to handle a non-local source yet.");
+        }
         String flumeSource = streamSymbol.getSource();
         long flowIdNum = mFlowId.getId();
         String flowSourceId = "rtengine-flow-" + flowIdNum + "-" + streamSymbol.getName();

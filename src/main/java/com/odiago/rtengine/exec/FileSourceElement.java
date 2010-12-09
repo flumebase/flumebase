@@ -1,13 +1,18 @@
 // (c) Copyright 2010 Odiago, Inc.
 
-package com.odiago.rtengine.exec.local;
+package com.odiago.rtengine.exec;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.hadoop.conf.Configuration;
+
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,17 +29,18 @@ import com.odiago.rtengine.exec.StreamSymbol;
 import com.odiago.rtengine.parser.TypedField;
 
 /**
- * FlowElement providing source data from a local file.
+ * FlowElement providing source data from a file.
  * The file format is a set of text records with the form:
  * (long integer in base 10 str encoding) \t (string) \n
  *
  * The integer on each line specifies the timestamp of the event.
  */
-public class LocalFileSourceElement extends FlowElementImpl {
+public class FileSourceElement extends FlowElementImpl {
   private static final Logger LOG = LoggerFactory.getLogger(
-      LocalFileSourceElement.class.getName());
+      FileSourceElement.class.getName());
 
   private String mFilename;
+  private boolean mLocal;
   private EventGenThread mEventGenThread;
   private volatile boolean mIsFinished;
   private List<String> mFieldNames;
@@ -48,7 +54,16 @@ public class LocalFileSourceElement extends FlowElementImpl {
     public void run() {
       BufferedReader reader = null;
       try {
-        reader = new BufferedReader(new FileReader(mFilename));
+        // TODO: Inherit from a global configuration.
+        Configuration conf = new Configuration();
+        FileSystem fs;
+        if (mLocal) {
+          fs = FileSystem.getLocal(conf);
+        } else {
+          fs = FileSystem.get(conf);
+        }
+
+        reader = new BufferedReader(new InputStreamReader(fs.open(new Path(mFilename))));
         while (true) {
           if (mIsFinished) {
             LOG.info("Closing EventGenThread; mIsFinished set to true");
@@ -107,10 +122,11 @@ public class LocalFileSourceElement extends FlowElementImpl {
     }
   }
 
-  public LocalFileSourceElement(FlowElementContext context, String fileName,
+  public FileSourceElement(FlowElementContext context, String fileName, boolean local,
       List<TypedField> fields, StreamSymbol streamSym) {
     super(context);
     mFilename = fileName;
+    mLocal = local;
     mFieldNames = new ArrayList<String>();
     mStream = streamSym;
     for (TypedField field : fields) {
@@ -121,7 +137,7 @@ public class LocalFileSourceElement extends FlowElementImpl {
   @Override
   public void open() throws IOException {
     if (null != mEventGenThread) {
-      throw new IOException("LocalFileSourceElement.open() called multiple times");
+      throw new IOException("FileSourceElement.open() called multiple times");
     }
     mEventGenThread = new EventGenThread();
     mEventGenThread.start();
@@ -137,11 +153,11 @@ public class LocalFileSourceElement extends FlowElementImpl {
   @Override
   public void takeEvent(EventWrapper e) {
     // We generate our own events; nothing should be upstream from us.
-    throw new RuntimeException("LocalFileSourceElement does not support incoming events");
+    throw new RuntimeException("FileSourceElement does not support incoming events");
   }
 
   @Override
   public String toString() {
-    return "FileSource[mFilename=\"" + mFilename + "\"]";
+    return "FileSource[mFilename=\"" + mFilename + "\", mLocal=" + mLocal + "]";
   }
 }

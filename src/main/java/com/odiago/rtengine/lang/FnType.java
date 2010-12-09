@@ -49,4 +49,42 @@ public class FnType extends Type {
     sb.append(mRetType);
     return sb.toString();
   }
+
+  @Override
+  public int hashCode() {
+    int hash = mRetType.hashCode();
+    for (Type argT : mArgTypes) {
+      hash ^= argT.hashCode();
+    }
+
+    return hash;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other == this) {
+      return true;
+    } else if (other == null) {
+      return false;
+    } else if (!other.getClass().equals(getClass())) {
+      return false;
+    }
+
+    FnType otherType = (FnType) other;
+    if (!mRetType.equals(otherType.mRetType)) {
+      return false;
+    }
+
+    if (mArgTypes.size() != otherType.mArgTypes.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < mArgTypes.size(); i++) {
+      if (!mArgTypes.get(i).equals(otherType.mArgTypes.get(i))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }
