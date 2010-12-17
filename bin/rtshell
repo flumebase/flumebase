@@ -67,7 +67,7 @@ if [ ! -e "${RTENGINE_JAR}" ]; then
   fi
 fi
 
-exec java -cp "${RTENGINE_CLASSPATH}:${RTENGINE_JAR}" \
+exec java -ea -cp "${RTENGINE_CLASSPATH}:${RTENGINE_JAR}" \
     -Drtengine.conf.dir="${RTENGINE_CONF_DIR}" \
     $RTENGINE_OPTS \
     "${RTENGINE_MAIN_CLASS}" "$@"

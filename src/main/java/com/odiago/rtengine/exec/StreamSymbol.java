@@ -47,7 +47,7 @@ public class StreamSymbol extends Symbol {
    */
   public StreamSymbol(String name, StreamSourceType sourceType, Type streamType,
       String source, boolean isLocal, List<TypedField> fieldTypes, FormatSpec fmt) {
-    super(name, StreamType.getEmptyStreamType());
+    super(name, streamType);
     mSource = source;
     mStreamType = sourceType;
     mIsLocal = isLocal;
@@ -129,7 +129,7 @@ public class StreamSymbol extends Symbol {
   public boolean equals(Object other) {
     boolean parentEquals = super.equals(other);
     if (!parentEquals) {
-      return true;
+      return false;
     }
 
     StreamSymbol otherStream = (StreamSymbol) other;
@@ -139,4 +139,9 @@ public class StreamSymbol extends Symbol {
         && mFormatSpec.equals(otherStream.mFormatSpec);
   }
 
+  @Override
+  public Symbol withName(String name) {
+    return new StreamSymbol(name, mStreamType,  getType(), mSource, mIsLocal,
+        mFieldTypes, mFormatSpec);
+  }
 }

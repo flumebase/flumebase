@@ -43,6 +43,12 @@ public abstract class Expr extends SQLStatement {
    */
   abstract Type getResolvedType();
 
+
+  /**
+   * @return true if this expression is constant.
+   */
+  public abstract boolean isConstant();
+
   /**
    * @return an object representing the same value as 'val' but coerced
    * from valType into targetType.

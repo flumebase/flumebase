@@ -45,6 +45,11 @@ public class BuiltInSymbolTable extends SymbolTable {
 
   @Override
   public Symbol resolve(String symName) {
+    return resolveLocal(symName);
+  }
+
+  @Override
+  public Symbol resolveLocal(String symName) {
     return BUILTINS.get(symName);
   }
 

@@ -131,9 +131,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
           consoleNode.getFields());
     } else if (node instanceof MemoryOutputNode) {
       MemoryOutputNode memoryNode = (MemoryOutputNode) node;
-      newElem = new MemoryOutputElement(newContext,
-          (Schema) memoryNode.getAttr(PlanNode.INPUT_SCHEMA_ATTR),
-          memoryNode.getFields());
+      newElem = new MemoryOutputElement(newContext, memoryNode.getFields());
       String bufferName = memoryNode.getName();
       // Bind this buffer name to this memory node in the map provided
       // by the client.
@@ -173,7 +171,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     } else if (node instanceof NamedSourceNode) {
       NamedSourceNode namedInput = (NamedSourceNode) node;
       String streamName = namedInput.getStreamName();
-      Symbol symbol = mRootSymbolTable.resolve(streamName);
+      Symbol symbol = mRootSymbolTable.resolve(streamName).resolveAliases();
       if (null == symbol) {
         throw new DAGOperatorException("No symbol for stream: " + streamName);
       }

@@ -11,10 +11,13 @@ options {
   package com.odiago.rtengine.parser;
 }
 
+L_AND : A N D ;
 AS : A S ;
+BETWEEN : B E T W E E N ;
 BIGINT : B I G I N T ;
 BOOLEAN : B O O L E A N ;
 CREATE : C R E A T E ;
+DAYS : D A Y S ;
 DESCRIBE : D E S C R I B E ;
 DOUBLE : D O U B L E ;
 DROP : D R O P ;
@@ -25,15 +28,27 @@ FILE : F I L E ;
 FLOAT : F L O A T ;
 FLOW : F L O W ;
 FLOWS : F L O W S ;
-FORMAT: F O R M A T ;
+FOLLOWING: F O L L O W I N G ;
+FORMAT : F O R M A T ;
 FROM : F R O M ;
 FUNCTIONS : F U N C T I O N S ;
+HOURS : H O U R S ;
+INTERVAL : I N T E R V A L ;
 INT_KW : I N T ;
 IS : I S ;
+JOIN : J O I N ;
 LOCAL : L O C A L ;
+MINUTES : M I N U T E S ;
+MONTHS : M O N T H S ;
 NOT : N O T ;
 NULL : N U L L ;
+ON : O N ;
+L_OR : O R ;
+OVER : O V E R ;
+PRECEDING: P R E C E D I N G ;
 PROPERTIES : P R O P E R T I E S ;
+RANGE : R A N G E ;
+SECONDS : S E C O N D S ;
 SELECT : S E L E C T ;
 SHOW : S H O W ;
 SOURCE : S O U R C E ;
@@ -42,12 +57,15 @@ STREAMS : S T R E A M S ;
 STRING_KW : S T R I N G ;
 TIMESTAMP : T I M E S T A M P ;
 TRUE : T R U E ;
+WEEKS : W E E K S ;
+WINDOW : W I N D O W ;
 WHERE : W H E R E ;
-L_AND : A N D ;
-L_OR : O R ;
+YEARS : Y E A R S ;
 
 ID  : ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'0'..'9'|'_')*
     ;
+
+DOT : '.';
 
 STAR : '*';
 
@@ -79,6 +97,7 @@ NEQ : '!' '=';
 
 INT : '0'..'9'+
     ;
+
 
 COMMENT
     :   '//' ~('\n'|'\r')* '\r'? '\n' {skip();}

@@ -79,4 +79,9 @@ public class ConstExpr extends Expr {
   public Type getResolvedType() {
     return mType;
   }
+
+  @Override
+  public boolean isConstant() {
+    return true;
+  }
 }

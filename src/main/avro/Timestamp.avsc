@@ -1,0 +1,16 @@
+
+{
+  "namespace" : "com.odiago.rtengine.lang",
+  "type"      : "record",
+  "name"      : "TimestampBase",
+  "fields"    : [
+    {
+      "name" : "milliseconds",
+      "type" : "long"
+    },
+    {
+      "name" : "nanos",
+      "type" : "int"
+    }
+  ]
+}

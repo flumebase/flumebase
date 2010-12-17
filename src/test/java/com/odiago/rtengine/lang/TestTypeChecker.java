@@ -4,10 +4,8 @@ package com.odiago.rtengine.lang;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
+import com.odiago.rtengine.exec.AssignedSymbol;
 import com.odiago.rtengine.exec.HashSymbolTable;
-import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.parser.BinExpr;
@@ -90,7 +88,7 @@ public class TestTypeChecker {
   public void testIdentifier() throws VisitException {
     // Test that we can look up an identifier in the symbol table.
     SymbolTable symbols = new HashSymbolTable();
-    symbols.addSymbol(new Symbol("x", Type.getPrimitive(Type.TypeName.INT)));
+    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.INT), "x"));
 
     Expr binopExpr = new BinExpr(
       new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(2)),
@@ -103,7 +101,7 @@ public class TestTypeChecker {
   public void testIdentifierPromotion() throws VisitException {
     // Test that an identifier's type can promote to a constant.
     SymbolTable symbols = new HashSymbolTable();
-    symbols.addSymbol(new Symbol("x", Type.getPrimitive(Type.TypeName.INT)));
+    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.INT), "x"));
 
     Expr binopExpr = new BinExpr(
       new ConstExpr(Type.getPrimitive(Type.TypeName.BIGINT), Integer.valueOf(2)),
@@ -116,7 +114,7 @@ public class TestTypeChecker {
   public void testIdentifierPromotion2() throws VisitException {
     // Test that a const's type can promote to an identifier's.
     SymbolTable symbols = new HashSymbolTable();
-    symbols.addSymbol(new Symbol("x", Type.getPrimitive(Type.TypeName.BIGINT)));
+    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.BIGINT), "x"));
 
     Expr binopExpr = new BinExpr(
       new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(2)),

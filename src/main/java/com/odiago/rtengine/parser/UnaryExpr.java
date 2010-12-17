@@ -164,4 +164,9 @@ public class UnaryExpr extends Expr {
       return null;
     }
   }
+
+  @Override
+  public boolean isConstant() {
+    return mSubExpr.isConstant();
+  }
 }

@@ -16,11 +16,15 @@ import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.FnCallExpr;
 import com.odiago.rtengine.parser.FormatSpec;
 import com.odiago.rtengine.parser.IdentifierExpr;
+import com.odiago.rtengine.parser.JoinedSource;
 import com.odiago.rtengine.parser.LiteralSource;
+import com.odiago.rtengine.parser.RangeSpec;
 import com.odiago.rtengine.parser.SQLStatement;
 import com.odiago.rtengine.parser.SelectStmt;
 import com.odiago.rtengine.parser.ShowStmt;
 import com.odiago.rtengine.parser.UnaryExpr;
+import com.odiago.rtengine.parser.WindowDef;
+import com.odiago.rtengine.parser.WindowSpec;
 
 /**
  * Interface implemented by all visitor-pattern AST actors.
@@ -59,6 +63,14 @@ public abstract class Visitor {
       visit((AliasedExpr) stmt);
     } else if (stmt instanceof FormatSpec) {
       visit((FormatSpec) stmt);
+    } else if (stmt instanceof JoinedSource) {
+      visit((JoinedSource) stmt);
+    } else if (stmt instanceof RangeSpec) {
+      visit((RangeSpec) stmt);
+    } else if (stmt instanceof WindowDef) {
+      visit((WindowDef) stmt);
+    } else if (stmt instanceof WindowSpec) {
+      visit((WindowSpec) stmt);
     } else {
       throw new VisitException("No visit() method for type: " + stmt.getClass().getName()
           + " in class: " + getClass().getName());
@@ -129,6 +141,22 @@ public abstract class Visitor {
   }
 
   protected void visit(FormatSpec e) throws VisitException {
+    warnEmptyVisit(e);
+  }
+
+  protected void visit(JoinedSource e) throws VisitException {
+    warnEmptyVisit(e);
+  }
+
+  protected void visit(RangeSpec e) throws VisitException {
+    warnEmptyVisit(e);
+  }
+
+  protected void visit(WindowDef e) throws VisitException {
+    warnEmptyVisit(e);
+  }
+
+  protected void visit(WindowSpec e) throws VisitException {
     warnEmptyVisit(e);
   }
 }

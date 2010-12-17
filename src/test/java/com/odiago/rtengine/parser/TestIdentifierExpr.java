@@ -10,10 +10,10 @@ import static org.junit.Assert.*;
 
 import com.cloudera.flume.core.EventImpl;
 
+import com.odiago.rtengine.exec.AssignedSymbol;
 import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.HashSymbolTable;
 import com.odiago.rtengine.exec.ParsingEventWrapper;
-import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.io.DelimitedEventParser;
@@ -30,7 +30,7 @@ public class TestIdentifierExpr extends ExprTestCase {
     TypeChecker checker;
     Object value;
     SymbolTable symbols = new HashSymbolTable();
-    symbols.addSymbol(new Symbol("x", Type.getPrimitive(Type.TypeName.INT)));
+    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.INT), "x"));
 
     ArrayList<String> symbolNames = new ArrayList<String>();
     symbolNames.add("x");

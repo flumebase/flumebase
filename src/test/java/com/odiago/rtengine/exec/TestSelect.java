@@ -184,6 +184,20 @@ public class TestSelect extends RtsqlTestCase {
   }
 
   @Test
+  public void testQualify1() throws IOException, InterruptedException {
+    // Test that we can use the stream name to qualify a field name to make it less
+    // ambiguous.
+    runTwoFieldTest("memstream", "a", "b", "SELECT memstream.a a, b FROM MEMSTREAM", true, true);
+  }
+
+  @Test
+  public void testQualify2() throws IOException, InterruptedException {
+    // Test that we can use the stream alias to qualify a field name to make it less
+    // ambiguous.
+    runTwoFieldTest("memstream", "a", "b", "SELECT m.a a, b FROM MEMSTREAM m", true, true);
+  }
+
+  @Test
   public void testCaseSensitiveStream1() throws IOException, InterruptedException {
     // Verify that we are capable of reading a case sensitive stream by
     // quoting the stream name.
@@ -488,7 +502,7 @@ public class TestSelect extends RtsqlTestCase {
     checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
 
     runFreeSelectTest("memstream", "a", "b",
-        "SELECT * FROM (SELECT a, b FROM memstream)",
+        "SELECT * FROM (SELECT a, b FROM memstream) as sel",
         checks);
   }
 
@@ -499,7 +513,7 @@ public class TestSelect extends RtsqlTestCase {
     checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
 
     runFreeSelectTest("memstream", "a", "b",
-        "SELECT b, a FROM (SELECT a, b FROM memstream)",
+        "SELECT b, a FROM (SELECT a, b FROM memstream) sel",
         checks);
   }
 
@@ -510,7 +524,7 @@ public class TestSelect extends RtsqlTestCase {
     checks.add(new Pair<String, Object>("b", Integer.valueOf(1)));
 
     runFreeSelectTest("memstream", "a", "b",
-        "SELECT b, a FROM (SELECT a as b, b as a FROM memstream)",
+        "SELECT b, a FROM (SELECT a as b, b as a FROM memstream) AS SEL",
         checks);
   }
 
@@ -521,7 +535,7 @@ public class TestSelect extends RtsqlTestCase {
     checks.add(new Pair<String, Object>("d", Integer.valueOf(2)));
 
     runFreeSelectTest("memstream", "a", "b",
-        "SELECT c, d FROM (SELECT a as c, b as d FROM memstream)",
+        "SELECT c, d FROM (SELECT a as c, b as d FROM memstream) AS sel",
         checks);
   }
 
@@ -533,7 +547,7 @@ public class TestSelect extends RtsqlTestCase {
     checks.add(new Pair<String, Object>("e", Integer.valueOf(42)));
 
     runFreeSelectTest("memstream", "a", "b",
-        "SELECT c, d, e FROM (SELECT a as c, 2 * b as d, 42 e FROM memstream)",
+        "SELECT c, d, e FROM (SELECT a as c, 2 * b as d, 42 e FROM memstream) AS sel",
         checks);
   }
 
@@ -544,7 +558,7 @@ public class TestSelect extends RtsqlTestCase {
     checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
 
     runFreeSelectTest("memstream", "a", "b",
-        "SELECT B, A FROM (SELECT a, b FROM memstream)",
+        "SELECT B, A FROM (SELECT a, b FROM memstream) sel",
         checks);
   }
 
@@ -555,7 +569,7 @@ public class TestSelect extends RtsqlTestCase {
     checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
 
     runFreeSelectTest("memstream", "a", "b",
-        "SELECT B, A FROM (SELECT * FROM memstream)",
+        "SELECT B, A FROM (SELECT * FROM memstream) sel",
         checks);
   }
 
@@ -566,7 +580,19 @@ public class TestSelect extends RtsqlTestCase {
     checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
 
     runFreeSelectTest("memstream", "a", "b",
-        "SELECT * FROM (SELECT * FROM memstream)",
+        "SELECT * FROM (SELECT * FROM memstream) sel",
+        checks);
+  }
+
+  @Test
+  public void testNestedSelect9() throws IOException, InterruptedException {
+    // Use a field name for a sub-stream alias.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("a", Integer.valueOf(1)));
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(2)));
+
+    runFreeSelectTest("memstream", "a", "b",
+        "SELECT a, a.b as b FROM (SELECT * FROM memstream) a",
         checks);
   }
 

@@ -40,4 +40,9 @@ public class FnSymbol extends Symbol {
   public ScalarFunc getFuncInstance() {
     return mFunc;
   }
+
+  @Override
+  public Symbol withName(String name) {
+    return new FnSymbol(name, mFunc, mRetType, mArgTypes);
+  }
 }

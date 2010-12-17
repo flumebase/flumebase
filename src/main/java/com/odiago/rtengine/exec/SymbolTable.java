@@ -29,6 +29,12 @@ public abstract class SymbolTable implements Iterable<Symbol> {
   public abstract Symbol resolve(String symName);
 
   /**
+   * @return the Symbol object associated with symName in the current
+   * table's scope only (do not recursively search ancestor symbol tables).
+   */
+  public abstract Symbol resolveLocal(String symName);
+
+  /**
    * Add the specified Symbol to our table.
    */
   public abstract void addSymbol(Symbol sym);
@@ -128,5 +134,40 @@ public abstract class SymbolTable implements Iterable<Symbol> {
     public void remove() {
       throw new UnsupportedOperationException();
     }
+  }
+
+  /**
+   * Print the SymbolTable's contents to the terminal.
+   */
+  public void printSymbolTable() {
+    StringBuilder sb = new StringBuilder();
+    for (Symbol s : this) {
+      sb.append(s);
+      sb.append("\n");
+    }
+
+    System.out.println(sb.toString());
+  }
+
+  /**
+   * Add all symbols from the specified table to our table.
+   */
+  public void addAll(SymbolTable table) {
+    for (Symbol s : table) {
+      addSymbol(s);
+    }
+  }
+
+  /**
+   * @return a new SymbolTable containing all symbols at our current level only.
+   */
+  public SymbolTable cloneLevel() {
+    Iterator<Symbol> it = levelIterator();
+    HashSymbolTable hst = new HashSymbolTable(null);
+    while (it.hasNext()) {
+      hst.addSymbol(it.next());
+    }
+
+    return hst;
   }
 }

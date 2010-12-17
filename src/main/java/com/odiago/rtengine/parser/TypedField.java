@@ -10,10 +10,10 @@ import com.odiago.rtengine.lang.Type;
  */
 public class TypedField {
   /**
-   * Final name of the field after all projection is over.  This will be
-   * assigned as the AvroName after passing through the projection layer.
+   * The user's alias for this field. May be set explicitly "SELECT ... AS foo",
+   * or implicitly via "SELECT x", or anonymous if this is for a complex expression.
    */
-  private String mProjectedName;
+  private String mUserAlias;
 
   private Type mType;
 
@@ -36,14 +36,14 @@ public class TypedField {
   }
 
   public TypedField(String name, Type type, String avroName, String displayName) {
-    mProjectedName = name;
+    mUserAlias = name;
     mType = type;
     mAvroName = avroName;
     mDisplayName = displayName;
   }
 
-  public String getProjectedName() {
-    return mProjectedName;
+  public String getUserAlias() {
+    return mUserAlias;
   }
 
   public Type getType() {
@@ -60,7 +60,7 @@ public class TypedField {
 
   @Override
   public String toString() {
-    return mAvroName + "/" + mProjectedName + "/(" + mDisplayName + ") " + mType;
+    return mAvroName + "/" + mUserAlias + "/(" + mDisplayName + ") " + mType;
   }
 
   @Override
@@ -71,7 +71,7 @@ public class TypedField {
       return false;
     }
     TypedField other = (TypedField) otherObj;
-    return other.mProjectedName.equals(mProjectedName) && other.mType.equals(mType)
+    return other.mUserAlias.equals(mUserAlias) && other.mType.equals(mType)
         && other.mAvroName.equals(mAvroName) && other.mDisplayName.equals(mDisplayName);
   }
 }

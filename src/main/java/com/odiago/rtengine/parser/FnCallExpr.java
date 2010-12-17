@@ -133,6 +133,8 @@ public class FnCallExpr extends Expr {
       throw new TypeCheckException("No such function: " + mFunctionName);
     }
 
+    fnSymbol = fnSymbol.resolveAliases();
+
     if (!(fnSymbol instanceof FnSymbol)) {
       // This symbol isn't a function call?
       throw new TypeCheckException("Symbol " + mFunctionName + " is not a function");
@@ -270,4 +272,8 @@ public class FnCallExpr extends Expr {
     return mReturnType;
   }
 
+  @Override
+  public boolean isConstant() {
+    return false;
+  }
 }

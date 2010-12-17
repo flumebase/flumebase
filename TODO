@@ -1,5 +1,19 @@
 
 
+Joins:
+  When using symbols in IdentifierExpr, if we can't find a symbol, we need to warn
+  that it may be due to an ambiguous alias. (Search for a symbol ending with ".foo"; if
+  found, then it's an ambiguous resolution error.)
+
+  TypeChecker and all visitor patterns need WindowSpec, RangeSpec, WindowDef.
+  SelectStmt should support WINDOW clauses at the end.
+  SelectStmt should support JoinedSource as a source type..
+  Need to define the JoinedSource AST element and do all that jazz.
+  Need to define JOIN Node, Element.
+  Need to work JoinNode/JoinElement into the graph.
+  Need to handle column name aliasing, etc.
+
+
 Expressions:
   - Refine user_sel rule (or TypeChecker) so that it cannot accept identifier names that
     end in "_". (We need these for internal field identifiers in avro.)

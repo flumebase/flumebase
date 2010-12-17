@@ -52,4 +52,9 @@ public class AllFieldsExpr extends Expr {
   public Type getResolvedType() {
     throw new RuntimeException("Cannot call getResolvedType on AllFieldsExpr");
   }
+
+  @Override
+  public boolean isConstant() {
+    return false;
+  }
 }

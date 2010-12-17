@@ -45,4 +45,21 @@ public class Symbol {
   public int hashCode() {
     return mName.hashCode();
   }
+
+  /**
+   * @return the canonical symbol for this entity. Most symbols resolve to
+   * themselves.
+   */
+  public Symbol resolveAliases() {
+    return this;
+  }
+
+  /**
+   * @return a new symbol identical to this one except for the name.
+   * The new symbol is not an alias to this one. That is handled by
+   * creating an AliasSymbol.
+   */
+  public Symbol withName(String name) {
+    return new Symbol(name, mType);
+  }
 }

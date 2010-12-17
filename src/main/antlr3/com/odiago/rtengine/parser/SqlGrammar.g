@@ -54,7 +54,8 @@ stmt_explain returns [ExplainStmt val]:
 
 stmt_select returns [SelectStmt val]:
   SELECT e=aliased_expr_list FROM s=source_definition w=optional_where_conditions
-  {$val = new SelectStmt($e.val, $s.val, $w.val);};
+  wins=optional_window_defs
+  {$val = new SelectStmt($e.val, $s.val, $w.val, $wins.val);};
 
 stmt_show returns [ShowStmt val]:
     SHOW FLOWS {$val = new ShowStmt(EntityTarget.Flow);}
@@ -91,7 +92,7 @@ aliased_expr_list returns [List<AliasedExpr> val]:
 
 aliased_expr returns [AliasedExpr val]:
     e=expr { $val = new AliasedExpr($e.val); }
-        ( AS? u=user_sel { ((AliasedExpr) $val).setProjectedLabel($u.val); } )?
+        ( AS? u=user_sel { ((AliasedExpr) $val).setUserAlias($u.val); } )?
   ;
 
 expr returns [Expr val]: e=or_expr { $val=$e.val; };
@@ -169,7 +170,7 @@ unary_null_expr returns [Expr val]:
 // TODO: numbers with a decimal place. BIGINT-valued integers.
 atom_expr returns [Expr val]:
     LPAREN e=expr RPAREN { $val=$e.val; }
-  | u=user_sel { $val = new IdentifierExpr($u.val); } // It seems like just an identifier..
+  | u=maybe_qualified_user_sel { $val = new IdentifierExpr($u.val); } // An identifier.
     ( LPAREN { $val = new FnCallExpr($u.val); } // (Actually, it's a function call).
       ( e1=expr { ((FnCallExpr) $val).addArg($e1.val); } 
         ( COMMA e2=expr { ((FnCallExpr) $val).addArg($e2.val); } )* )?
@@ -183,25 +184,15 @@ atom_expr returns [Expr val]:
   | STAR { $val = new AllFieldsExpr(); }
   ;
 
-// This is a selector for fields; it can be '*' or 'foo, bar, "baz and quux", biff, buff...'
-// NOTE: This is not used in SELECT; it's hanging out here waiting to be applied in GROUP BY, etc.
-field_list returns [FieldList val]:
-    STAR { $val = new AllFieldsList(); }
-  | e=explicit_field_list { $val = $e.val; };
-
-explicit_field_list returns [FieldList val]:
-  f=field_sel { $val = new FieldList($f.val); } 
-  (COMMA g = field_sel {$val.addField($g.val);})*;
-
 // Selecting individual fields is done via user-specified symbol selectors.
-field_sel returns [String val] : s=user_sel {$val=$s.val;};
+field_sel returns [String val] : s=maybe_qualified_user_sel {$val=$s.val;};
 
 // Specifying a list of fields is done with comma-separated field specs inside parens.
 // e.g., '(foo INT, bar STRING , baz STRING ...)'
 // At least one field must be specified in this list.
 typed_field_list returns [TypedFieldList val]:
   LPAREN tf=field_spec { $val = new TypedFieldList($tf.val); }
-  (COMMA tg = field_spec {$val.addField($tg.val);})* RPAREN;
+  (COMMA tg=field_spec {$val.addField($tg.val);})* RPAREN;
 
 // Specifying a new field is done by giving a selector and a type.
 field_spec returns [TypedField val] :
@@ -242,6 +233,13 @@ user_sel returns [String val] :
     ID {$val=$ID.text.toLowerCase();}
   | QQ_STRING {$val=unescape($QQ_STRING.text);};
 
+// A user-selected symbol which may be an identifier, a qualified.identifier, or a
+// "double-quoted string".
+maybe_qualified_user_sel returns [String val] :
+    id=ID { $val = $id.text.toLowerCase(); }
+    ( DOT id2=ID { $val = $val + "." + $id2.text.toLowerCase(); } )?
+  | QQ_STRING {$val=unescape($QQ_STRING.text);};
+    
 // filename is provided as a 'single quoted string'.
 file_spec returns [String val] :
     q=Q_STRING { $val=unescape($q.text); };
@@ -250,17 +248,61 @@ file_spec returns [String val] :
 src_spec returns [String val] :
     q=Q_STRING { $val=unescape($q.text); };
 
-// Source for a SELECT statement (in the FROM clause). For now, must be a
-// named stream.
+// Source for a SELECT statement (in the FROM clause). This is a named stream
+// or a subquery, optionally joined with one or more sources.
 source_definition returns [SQLStatement val]:
     s=stream_sel { $val = new LiteralSource($s.val); }
-  | LPAREN st=stmt_select RPAREN { $val = $st.val; };
+    ( AS? alias=stream_sel { ((LiteralSource) $val).setAlias($alias.val); } )?
+    ( JOIN j=source_definition ON e=expr OVER w=inline_window_spec
+      { $val = new JoinedSource($val, $j.val, $e.val, $w.val); }
+    )*
+  | LPAREN st=stmt_select RPAREN { $val = $st.val; }
+    ( AS? alias=stream_sel { ((SelectStmt) $val).setAlias($alias.val); } )?
+  ;
+    
 
 // WHERE conditions for a SELECT statement. May be omitted.
 // Returns an expression to be evaluated, or null if it is omitted.
 optional_where_conditions returns [Expr val] :
-    {$val=null;}
-  | WHERE e=expr {$val=$e.val;};
+    { $val=null; }
+  | WHERE e=expr { $val=$e.val; };
+
+// Set of WINDOW x AS ... definitions for a SELECT statement.
+optional_window_defs returns [List<WindowDef> val] :
+    { $val = new ArrayList<WindowDef>(); }
+    ( WINDOW id=user_sel AS LPAREN w=window_spec RPAREN
+      { $val.add(new WindowDef($id.val, $w.val)); }
+      ( COMMA WINDOW id2=user_sel AS LPAREN w2=window_spec RPAREN
+        { $val.add(new WindowDef($id2.val, $w2.val)); } )* )?;
+
+// Specifies a window within which join and aggregation operators work.
+window_spec returns [WindowSpec val]:
+    RANGE r=range_spec { $val = new WindowSpec($r.val); };
+
+// Returns a window specifier itself, or an identifier which encompasses a window.
+// This defines all the forms a window definition may take on, "inline" in a statement.
+inline_window_spec returns [Expr val]:
+    w=window_spec { $val = $w.val; }
+  | id=user_sel { $val = new IdentifierExpr($id.val); }
+  ;
+
+// Defines an interval of time
+range_spec returns [RangeSpec val]:
+    INTERVAL e=expr t=time_width PRECEDING { $val = new RangeSpec($e.val, $t.val); }
+  | BETWEEN INTERVAL e1=expr t1=time_width PRECEDING
+    L_AND INTERVAL e2=expr t2=time_width FOLLOWING
+    { $val = new RangeSpec($e1.val, $t1.val, $e2.val, $t2.val); }
+  ;
+
+time_width returns [TimeWidth val]:
+    SECONDS { $val = TimeWidth.Seconds; }
+  | MINUTES { $val = TimeWidth.Minutes; }
+  | HOURS { $val = TimeWidth.Hours; }
+  | DAYS { $val = TimeWidth.Days; }
+  | WEEKS { $val = TimeWidth.Weeks; }
+  | MONTHS { $val = TimeWidth.Months; }
+  | YEARS { $val = TimeWidth.Years; }
+  ;
 
 // Specifies how input records of the stream should be parsed.
 // e.g.: CREATE STREAM .... EVENT FORMAT 'delimited' PROPERTIES ('delim.char' = '\t');

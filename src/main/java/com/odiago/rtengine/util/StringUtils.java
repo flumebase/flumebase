@@ -20,4 +20,16 @@ public final class StringUtils {
       first = false;
     }
   }
+
+  /**
+   * Given a possibly-qualified name like "foo.bar", return the unqualified name "bar".
+   */
+  public static String dequalify(String input) {
+    int dotPos = input.indexOf(".");
+    if (-1 == dotPos) {
+      return input;
+    } else {
+      return input.substring(dotPos + 1);
+    }
+  }
 }

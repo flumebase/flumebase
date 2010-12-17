@@ -45,6 +45,7 @@ public class Type {
                        // the promotesTo lattice. (nothing promotesTo ANY, but
                        // everything promotesTo TYPECLASS_ANY.)
     UNIVERSAL, // Represents an unbound type variable in a UniversalType instance.
+    WINDOW, // A bounded window of time which collects records.
   };
 
   
@@ -81,6 +82,8 @@ public class Type {
     PRIMITIVE_TYPES.put(TypeName.TIMESPAN, new Type(TypeName.TIMESPAN));
     PRIMITIVE_TYPES.put(TypeName.TYPECLASS_NUMERIC, new Type(TypeName.TYPECLASS_NUMERIC));
     PRIMITIVE_TYPES.put(TypeName.TYPECLASS_ANY, new Type(TypeName.TYPECLASS_ANY));
+    // Window is in primitive types, but is not allowed to be nullable.
+    PRIMITIVE_TYPES.put(TypeName.WINDOW, new Type(TypeName.WINDOW));
 
     NULLABLE_TYPES = new HashMap<TypeName, Type>();
     NULLABLE_TYPES.put(TypeName.BOOLEAN, new NullableType(TypeName.BOOLEAN));
@@ -313,8 +316,10 @@ public class Type {
       return Schema.create(Schema.Type.DOUBLE);
     case STRING:
       return Schema.create(Schema.Type.STRING);
-    case TIMESPAN: // TODO(aaron): Schema for this type.
-    case TIMESTAMP: // TODO(aaron): Schema for this type.
+    case TIMESPAN:
+      return TimeSpan.SCHEMA$;
+    case TIMESTAMP:
+      return Timestamp.SCHEMA$;
     default:
       LOG.error("Cannot create avro schema for type: " + toString());
       return null;

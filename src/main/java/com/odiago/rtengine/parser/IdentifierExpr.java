@@ -21,6 +21,12 @@ public class IdentifierExpr extends Expr {
   /** The field this represents. */
   private String mIdentifier;
 
+  /**
+   * The assigned name of the object to retrieve within the query.
+   * This is a unique identifier assigned during type checking.
+   */
+  private String mAssignedName;
+
   /** Assigned type after symbol table resolution, in the type checker. */
   private Type mType;
 
@@ -32,11 +38,23 @@ public class IdentifierExpr extends Expr {
     return mIdentifier;
   }
 
+  public String getAssignedName() {
+    return mAssignedName;
+  }
+
+  public void setAssignedName(String assignedName) {
+    mAssignedName = assignedName;
+  }
+
   @Override
   public void format(StringBuilder sb, int depth) {
     pad(sb, depth);
     sb.append("IdentifierExpr mIdentifier=");
     sb.append(mIdentifier);
+    if (mAssignedName != null) {
+      sb.append(", mAssignedName=");
+      sb.append(mAssignedName);
+    }
     sb.append("\n");
   }
 
@@ -71,12 +89,21 @@ public class IdentifierExpr extends Expr {
   @Override
   public List<TypedField> getRequiredFields(SymbolTable symTab) {
     Symbol sym = symTab.resolve(mIdentifier);
-    TypedField field = new TypedField(sym.getName(), sym.getType());
+    assert null != sym;
+
+    sym = sym.resolveAliases();
+    String canonicalName = sym.getName();
+    TypedField field = new TypedField(canonicalName, sym.getType(), mAssignedName, canonicalName);
     return Collections.singletonList(field);
   }
 
   @Override
   public Object eval(EventWrapper e) throws IOException {
-    return e.getField(new TypedField(mIdentifier, mType));
+    return e.getField(new TypedField(mAssignedName, mType));
+  }
+
+  @Override
+  public boolean isConstant() {
+    return false;
   }
 }

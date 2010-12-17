@@ -79,6 +79,28 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.fusesource.mvnplugins</groupId>
+        <artifactId>maven-avro-plugin</artifactId>
+        <version>1.11</version>
+        <configuration>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>1.4.0</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
         <groupId>org.antlr</groupId>
         <artifactId>antlr3-maven-plugin</artifactId>
         <version>3.2</version>

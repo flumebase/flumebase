@@ -288,4 +288,9 @@ public class BinExpr extends Expr {
   private Type getArgType() {
     return mArgType;
   }
+
+  @Override
+  public boolean isConstant() {
+    return mLeftExpr.isConstant() && mRightExpr.isConstant();
+  }
 }

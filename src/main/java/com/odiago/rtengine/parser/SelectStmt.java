@@ -52,12 +52,30 @@ public class SelectStmt extends SQLStatement {
   // Source stream for the FROM clause. must be a LiteralSource or a SelectStmt.
   // (That fact is proven by a TypeChecker visitor.)
   private SQLStatement mSource;
+
+  // Expression that must evaluate to true in the WHERE clause to accept records.
   private Expr mWhereExpr;
 
-  public SelectStmt(List<AliasedExpr> selExprs, SQLStatement source, Expr where) {
+  // List of window definitions; bindings from identifiers to WindowSpecs
+  // in the scope of this SELECT statement.
+  private List<WindowDef> mWindowDefs;
+
+  /** User-specified alias for the ephemeral stream containing the results of this
+   * SELECT statement inside another SELECT statement.
+   */
+  private String mAlias;
+
+  /**
+   * All symbols representing fields available as output of this select stmt.
+   */
+  private SymbolTable mFieldSymbols;
+
+  public SelectStmt(List<AliasedExpr> selExprs, SQLStatement source, Expr where,
+      List<WindowDef> windowDefs) {
     mSelectExprs = selExprs;
     mSource = source;
     mWhereExpr = where;
+    mWindowDefs = windowDefs;
   }
 
   public List<AliasedExpr> getSelectExprs() {
@@ -72,27 +90,58 @@ public class SelectStmt extends SQLStatement {
     return mWhereExpr;
   }
 
+  public List<WindowDef> getWindowDefs() {
+    return mWindowDefs;
+  }
+
+  public String getAlias() {
+    return mAlias;
+  }
+
+  public void setAlias(String alias) {
+    mAlias = alias;
+  }
+
+  /**
+   * After calculating a SymbolTable containing all the fields
+   * of this select statement, attach it to the statement for future use.
+   */
+  public void setFieldSymbols(SymbolTable fieldSymbols) {
+    mFieldSymbols = fieldSymbols;
+  }
+
   @Override
   public void format(StringBuilder sb, int depth) {
     pad(sb, depth);
     sb.append("SELECT");
     sb.append("\n");
-    pad(sb, depth);
+    pad(sb, depth + 1);
     sb.append("expressions:\n");
     for (AliasedExpr ae : mSelectExprs) {
-      ae.format(sb, depth + 1);
+      ae.format(sb, depth + 2);
     }
-    pad(sb, depth);
+    pad(sb, depth + 1);
     sb.append("FROM:\n");
-    mSource.format(sb, depth + 1);
+    mSource.format(sb, depth + 2);
     if (null != mWhereExpr) {
-      pad(sb, depth);
-      if (null == mWhereExpr) {
-        sb.append("WHERE: (null)\n");
-      } else {
-        sb.append("WHERE\n");
-        mWhereExpr.format(sb, depth + 1);
+      pad(sb, depth + 1);
+      sb.append("WHERE\n");
+      mWhereExpr.format(sb, depth + 2);
+    }
+
+    if (mWindowDefs.size() > 0) {
+      pad(sb, depth + 1);
+      sb.append("Windows:\n");
+      for (WindowDef def : mWindowDefs) {
+        def.format(sb, depth + 2);
       }
+    }
+
+    if (null != mAlias) {
+      pad(sb, depth + 1);
+      sb.append("AS: alias=");
+      sb.append(mAlias);
+      sb.append("\n");
     }
   }
 
@@ -149,18 +198,13 @@ public class SelectStmt extends SQLStatement {
         // These have been already assigned by a visitor pass.
 
         Type t = e.getType(srcOutSymbolTable);
-        TypedField projectionInField = new TypedField(
-          aliasExpr.getProjectedLabel(), t,
+        TypedField projectionField = new TypedField(
+          aliasExpr.getUserAlias(), t,
           aliasExpr.getAvroLabel(), aliasExpr.getDisplayLabel());
 
-        projectionInputs.add(projectionInField);
-
-        TypedField finalField = new TypedField(
-          aliasExpr.getProjectedLabel(), t,
-          aliasExpr.getProjectedLabel(), aliasExpr.getDisplayLabel());
-
-        projectionOutputs.add(finalField);
-        consoleFields.add(finalField);
+        projectionInputs.add(projectionField);
+        projectionOutputs.add(projectionField);
+        consoleFields.add(projectionField);
 
         // Make sure our dependencies are pulled out of the source layer.
         List<TypedField> fieldsForExpr = e.getRequiredFields(srcOutSymbolTable);
@@ -171,7 +215,7 @@ public class SelectStmt extends SQLStatement {
           // into its output. Make sure to use the aliased name as the output
           // of the projection/expr-propagate layers, but use the original
           // name as the output of the source layer (projection input list).
-          exprPropagateFields.add(projectionInField);
+          exprPropagateFields.add(projectionField);
         }
       }
     }
@@ -245,10 +289,7 @@ public class SelectStmt extends SQLStatement {
       SymbolTable inTable = planContext.getSymbolTable();
       SymbolTable outTable = new HashSymbolTable(inTable);
       List<TypedField> outputFields = distinctFields(consoleFields);
-      for (TypedField field : outputFields) {
-        Symbol fieldSym = new Symbol(field.getProjectedName(), field.getType());
-        outTable.addSymbol(fieldSym);
-      }
+      outTable.addAll(mFieldSymbols);
       Schema outputSchema = createFieldSchema(outputFields);
       ProjectionNode cleanupProjection = new ProjectionNode(outputFields, outputFields);
       projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, outputSchema);

@@ -6,6 +6,8 @@ import com.odiago.rtengine.parser.AliasedExpr;
 import com.odiago.rtengine.parser.AllFieldsExpr;
 import com.odiago.rtengine.parser.IdentifierExpr;
 
+import com.odiago.rtengine.util.StringUtils;
+
 /**
  * Visitor implementation that identifies expressions which will be propagated
  * as fields of a SELECT'ed record, and assigns the unique avro label to each
@@ -34,9 +36,9 @@ public class AssignFieldLabelsVisitor extends TreeWalkVisitor {
    * Set the displayLabel for this expression.
    */
   private void setDisplayLabel(AliasedExpr ae) {
-    if (ae.getProjectedLabel() != null) {
+    if (ae.getUserAlias() != null) {
       // non-null projected label; the user wants to see this.
-      ae.setDisplayLabel(ae.getProjectedLabel());
+      ae.setDisplayLabel(ae.getUserAlias());
     } else if (ae.getExpr() instanceof IdentifierExpr) {
       // Use the field name.
       ae.setDisplayLabel(((IdentifierExpr) ae.getExpr()).getIdentifier());
@@ -47,32 +49,32 @@ public class AssignFieldLabelsVisitor extends TreeWalkVisitor {
   }
   
   /**
-   * Set the avro label by which we refer to the result of this expression
-   * in pre-projection phases.
+   * Set the avro label by which we refer to the result of this expression.
    */
   private void setAvroLabel(AliasedExpr ae) {
-    if (ae.getExpr() instanceof IdentifierExpr) {
-      // Use the field name.
-      ae.setAvroLabel(((IdentifierExpr) ae.getExpr()).getIdentifier());
-    } else {
-      // Use a generated name.
-      String label = "__f_" + mNextId + "_";
+    //  Delay setting avro labels for IdentifierExprs; the type checking
+    //  phase will provide us with source labels that are set as the
+    //  avro labels for the encompassing AliasedExprs.
+    if (!(ae.getExpr() instanceof IdentifierExpr)) {
+      // Use a generated name. Use "__e_" for "[e]xpression".
+      String label = "__e_" + mNextId + "_";
       mNextId++;
       ae.setAvroLabel(label);
     }
   }
 
   /**
-   * Set the projectedLabel for identifier expressions that project
+   * Set the user-accessible alias for identifier expressions that project
    * to themselves.
    */
-  private void setProjectedLabel(AliasedExpr ae) {
-    // IdentifierExprs are projected to themselves.
-    if (ae.getExpr() instanceof IdentifierExpr && ae.getProjectedLabel() == null) {
-      ae.setProjectedLabel(((IdentifierExpr) ae.getExpr()).getIdentifier());
-    } else if (!(ae.getExpr() instanceof AllFieldsExpr) && ae.getProjectedLabel() == null) {
-      // Don't transform the label, just use its internal avro label.
-      ae.setProjectedLabel(ae.getAvroLabel());
+  private void setUserAlias(AliasedExpr ae) {
+    // IdentifierExprs use their own name as the user alias.
+    if (ae.getExpr() instanceof IdentifierExpr && ae.getUserAlias() == null) {
+      ae.setUserAlias(StringUtils.dequalify(
+          ((IdentifierExpr) ae.getExpr()).getIdentifier()));
+    } else if (!(ae.getExpr() instanceof AllFieldsExpr) && ae.getUserAlias() == null) {
+      // Make up an alias for this field, since the user didn't set one.
+      ae.setUserAlias(ae.getAvroLabel());
     }
   }
 
@@ -80,6 +82,6 @@ public class AssignFieldLabelsVisitor extends TreeWalkVisitor {
   public void visit(AliasedExpr ae) {
     setDisplayLabel(ae);
     setAvroLabel(ae);
-    setProjectedLabel(ae);
+    setUserAlias(ae);
   }
 }

@@ -31,12 +31,17 @@ public class HashSymbolTable extends SymbolTable {
 
   @Override
   public Symbol resolve(String symName) {
-    Symbol sym = mTable.get(symName);
+    Symbol sym = resolveLocal(symName);
     if (null == sym && null != mParent) {
       return mParent.resolve(symName);
     } else {
       return sym;
     }
+  }
+
+  @Override
+  public Symbol resolveLocal(String symName) {
+    return mTable.get(symName);
   }
 
   @Override

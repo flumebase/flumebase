@@ -17,8 +17,8 @@ public class AliasedExpr extends SQLStatement {
   /** The label to apply to the field of a serialized record. */
   private String mAvroLabel;
 
-  /** The label to apply after projection. */
-  private String mProjectedLabel;
+  /** The user-selected internal label. */
+  private String mUserAlias;
 
   public AliasedExpr(Expr e) {
     mExpr = e;
@@ -43,10 +43,10 @@ public class AliasedExpr extends SQLStatement {
   }
 
   /**
-   * @return the label to use for this field in a serialized record after projection.
+   * @return the identifier to use when using this field in other expressions.
    */
-  public String getProjectedLabel() {
-    return mProjectedLabel;
+  public String getUserAlias() {
+    return mUserAlias;
   }
 
   public void setDisplayLabel(String displayLabel) {
@@ -57,8 +57,8 @@ public class AliasedExpr extends SQLStatement {
     mAvroLabel = avroLabel;
   }
 
-  public void setProjectedLabel(String projectedLabel) {
-    mProjectedLabel = projectedLabel;
+  public void setUserAlias(String userAlias) {
+    mUserAlias = userAlias;
   }
 
   @Override
@@ -74,8 +74,8 @@ public class AliasedExpr extends SQLStatement {
     sb.append(mAvroLabel);
     sb.append("\n");
     pad(sb, depth + 1);
-    sb.append("mProjectedLabel=");
-    sb.append(mProjectedLabel);
+    sb.append("mUserAlias=");
+    sb.append(mUserAlias);
     sb.append("\n");
     pad(sb, depth + 1);
     sb.append("wrapped expr:\n");

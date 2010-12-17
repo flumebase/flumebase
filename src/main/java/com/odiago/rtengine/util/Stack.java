@@ -28,7 +28,19 @@ public class Stack<E> {
     return mStore.isEmpty();
   }
 
+  /**
+   * @return the current height of the stack.
+   */
   public int size() {
     return mStore.size();
+  }
+
+  /**
+   * Set the stack to contain only 'k' items.
+   */
+  public void reset(int k) {
+    while (size() > k) {
+      pop();
+    }
   }
 }

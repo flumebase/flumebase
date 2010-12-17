@@ -1,0 +1,21 @@
+
+{
+  "namespace" : "com.odiago.rtengine.lang",
+  "type"      : "record",
+  "name"      : "TimeSpanBase",
+  "fields"    : [
+    {
+      "name" : "lo",
+      "type" : "long"
+    },
+    {
+      "name" : "hi",
+      "type" : "long"
+    },
+    {
+      "name"    : "isRelative",
+      "type"    : "boolean",
+      "default" : true
+    }
+  ]
+}
