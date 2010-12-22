@@ -3,6 +3,7 @@
 package com.odiago.rtengine.parser;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.avro.Schema;
@@ -27,7 +28,7 @@ import com.odiago.rtengine.util.Ref;
  * A LiteralSource is not an executable SQLStatement, but it shares
  * the common hierarchy.
  */
-public class LiteralSource extends SQLStatement {
+public class LiteralSource extends RecordSource {
   /** The actual name of the source stream. */
   private String mSourceName;
 
@@ -73,6 +74,15 @@ public class LiteralSource extends SQLStatement {
     return mAlias;
   }
 
+  /** {@inheritDoc} */
+  @Override
+  public List<String> getSourceNames() {
+    if (null != mAlias) {
+      return Collections.singletonList(mAlias);
+    } else {
+      return Collections.singletonList(mSourceName);
+    }
+  }
 
   /**
    * Given an input symbol table that defines this source, return a
@@ -99,7 +109,8 @@ public class LiteralSource extends SQLStatement {
 
       // This field is available as 'streamName.fieldName'.
       String fullName = streamAlias + "." + fieldName;
-      Symbol sym = new AssignedSymbol(fullName, field.getType(), "__f_" + nextId + "_");
+      AssignedSymbol sym = new AssignedSymbol(fullName, field.getType(), "__f_" + nextId + "_");
+      sym.setParentName(streamAlias);
       nextId++;
       outTable.addSymbol(sym);
 
@@ -112,6 +123,11 @@ public class LiteralSource extends SQLStatement {
     return outTable;
   }
 
+  /** {@inheritDoc} */
+  @Override
+  public SymbolTable getFieldSymbols() {
+    return mSymbols;
+  }
 
   @Override
   public PlanContext createExecPlan(PlanContext planContext) {

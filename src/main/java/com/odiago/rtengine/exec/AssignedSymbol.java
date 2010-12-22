@@ -18,6 +18,9 @@ public class AssignedSymbol extends Symbol {
   // Name assigned to this field during type checking.
   private String mAssignedName;
 
+  // Name of the parent stream that contains this field.
+  private String mParentName;
+
   public AssignedSymbol(String name, Type type, String assignedName) {
     super(name, type);
     mAssignedName = assignedName;
@@ -25,6 +28,14 @@ public class AssignedSymbol extends Symbol {
 
   public String getAssignedName() {
     return mAssignedName;
+  }
+
+  public String getParentName() {
+    return mParentName;
+  }
+
+  public void setParentName(String parentName) {
+    mParentName = parentName;
   }
 
   @Override
@@ -39,7 +50,9 @@ public class AssignedSymbol extends Symbol {
     }
 
     AssignedSymbol assigned = (AssignedSymbol) other;
-    return mAssignedName.equals(assigned.mAssignedName);
+    return mAssignedName.equals(assigned.mAssignedName)
+        && (   (mParentName == null && assigned.mParentName == null)
+            || (mParentName != null && mParentName.equals(assigned.mParentName)));
   }
 
   @Override
@@ -49,6 +62,8 @@ public class AssignedSymbol extends Symbol {
 
   @Override
   public Symbol withName(String name) {
-    return new AssignedSymbol(name, getType(), mAssignedName);
+    AssignedSymbol out = new AssignedSymbol(name, getType(), mAssignedName);
+    out.setParentName(mParentName);
+    return out;
   }
 }

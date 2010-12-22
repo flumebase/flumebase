@@ -6,9 +6,13 @@ Joins:
   found, then it's an ambiguous resolution error.)
 
   TypeChecker and all visitor patterns need WindowSpec, RangeSpec, WindowDef.
+  ^... maybe done?
   SelectStmt should support WINDOW clauses at the end.
+  ^-- need to eval them to timespans and store these bindings for use in joinedsrc
+      evaluation to hashjoinnodes.
   SelectStmt should support JoinedSource as a source type..
   Need to define the JoinedSource AST element and do all that jazz.
+  .... this needs to return a HashJoinNode and associated etc.
   Need to define JOIN Node, Element.
   Need to work JoinNode/JoinElement into the graph.
   Need to handle column name aliasing, etc.

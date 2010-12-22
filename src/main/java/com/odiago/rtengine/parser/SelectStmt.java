@@ -3,6 +3,7 @@
 package com.odiago.rtengine.parser;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.avro.Schema;
@@ -11,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.odiago.rtengine.exec.HashSymbolTable;
-import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.lang.Type;
@@ -28,7 +28,7 @@ import com.odiago.rtengine.plan.ProjectionNode;
 /**
  * SELECT statement.
  */
-public class SelectStmt extends SQLStatement {
+public class SelectStmt extends RecordSource {
 
   private static final Logger LOG = LoggerFactory.getLogger(SelectStmt.class.getName());
 
@@ -102,12 +102,28 @@ public class SelectStmt extends SQLStatement {
     mAlias = alias;
   }
 
+  /** {@inheritDoc} */
+  @Override
+  public List<String> getSourceNames() {
+    if (null != mAlias) {
+      return Collections.singletonList(mAlias);
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
   /**
    * After calculating a SymbolTable containing all the fields
    * of this select statement, attach it to the statement for future use.
    */
   public void setFieldSymbols(SymbolTable fieldSymbols) {
     mFieldSymbols = fieldSymbols;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SymbolTable getFieldSymbols() {
+    return mFieldSymbols;
   }
 
   @Override
@@ -150,13 +166,8 @@ public class SelectStmt extends SQLStatement {
     SQLStatement source = getSource();
     Expr where = getWhereConditions();
 
-    // Create an execution plan to build the source (it may be a single node
-    // representing a Flume source or file, or it may be an entire DAG because
-    // we use another SELECT statement as a source) inside a new context.
-    PlanContext sourceInCtxt = new PlanContext(planContext);
-    sourceInCtxt.setRoot(false);
-    sourceInCtxt.setFlowSpec(new FlowSpecification());
-    PlanContext sourceOutCtxt = source.createExecPlan(sourceInCtxt);
+    // Create an execution plan for the source(s) of this SELECT stream.
+    PlanContext sourceOutCtxt = getSubPlan(source, planContext);
     SymbolTable srcOutSymbolTable = sourceOutCtxt.getSymbolTable();
 
     // Now incorporate that entire plan into our plan.
@@ -180,13 +191,61 @@ public class SelectStmt extends SQLStatement {
     // propagate from the initial source layer forward.
     List<TypedField> exprPropagateFields = new ArrayList<TypedField>();
 
+    // Populate the field lists defined above
+    calculateRequiredFields(srcOutSymbolTable, sourceOutCtxt.getOutFields(), consoleFields,
+        allRequiredFields, projectionInputs, projectionOutputs, exprPropagateFields);
+
+    if (where != null) {
+      // Non-null filter conditions; apply the filter to all of our sources.
+      PlanNode filterNode = new FilterNode(where);
+      flowSpec.attachToLastLayer(filterNode);
+    }
+
+    // Evaluate calculated-expression fields.
+    addExpressionsToPlan(flowSpec, exprPropagateFields, projectionInputs);
+
+    // Create the projected schema based on the symbol table returned by our source. 
+    Schema projectedSchema = createFieldSchema(distinctFields(projectionOutputs));
+    ProjectionNode projectionNode = new ProjectionNode(projectionInputs, projectionOutputs);
+    projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, projectedSchema);
+    flowSpec.attachToLastLayer(projectionNode);
+
+    return createReturnedContext(planContext, consoleFields);
+  }
+
+  /**
+   * Analyze the expressions in the SELECT field projection list, the WHERE
+   * clause, etc. and determine which fields of the underlying stream
+   * need to be pulled out into the intermediate and result records.
+   * @param fieldSymbols the SymbolTable returned by the source which defines
+   * the types of all the fields of the source stream(s).
+   * @param srcOutFields the list of all fields available as output from the
+   * source.
+   * @param consoleFields (output) - the list of fields that should be
+   * presented to the console (or other sink for this SELECT statement).
+   * @param allRequiredFields (output) - all fields required as output from
+   * the source (e.g., because they are consoleFields, or used in other
+   * expressions in the WHERE clause).
+   * @param projectionInputs (output) - the fields that should be read by the
+   * ProjectionNode and carried through to its output.
+   * @param projectionOutputs (output) - the same set of fields as
+   * projectionInputs, after being transformed by the projection layer.
+   * @param exprPropagateFields (output) - the fields which the expression
+   * evaluation layer carries forward and passes through to its output.
+   */
+  private void calculateRequiredFields(SymbolTable fieldSymbols,
+      List<TypedField> srcOutFields,
+      List<TypedField> consoleFields, List<TypedField> allRequiredFields,
+      List<TypedField> projectionInputs, List<TypedField> projectionOutputs,
+      List<TypedField> exprPropagateFields) {
+
     // Start with all the fields the user explicitly selected.
     List<AliasedExpr> exprList = getSelectExprs();
     for (AliasedExpr aliasExpr : exprList) {
       Expr e = aliasExpr.getExpr();
       if (e instanceof AllFieldsExpr) {
         // Use all field names listed as outputs from the source's output context.
-        for (TypedField outField : sourceOutCtxt.getOutFields()) {
+        for (TypedField outField : srcOutFields) {
           consoleFields.add(outField);
           allRequiredFields.add(outField);
           projectionInputs.add(outField);
@@ -197,7 +256,7 @@ public class SelectStmt extends SQLStatement {
         // Get the type within the expression, and add the appropriate labels.
         // These have been already assigned by a visitor pass.
 
-        Type t = e.getType(srcOutSymbolTable);
+        Type t = e.getType(fieldSymbols);
         TypedField projectionField = new TypedField(
           aliasExpr.getUserAlias(), t,
           aliasExpr.getAvroLabel(), aliasExpr.getDisplayLabel());
@@ -207,7 +266,7 @@ public class SelectStmt extends SQLStatement {
         consoleFields.add(projectionField);
 
         // Make sure our dependencies are pulled out of the source layer.
-        List<TypedField> fieldsForExpr = e.getRequiredFields(srcOutSymbolTable);
+        List<TypedField> fieldsForExpr = e.getRequiredFields(fieldSymbols);
         allRequiredFields.addAll(fieldsForExpr);
 
         if (e instanceof IdentifierExpr) {
@@ -220,9 +279,10 @@ public class SelectStmt extends SQLStatement {
       }
     }
 
+    Expr where = getWhereConditions();
     if (null != where) {
       // Add to this all the fields required by the where clause.
-      List<TypedField> whereReqs = where.getRequiredFields(srcOutSymbolTable);
+      List<TypedField> whereReqs = where.getRequiredFields(fieldSymbols);
       allRequiredFields.addAll(whereReqs);
     }
 
@@ -232,14 +292,14 @@ public class SelectStmt extends SQLStatement {
     // and order.
     projectionInputs = distinctFields(projectionInputs);
     projectionOutputs = distinctFields(projectionOutputs);
+  }
 
-    if (where != null) {
-      // Non-null filter conditions; apply the filter to all of our sources.
-      PlanNode filterNode = new FilterNode(where);
-      flowSpec.attachToLastLayer(filterNode);
-    }
-
-    // Evaluate calculated-expression fields.
+  /**
+   * If we output columns which are based on computed expressions,
+   * add an expression computation node to the flow specification.
+   */
+  private void addExpressionsToPlan(FlowSpecification flowSpec,
+      List<TypedField> exprPropagateFields, List<TypedField> projectionInputs) {
     List<AliasedExpr> calculatedExprs = new ArrayList<AliasedExpr>();
     for (AliasedExpr expr : getSelectExprs()) {
       Expr subExpr = expr.getExpr();
@@ -256,25 +316,25 @@ public class SelectStmt extends SQLStatement {
       exprNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, exprOutSchema);
       flowSpec.attachToLastLayer(exprNode);
     }
+  }
 
-    // Create the projected schema based on the symbol table returned by our source. 
-    Schema projectedSchema = createFieldSchema(projectionOutputs);
-    ProjectionNode projectionNode = new ProjectionNode(projectionInputs, projectionOutputs);
-    projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, projectedSchema);
-    flowSpec.attachToLastLayer(projectionNode);
-
-
+  /**
+   * Create the output PlanContext that should be returned by createExecPlan().
+   */
+  private PlanContext createReturnedContext(PlanContext planContext,
+      List<TypedField> outputFields) {
     PlanContext outContext = planContext;
+    FlowSpecification flowSpec = planContext.getFlowSpec();
     if (planContext.isRoot()) {
       String selectTarget = planContext.getConf().get(CLIENT_SELECT_TARGET_KEY,
           DEFAULT_CLIENT_SELECT_TARGET);
       if (CONSOLE_SELECT_TARGET.equals(selectTarget)) {
         // SELECT statements that are root queries go to the console.
-        flowSpec.attachToLastLayer(new ConsoleOutputNode(consoleFields));
+        flowSpec.attachToLastLayer(new ConsoleOutputNode(outputFields));
       } else {
         // Client has specified that outputs of this root query go to a named memory buffer.
         flowSpec.attachToLastLayer(new MemoryOutputNode(selectTarget,
-            distinctFields(consoleFields)));
+            distinctFields(outputFields)));
       }
     } else {
       // If the initial projection contained both explicitly selected fields as
@@ -288,11 +348,11 @@ public class SelectStmt extends SQLStatement {
       outContext = new PlanContext(planContext);
       SymbolTable inTable = planContext.getSymbolTable();
       SymbolTable outTable = new HashSymbolTable(inTable);
-      List<TypedField> outputFields = distinctFields(consoleFields);
+      outputFields = distinctFields(outputFields);
       outTable.addAll(mFieldSymbols);
       Schema outputSchema = createFieldSchema(outputFields);
       ProjectionNode cleanupProjection = new ProjectionNode(outputFields, outputFields);
-      projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, outputSchema);
+      cleanupProjection.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, outputSchema);
       flowSpec.attachToLastLayer(cleanupProjection);
 
       outContext.setSymbolTable(outTable);

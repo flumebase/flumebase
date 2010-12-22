@@ -2,15 +2,32 @@
 
 package com.odiago.rtengine.parser;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.odiago.rtengine.exec.Symbol;
+import com.odiago.rtengine.exec.SymbolTable;
+
+import com.odiago.rtengine.plan.PlanContext;
+
 /**
  * Represents two sources to a SELECT statement, married by a (windowed) JOIN clause.
  */
-public class JoinedSource extends SQLStatement {
+public class JoinedSource extends RecordSource {
 
-  private SQLStatement mLeftSrc;
-  private SQLStatement mRightSrc;
+  private RecordSource mLeftSrc;
+  private RecordSource mRightSrc;
   private Expr mJoinExpr;
   private Expr mWindowExpr;
+
+  // All fields exposed by the joined streams.
+  private SymbolTable mJoinedSymbols;
+
+  // Symbol representing the key field for the left source.
+  private Symbol mLeftKey;
+
+  // Symbol representing the key field for the right source.
+  private Symbol mRightKey;
 
   /**
    * Specifies a statement of the form "... &lt;leftSrc&gt; JOIN &lt;rightSrc&gt; ON ..."
@@ -20,7 +37,7 @@ public class JoinedSource extends SQLStatement {
    * @param windowExpr an expression that resolves to a window specification, defining
    * the temporal boundaries of the join.
    */
-  public JoinedSource(SQLStatement leftSrc, SQLStatement rightSrc, Expr joinExpr,
+  public JoinedSource(RecordSource leftSrc, RecordSource rightSrc, Expr joinExpr,
       Expr windowExpr) {
     mLeftSrc = leftSrc;
     mRightSrc = rightSrc;
@@ -28,11 +45,11 @@ public class JoinedSource extends SQLStatement {
     mWindowExpr = windowExpr;
   }
 
-  public SQLStatement getLeft() {
+  public RecordSource getLeft() {
     return mLeftSrc;
   }
 
-  public SQLStatement getRight() {
+  public RecordSource getRight() {
     return mRightSrc;
   }
 
@@ -42,6 +59,41 @@ public class JoinedSource extends SQLStatement {
 
   public Expr getWindowExpr() {
     return mWindowExpr;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<String> getSourceNames() {
+    List<String> out = new ArrayList<String>();
+    out.addAll(mLeftSrc.getSourceNames());
+    out.addAll(mRightSrc.getSourceNames());
+    return out;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SymbolTable getFieldSymbols() {
+    return mJoinedSymbols;
+  }
+
+  public void setJoinedSymbols(SymbolTable symTab) {
+    mJoinedSymbols = symTab;
+  }
+
+  public void setLeftKey(Symbol leftKey) {
+    mLeftKey = leftKey;
+  }
+
+  public Symbol getLeftKey() {
+    return mLeftKey;
+  }
+
+  public void setRightKey(Symbol rightKey) {
+    mRightKey = rightKey;
+  }
+
+  public Symbol getRightKey() {
+    return mRightKey;
   }
   
   @Override
@@ -60,6 +112,12 @@ public class JoinedSource extends SQLStatement {
     pad(sb, depth + 1);
     sb.append("OVER:\n");
     mWindowExpr.format(sb, depth + 2);
+  }
+
+  @Override
+  public PlanContext createExecPlan(PlanContext planContext) {
+    throw new RuntimeException("joinedsource.createexecplan() needs to be written next.");
+    
   }
 
 }

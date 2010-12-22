@@ -250,7 +250,7 @@ src_spec returns [String val] :
 
 // Source for a SELECT statement (in the FROM clause). This is a named stream
 // or a subquery, optionally joined with one or more sources.
-source_definition returns [SQLStatement val]:
+source_definition returns [RecordSource val]:
     s=stream_sel { $val = new LiteralSource($s.val); }
     ( AS? alias=stream_sel { ((LiteralSource) $val).setAlias($alias.val); } )?
     ( JOIN j=source_definition ON e=expr OVER w=inline_window_spec

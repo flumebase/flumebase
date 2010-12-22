@@ -37,6 +37,7 @@ import com.odiago.rtengine.exec.SymbolTable;
 import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 
 import com.odiago.rtengine.lang.AssignFieldLabelsVisitor;
+import com.odiago.rtengine.lang.JoinKeyVisitor;
 import com.odiago.rtengine.lang.TypeChecker;
 import com.odiago.rtengine.lang.VisitException;
 
@@ -518,6 +519,7 @@ public class LocalEnvironment extends ExecEnvironment {
 
       stmt.accept(new AssignFieldLabelsVisitor());
       stmt.accept(new TypeChecker(mRootSymbolTable));
+      stmt.accept(new JoinKeyVisitor()); // Must be after TC.
       PlanContext planContext = new PlanContext();
       planContext.setConf(mConf);
       planContext.setSymbolTable(mRootSymbolTable);

@@ -2,7 +2,6 @@
 
 package com.odiago.rtengine.lang;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -12,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import com.odiago.rtengine.exec.AliasSymbol;
 import com.odiago.rtengine.exec.AssignedSymbol;
 import com.odiago.rtengine.exec.HashSymbolTable;
-import com.odiago.rtengine.exec.StreamSymbol;
 import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 import com.odiago.rtengine.exec.WindowSymbol;
@@ -35,10 +33,10 @@ import com.odiago.rtengine.parser.IdentifierExpr;
 import com.odiago.rtengine.parser.JoinedSource;
 import com.odiago.rtengine.parser.LiteralSource;
 import com.odiago.rtengine.parser.RangeSpec;
+import com.odiago.rtengine.parser.RecordSource;
 import com.odiago.rtengine.parser.SQLStatement;
 import com.odiago.rtengine.parser.SelectStmt;
 import com.odiago.rtengine.parser.ShowStmt;
-import com.odiago.rtengine.parser.TypedField;
 import com.odiago.rtengine.parser.UnaryExpr;
 import com.odiago.rtengine.parser.WindowDef;
 import com.odiago.rtengine.parser.WindowSpec;
@@ -118,6 +116,7 @@ public class TypeChecker extends Visitor {
     SymbolTable symtab = mSymTableContext.top();
 
     String name = s.getName();
+    LOG.info("Visiting literalsrc " + name);
     Symbol symbol = symtab.resolve(name);
     if (null == symbol) {
       throw new TypeCheckException("No such identifier: " + name);
@@ -138,9 +137,7 @@ public class TypeChecker extends Visitor {
    * statement. If so, visit it. Otherwise, throw an exception.
    */
   private void visitValidSource(SQLStatement source) throws VisitException {
-    if (source instanceof SelectStmt
-        || source instanceof LiteralSource
-        || source instanceof JoinedSource) {
+    if (source instanceof RecordSource) {
       // Note that this will push a new symbol table on the stack.
       source.accept(this);
     } else {
@@ -167,8 +164,9 @@ public class TypeChecker extends Visitor {
   private void createSymbols(SymbolTable symtab, String streamName, String fieldName,
       String assignedName, Type type) {
     if (null != streamName) {
-      Symbol sym = new AssignedSymbol(streamName + "." + fieldName,
+      AssignedSymbol sym = new AssignedSymbol(streamName + "." + fieldName,
           type, assignedName);
+      sym.setParentName(streamName);
       symtab.addSymbol(sym);
       symtab.addSymbol(new AliasSymbol(fieldName, sym));
     } else {
@@ -297,57 +295,60 @@ public class TypeChecker extends Visitor {
   }
 
   /**
+   * Add all non-alias symbols from the top level of 'in' to the 
+   * table 'out'.
+   */
+  private void addNonAliases(SymbolTable out, SymbolTable in) {
+    Iterator<Symbol> inSyms = in.levelIterator();
+    while (inSyms.hasNext()) {
+      Symbol sym = inSyms.next();
+      if (sym.resolveAliases() == sym) {
+        // Not an alias. Just add it. This should not already
+        // be in the output table.
+        assert (out.resolveLocal(sym.getName()) == null);
+        out.addSymbol(sym);
+      }
+    }
+  }
+
+  /**
    * Merge together two symbol tables into a new result symbol table.
-   * Remove any ambiguous symbols that existed in both tables.
+   * Remove any ambiguous symbols (non-qualified symbols) that existed in both tables.
    */
   private SymbolTable mergeSymbols(SymbolTable leftSymTab, SymbolTable rightSymTab) {
     SymbolTable symTab = new HashSymbolTable(mSymTableContext.top());
-    Iterator<Symbol> rightSyms = rightSymTab.levelIterator();
-    while (rightSyms.hasNext()) {
-      Symbol sym = rightSyms.next();
-      Symbol left = leftSymTab.resolveLocal(sym.getName());
-      if (null == left) {
-        // This symbol appears on one side only; unambiguous. Just add it.
+
+    // Add all the non-alias symbols from each input table to the output table.
+    addNonAliases(symTab, rightSymTab);
+    addNonAliases(symTab, leftSymTab);
+
+    // Now walk through both input tables; any alias symbols that exist
+    // on one side but not the other may be forwarded to the output
+    // table.
+    Iterator<Symbol> rightIter = rightSymTab.levelIterator();
+    while (rightIter.hasNext()) {
+      Symbol sym = rightIter.next();
+      if (sym.resolveAliases() == sym) {
+        continue; // not an alias.
+      }
+
+      if (leftSymTab.resolveLocal(sym.getName()) == null) {
+        // If this symbol doesn't exist on the left side, add to output.
         symTab.addSymbol(sym);
-      } else {
-        // This symbol exists on both sides. Remove it from the target symbol
-        // table; another symbol which is an alias to this one will be added
-        // instead.
-        symTab.remove(sym.getName());
       }
     }
 
-    // Now that we've removed any ambiguous symbols, we need to turn orphaned
-    // alias symbols into full symbols.
-    // example:
-    // Left symtab contains a1 and x.a -> a1
-    // Right symtab contains a2 and y.a -> a2
-    // After flattening, we'll have x.a -> a1 and y.a -> a2 in the symtab.
-    // The symbols 'x.a' and 'y.a' should be promoted to full Symbol
-    // instances.
-    Iterator<Symbol> flattenedSyms = symTab.levelIterator();
-    List<Symbol> newSymbols = new ArrayList<Symbol>();
-    while (flattenedSyms.hasNext()) {
-      Symbol sym = flattenedSyms.next();
-      if (sym instanceof AliasSymbol) {
-        Symbol resolved = sym.resolveAliases();
-        assert(null != resolved);
-        if (symTab.resolveLocal(resolved.getName()) == null) {
-          // This alias' target is not in the symbol table. Remove the alias
-          // and replace it with a full symbol.
-
-          // Assert that we are doing this with a simple symbol, not a
-          // function, stream, window, or other special symbol.
-          assert(resolved.getClass().equals(Symbol.class));
-
-          newSymbols.add(new Symbol(sym.getName(), resolved.getType()));
-        }
+    Iterator<Symbol> leftIter = leftSymTab.levelIterator();
+    while (leftIter.hasNext()) {
+      Symbol sym = leftIter.next();
+      if (sym.resolveAliases() == sym) {
+        continue; // not an alias.
       }
-    }
 
-    // Add all the post-conversion symbols to the symtab.
-    for (Symbol sym : newSymbols) {
-      symTab.addSymbol(sym);
+      if (rightSymTab.resolveLocal(sym.getName()) == null) {
+        // If this symbol doesn't exist on the right side, add to output.
+        symTab.addSymbol(sym);
+      }
     }
 
     return symTab;
@@ -357,6 +358,7 @@ public class TypeChecker extends Visitor {
   protected void visit(JoinedSource s) throws VisitException {
     SQLStatement leftSrc = s.getLeft();
     SQLStatement rightSrc = s.getRight();
+    LOG.info("Visiting joinedsrc");
 
     int symtabHeight = mSymTableContext.size();
 
@@ -373,6 +375,7 @@ public class TypeChecker extends Visitor {
     SymbolTable leftSymTab = mSymTableContext.pop();
 
     SymbolTable symTab = mergeSymbols(leftSymTab, rightSymTab);
+    s.setJoinedSymbols(symTab);
     mSymTableContext.push(symTab);
 
     // Verify that the join expression is BOOLEAN.
