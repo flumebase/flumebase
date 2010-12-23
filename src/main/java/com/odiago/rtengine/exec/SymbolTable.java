@@ -170,4 +170,70 @@ public abstract class SymbolTable implements Iterable<Symbol> {
 
     return hst;
   }
+
+  /**
+   * Add all non-alias symbols from the top level of 'in' to the 
+   * table 'out'.
+   */
+  private static void addNonAliases(SymbolTable out, SymbolTable in) {
+    Iterator<Symbol> inSyms = in.levelIterator();
+    while (inSyms.hasNext()) {
+      Symbol sym = inSyms.next();
+      if (sym.resolveAliases() == sym) {
+        // Not an alias. Just add it. This should not already
+        // be in the output table.
+        assert (out.resolveLocal(sym.getName()) == null);
+        out.addSymbol(sym);
+      }
+    }
+  }
+
+  /**
+   * Merge together two symbol tables into a new result symbol table.
+   * Remove any ambiguous symbols (non-qualified symbols) that existed in both tables.
+   * The output table contains all the non-ambiguous symbols in the top-most levelIterator()
+   * of leftSymTab and rightSymTab.
+   * @param leftSymTab - One of the two symbol tables to merge.
+   * @param rightSymTab - The other symbol table to merge.
+   * @param parentTable - the parent symbol table (if any) of the returned symbol table.
+   */
+  public static SymbolTable mergeSymbols(SymbolTable leftSymTab, SymbolTable rightSymTab,
+      SymbolTable parentTable) {
+    SymbolTable symTab = new HashSymbolTable(parentTable);
+
+    // Add all the non-alias symbols from each input table to the output table.
+    addNonAliases(symTab, rightSymTab);
+    addNonAliases(symTab, leftSymTab);
+
+    // Now walk through both input tables; any alias symbols that exist
+    // on one side but not the other may be forwarded to the output
+    // table.
+    Iterator<Symbol> rightIter = rightSymTab.levelIterator();
+    while (rightIter.hasNext()) {
+      Symbol sym = rightIter.next();
+      if (sym.resolveAliases() == sym) {
+        continue; // not an alias.
+      }
+
+      if (leftSymTab.resolveLocal(sym.getName()) == null) {
+        // If this symbol doesn't exist on the left side, add to output.
+        symTab.addSymbol(sym);
+      }
+    }
+
+    Iterator<Symbol> leftIter = leftSymTab.levelIterator();
+    while (leftIter.hasNext()) {
+      Symbol sym = leftIter.next();
+      if (sym.resolveAliases() == sym) {
+        continue; // not an alias.
+      }
+
+      if (rightSymTab.resolveLocal(sym.getName()) == null) {
+        // If this symbol doesn't exist on the right side, add to output.
+        symTab.addSymbol(sym);
+      }
+    }
+
+    return symTab;
+  }
 }

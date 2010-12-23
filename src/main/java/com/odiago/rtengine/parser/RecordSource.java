@@ -29,6 +29,11 @@ public abstract class RecordSource extends SQLStatement {
    */
   public abstract List<String> getSourceNames();
 
+  /**
+   * @return the name of this stream. May be generated in the case of joins, etc.
+   */
+  public abstract String getSourceName();
+
 
   /**
    * For record sources with nested sub-sources, create the flow specification

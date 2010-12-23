@@ -21,6 +21,13 @@ public final class StringUtils {
     }
   }
 
+  /** Return a string containing the comma-delimited string representation of the input list. */
+  public static <E> String listToStr(List<E> lst) {
+    StringBuilder sb = new StringBuilder();
+    formatList(sb, lst);
+    return sb.toString();
+  }
+
   /**
    * Given a possibly-qualified name like "foo.bar", return the unqualified name "bar".
    */

@@ -35,4 +35,9 @@ public class EmptyEventWrapper extends EventWrapper {
   public Event getEvent() {
     return mEvent;
   }
+
+  @Override
+  public String getAttr(String attrName) {
+    return null;
+  }
 }

@@ -1,22 +1,31 @@
 
 
 Joins:
-  When using symbols in IdentifierExpr, if we can't find a symbol, we need to warn
-  that it may be due to an ambiguous alias. (Search for a symbol ending with ".foo"; if
-  found, then it's an ambiguous resolution error.)
+  CompositeEventWrapper should actually just handle a single CompositeEvent
+  that does all this logic, but still maintains the Event API (needed for
+  AvroOutputElementImpl).
 
-  TypeChecker and all visitor patterns need WindowSpec, RangeSpec, WindowDef.
-  ^... maybe done?
+  I don't know that the various calls to streamSymbol.getName() are actually
+  the correct name here -- I think we want the user's alias to get its way
+  into the various source types.
+
   SelectStmt should support WINDOW clauses at the end.
-  ^-- need to eval them to timespans and store these bindings for use in joinedsrc
+  ^-- need to eval them to WindowSpecs and store these bindings for use in joinedsrc
       evaluation to hashjoinnodes.
-  SelectStmt should support JoinedSource as a source type..
-  Need to define the JoinedSource AST element and do all that jazz.
-  .... this needs to return a HashJoinNode and associated etc.
-  Need to define JOIN Node, Element.
-  Need to work JoinNode/JoinElement into the graph.
-  Need to handle column name aliasing, etc.
 
+
+  .. what happens if we use the same stream alias in two different subtrees of
+  a compound select stmt?
+  
+  SELECT ... FROM
+      ((SELECT x FROM f JOIN g) AS s1)
+  JOIN
+      ((SELECT x FROM h AS f JOIN g) AS s2)
+
+  Specifically w.r.t. concerns over the lists returned by getSourceNames().. does
+  this stop at the SELECT level, or does it recursively gather?
+  I think we're ok for SELECT/JOIN... but I don't know how we will do for predicate
+  push-down later..
 
 Expressions:
   - Refine user_sel rule (or TypeChecker) so that it cannot accept identifier names that

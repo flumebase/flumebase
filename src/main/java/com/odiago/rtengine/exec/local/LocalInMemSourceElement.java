@@ -47,6 +47,7 @@ public class LocalInMemSourceElement extends FlowElementImpl {
         // a parsing EventWrapper; advance these to the output.
         while (iter.hasNext()) {
           Event rawEvent = iter.next();
+          rawEvent.set(STREAM_NAME_ATTR, mStreamSymbol.getName().getBytes());
           EventWrapper wrapper = new ParsingEventWrapper(mStreamSymbol.getEventParser(),
               mFieldNames);
           wrapper.reset(rawEvent);

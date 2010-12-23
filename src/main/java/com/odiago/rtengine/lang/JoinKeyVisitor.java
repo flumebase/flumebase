@@ -4,6 +4,9 @@ package com.odiago.rtengine.lang;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.odiago.rtengine.exec.AssignedSymbol;
 import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
@@ -14,11 +17,15 @@ import com.odiago.rtengine.parser.Expr;
 import com.odiago.rtengine.parser.IdentifierExpr;
 import com.odiago.rtengine.parser.JoinedSource;
 
+import com.odiago.rtengine.util.StringUtils;
+
 /**
  * Identifies the "key" columns in an equijoin which should be performed by a
  * HashJoin.
  */
 public class JoinKeyVisitor extends TreeWalkVisitor {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      JoinKeyVisitor.class.getName());
 
   private void identifyJoinKeys(JoinedSource src, BinExpr e) throws VisitException {
     if (!e.getOp().equals(BinOp.Eq)) {
@@ -68,7 +75,7 @@ public class JoinKeyVisitor extends TreeWalkVisitor {
     // Get the names of the input streams for each symbol, verify they're
     // nonnull.
     String e1Parent = ((AssignedSymbol) e1Sym).getParentName();
-    String e2Parent = ((AssignedSymbol) e1Sym).getParentName();
+    String e2Parent = ((AssignedSymbol) e2Sym).getParentName();
 
     if (null == e1Parent) {
       throw new VisitException("Identifier " + e1Ident + " is not from a known stream.");
@@ -78,6 +85,11 @@ public class JoinKeyVisitor extends TreeWalkVisitor {
 
     List<String> leftSrcNames = src.getLeft().getSourceNames();
     List<String> rightSrcNames = src.getRight().getSourceNames();
+
+    LOG.debug("left sources: " + StringUtils.listToStr(leftSrcNames));
+    LOG.debug("right sources: " + StringUtils.listToStr(rightSrcNames));
+    LOG.debug("e1sym: " + e1Sym);
+    LOG.debug("e2sym: " + e2Sym);
 
     if (leftSrcNames.contains(e1Parent)) {
       src.setLeftKey(e1Sym);

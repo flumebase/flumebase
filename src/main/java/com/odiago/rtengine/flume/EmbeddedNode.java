@@ -42,22 +42,27 @@ public class EmbeddedNode {
   /** List of fields and types emitted by this node. */
   private List<TypedField> mFieldTypes;
 
+  /** Name of the stream we represent. */
+  private String mStreamName;
+
   /**
    * Create a single embedded node instance.
    * @param flowSourceId - the flowId and source name within the flow being fulfilled.
    * @param flowContext - the context for the source FlowElement wrapping this object.
    * @param flumeConfig - the manager of the embedded Flume instance.
    * @param dataSource - the Flume 'source' argument for the logical node.
+   * @param streamName - the name of the stream we are reading from into the query.
    */
   public EmbeddedNode(String flowSourceId, FlowElementContext flowContext,
       EmbeddedFlumeConfig flumeConfig, String dataSource, Schema outputSchema,
-      List<TypedField> fieldTypes) {
+      List<TypedField> fieldTypes, String streamName) {
     mFlowSourceId = flowSourceId;
     mFlowElemContext = flowContext;
     mFlumeConfig = flumeConfig;
     mDataSource = dataSource;
     mOutputSchema = outputSchema;
     mFieldTypes = fieldTypes;
+    mStreamName = streamName;
   }
 
   /**
@@ -65,7 +70,7 @@ public class EmbeddedNode {
    */
   public void open() throws IOException {
     SinkContextBindings.get().bindContext(mFlowSourceId,
-        new SinkContext(mFlowElemContext, mOutputSchema, mFieldTypes));
+        new SinkContext(mFlowElemContext, mOutputSchema, mFieldTypes, mStreamName));
     try {
       mFlumeConfig.createFlowSink(mFlowSourceId, mDataSource);
     } catch (TException te) {

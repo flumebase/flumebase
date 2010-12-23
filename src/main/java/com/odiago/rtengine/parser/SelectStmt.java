@@ -112,6 +112,12 @@ public class SelectStmt extends RecordSource {
     }
   }
 
+  /** {@inheritDoc} */
+  @Override
+  public String getSourceName() {
+    return mAlias;
+  }
+
   /**
    * After calculating a SymbolTable containing all the fields
    * of this select statement, attach it to the statement for future use.

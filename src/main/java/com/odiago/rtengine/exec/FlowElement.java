@@ -15,6 +15,9 @@ import java.io.IOException;
  * stream requires a separate FlowElement to be deployed.
  */
 public abstract class FlowElement {
+  
+  /** Event attribute name defining the origin stream of an event. */
+  public static final String STREAM_NAME_ATTR = "rtsql:stream";
 
   /**
    * Called before the FlowElement processes any events. This may trigger

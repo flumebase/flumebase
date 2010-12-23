@@ -24,6 +24,13 @@ public class PlanNode extends DAGNode<PlanNode> {
    */
   public static final String OUTPUT_SCHEMA_ATTR = "output.field.schema";
 
+  /**
+   * Attribute referencing a List&lt;Schema&gt; describing sets of input
+   * fields that may arrive from one of the multiple sources to this node.
+   * If this is set, INUPT_SCHEMA_ATTR is expected to be unset.
+   */
+  public static final String MULTI_INPUT_SCHEMA_ATTR = "input.field.multi.schemas";
+
   /** Free-form attribute map which can be used by operators when working on
    * transforming the graph, etc.
    */

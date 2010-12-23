@@ -36,4 +36,10 @@ public abstract class EventWrapper {
    * Return the event this wrapper operates on.
    */
   public abstract Event getEvent();
+
+  /**
+   * Get an attribute of the underlying event and return its string representation,
+   * or null if it is unset.
+   */
+  public abstract String getAttr(String attrName);
 }

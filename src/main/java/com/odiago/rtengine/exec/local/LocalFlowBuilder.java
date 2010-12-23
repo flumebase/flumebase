@@ -16,6 +16,7 @@ import com.odiago.rtengine.exec.FileSourceElement;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowId;
+import com.odiago.rtengine.exec.HashJoinElement;
 import com.odiago.rtengine.exec.InMemStreamSymbol;
 import com.odiago.rtengine.exec.ProjectionElement;
 import com.odiago.rtengine.exec.FilterElement;
@@ -33,6 +34,7 @@ import com.odiago.rtengine.plan.CreateStreamNode;
 import com.odiago.rtengine.plan.DescribeNode;
 import com.odiago.rtengine.plan.DropNode;
 import com.odiago.rtengine.plan.EvaluateExprsNode;
+import com.odiago.rtengine.plan.HashJoinNode;
 import com.odiago.rtengine.plan.MemoryOutputNode;
 import com.odiago.rtengine.plan.NamedSourceNode;
 import com.odiago.rtengine.plan.PlanNode;
@@ -198,7 +200,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
         String flowSourceId = "rtengine-flow-" + flowIdNum + "-" + streamSymbol.getName();
         newElem = new LocalFlumeSinkElement(newContext, flowSourceId,
             mFlumeConfig, flumeSource, (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
-            namedInput.getFields());
+            namedInput.getFields(), streamSymbol.getName());
         if (!streamSymbol.isLocal()) {
           LOG.info("Created local Flume logical node: " + flowSourceId);
           LOG.info("You may need to connect upstream Flume elements to this source.");
@@ -229,6 +231,9 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       Schema outSchema = (Schema) evalNode.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
       newElem = new EvaluationElement(newContext, evalNode.getExprs(),
           evalNode.getPropagateFields(), outSchema);
+    } else if (node instanceof HashJoinNode) {
+      HashJoinNode joinNode = (HashJoinNode) node;
+      newElem = new HashJoinElement(newContext, joinNode);
     } else {
       throw new DAGOperatorException("Cannot create FlowElement for PlanNode of type: "
           + node.getClass().getName());

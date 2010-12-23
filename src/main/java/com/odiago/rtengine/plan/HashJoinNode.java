@@ -2,9 +2,10 @@
 
 package com.odiago.rtengine.plan;
 
-import com.odiago.rtengine.lang.TimeSpan;
+import java.util.List;
 
-import com.odiago.rtengine.parser.Expr;
+import com.odiago.rtengine.parser.TypedField;
+import com.odiago.rtengine.parser.WindowSpec;
 
 /**
  * Join two input streams into an output stream based on an
@@ -14,22 +15,28 @@ import com.odiago.rtengine.parser.Expr;
  * from each of the two input streams.
  */
 public class HashJoinNode extends PlanNode {
+
   private String mLeftName; // name of the left stream.
   private String mRightName; // name of the right stream.
-  private String mLeftKey; // name of the key field from the left stream.
-  private String mRightKey; // name of the key field from the right stream.
-  private Expr mJoinExpr; // expression to evaluate for each cross-pair of the input.
-  private TimeSpan mWindowWidth; // timespan over which the join is valid.
+  private TypedField mLeftKey; // the key field from the left stream.
+  private TypedField mRightKey; // the key field from the right stream.
+  private WindowSpec mWindowWidth; // window spec over which the join is valid.
+  private String mOutName; // name to assign to the output stream from this join.
+  private List<TypedField> mLeftFields; // field names from the left stream.
+  private List<TypedField> mRightFields; // field names from the right stream.
 
 
-  public HashJoinNode(String leftName, String rightName, String leftKey, String rightKey,
-      Expr joinExpr, TimeSpan windowWidth) {
+  public HashJoinNode(String leftName, String rightName, TypedField leftKey, TypedField rightKey,
+      WindowSpec windowWidth, String outName, List<TypedField> leftFieldNames,
+      List<TypedField> rightFieldNames) {
     mLeftName = leftName;
     mRightName = rightName;
     mLeftKey = leftKey;
     mRightKey = rightKey;
-    mJoinExpr = joinExpr;
     mWindowWidth = windowWidth;
+    mOutName = outName;
+    mLeftFields = leftFieldNames;
+    mRightFields = rightFieldNames;
   }
 
   protected void formatParams(StringBuilder sb) {
@@ -43,8 +50,40 @@ public class HashJoinNode extends PlanNode {
     sb.append(mRightKey);
     sb.append(", width=");
     sb.append(mWindowWidth);
-    sb.append(", expr=");
-    sb.append(mJoinExpr.toStringOneLine());
+    sb.append(", outName=");
+    sb.append(mOutName);
     formatAttributes(sb);
+  }
+
+  public String getLeftName() {
+    return mLeftName;
+  }
+
+  public String getRightName() {
+    return mRightName;
+  }
+
+  public TypedField getLeftKey() {
+    return mLeftKey;
+  }
+
+  public TypedField getRightKey() {
+    return mRightKey;
+  }
+
+  public WindowSpec getWindowWidth() {
+    return mWindowWidth;
+  }
+
+  public String getOutputName() {
+    return mOutName;
+  }
+
+  public List<TypedField> getLeftFields() {
+    return mLeftFields;
+  }
+
+  public List<TypedField> getRightFields() {
+    return mRightFields;
   }
 }

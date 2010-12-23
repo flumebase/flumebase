@@ -116,7 +116,7 @@ public class TypeChecker extends Visitor {
     SymbolTable symtab = mSymTableContext.top();
 
     String name = s.getName();
-    LOG.info("Visiting literalsrc " + name);
+    LOG.debug("Visiting literalsrc " + name);
     Symbol symbol = symtab.resolve(name);
     if (null == symbol) {
       throw new TypeCheckException("No such identifier: " + name);
@@ -294,71 +294,11 @@ public class TypeChecker extends Visitor {
     }
   }
 
-  /**
-   * Add all non-alias symbols from the top level of 'in' to the 
-   * table 'out'.
-   */
-  private void addNonAliases(SymbolTable out, SymbolTable in) {
-    Iterator<Symbol> inSyms = in.levelIterator();
-    while (inSyms.hasNext()) {
-      Symbol sym = inSyms.next();
-      if (sym.resolveAliases() == sym) {
-        // Not an alias. Just add it. This should not already
-        // be in the output table.
-        assert (out.resolveLocal(sym.getName()) == null);
-        out.addSymbol(sym);
-      }
-    }
-  }
-
-  /**
-   * Merge together two symbol tables into a new result symbol table.
-   * Remove any ambiguous symbols (non-qualified symbols) that existed in both tables.
-   */
-  private SymbolTable mergeSymbols(SymbolTable leftSymTab, SymbolTable rightSymTab) {
-    SymbolTable symTab = new HashSymbolTable(mSymTableContext.top());
-
-    // Add all the non-alias symbols from each input table to the output table.
-    addNonAliases(symTab, rightSymTab);
-    addNonAliases(symTab, leftSymTab);
-
-    // Now walk through both input tables; any alias symbols that exist
-    // on one side but not the other may be forwarded to the output
-    // table.
-    Iterator<Symbol> rightIter = rightSymTab.levelIterator();
-    while (rightIter.hasNext()) {
-      Symbol sym = rightIter.next();
-      if (sym.resolveAliases() == sym) {
-        continue; // not an alias.
-      }
-
-      if (leftSymTab.resolveLocal(sym.getName()) == null) {
-        // If this symbol doesn't exist on the left side, add to output.
-        symTab.addSymbol(sym);
-      }
-    }
-
-    Iterator<Symbol> leftIter = leftSymTab.levelIterator();
-    while (leftIter.hasNext()) {
-      Symbol sym = leftIter.next();
-      if (sym.resolveAliases() == sym) {
-        continue; // not an alias.
-      }
-
-      if (rightSymTab.resolveLocal(sym.getName()) == null) {
-        // If this symbol doesn't exist on the right side, add to output.
-        symTab.addSymbol(sym);
-      }
-    }
-
-    return symTab;
-  }
-
   @Override
   protected void visit(JoinedSource s) throws VisitException {
     SQLStatement leftSrc = s.getLeft();
     SQLStatement rightSrc = s.getRight();
-    LOG.info("Visiting joinedsrc");
+    LOG.debug("Visiting joinedsrc");
 
     int symtabHeight = mSymTableContext.size();
 
@@ -374,7 +314,8 @@ public class TypeChecker extends Visitor {
     SymbolTable rightSymTab = mSymTableContext.pop();
     SymbolTable leftSymTab = mSymTableContext.pop();
 
-    SymbolTable symTab = mergeSymbols(leftSymTab, rightSymTab);
+    SymbolTable symTab = SymbolTable.mergeSymbols(leftSymTab, rightSymTab,
+        mSymTableContext.top());
     s.setJoinedSymbols(symTab);
     mSymTableContext.push(symTab);
 
@@ -529,6 +470,28 @@ public class TypeChecker extends Visitor {
     e.resolveArgTypes(mSymTableContext.top());
   }
 
+  /**
+   * @return true if symName does not exist in symTab, but "foo.symName" does.
+   */
+  private boolean isAmbiguousAlias(String symName, SymbolTable symTab) {
+    if (symTab.resolve(symName) != null) {
+      return false; // The symbol exists; we're fine.
+    }
+
+    String dotName = "." + symName;
+
+    Iterator<Symbol> symbols = symTab.levelIterator();
+    while (symbols.hasNext()) {
+      Symbol sym = symbols.next();
+      if (sym.getName().endsWith(dotName)) {
+        // We've found 'foo.symName', but no symName. Ambiguous identifier.
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   protected void visit(IdentifierExpr e) throws VisitException {
     SymbolTable fieldsSymTab = mSymTableContext.top();
 
@@ -538,7 +501,17 @@ public class TypeChecker extends Visitor {
     // that we have a symbol table, and that this is a primitive value.
     Symbol fieldSym = fieldsSymTab.resolve(fieldName);
     if (null == fieldSym) {
-      throw new TypeCheckException("No such identifier: \"" + fieldName + "\"");
+      // The identifier doesn't exist, or else it's an ambiguous alias.
+      // Return the appropriate error message.
+      if (isAmbiguousAlias(fieldName, fieldsSymTab)) {
+        // This identifier is probably an alias for another identifier
+        // but the alias is removed due to ambiguity in a JOIN.
+        throw new TypeCheckException("Ambiguous identifier: \"" + fieldName + "\". "
+            + "You must prefix this with a stream name qualifier.");
+      } else {
+        // This identifier straight-up doesn't exist.
+        throw new TypeCheckException("No such identifier: \"" + fieldName + "\"");
+      }
     }
 
     Type fieldType = fieldSym.getType();

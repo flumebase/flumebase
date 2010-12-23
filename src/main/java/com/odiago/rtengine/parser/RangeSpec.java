@@ -67,6 +67,7 @@ public class RangeSpec extends Expr {
     sb.append(mPrevScale);
     sb.append(")\n");
     mPrevSize.format(sb, depth + 2);
+    pad(sb, depth + 1);
     sb.append("to: (");
     sb.append(mAfterScale);
     sb.append(")\n");

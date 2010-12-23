@@ -8,11 +8,13 @@ import java.util.List;
 
 import org.apache.avro.Schema;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.odiago.rtengine.exec.AliasSymbol;
 import com.odiago.rtengine.exec.AssignedSymbol;
 import com.odiago.rtengine.exec.HashSymbolTable;
 import com.odiago.rtengine.exec.StreamSymbol;
-import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.plan.NamedSourceNode;
@@ -29,6 +31,9 @@ import com.odiago.rtengine.util.Ref;
  * the common hierarchy.
  */
 public class LiteralSource extends RecordSource {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      LiteralSource.class.getName());
+
   /** The actual name of the source stream. */
   private String mSourceName;
 
@@ -77,10 +82,16 @@ public class LiteralSource extends RecordSource {
   /** {@inheritDoc} */
   @Override
   public List<String> getSourceNames() {
+    return Collections.singletonList(getSourceName());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public String getSourceName() {
     if (null != mAlias) {
-      return Collections.singletonList(mAlias);
+      return mAlias;
     } else {
-      return Collections.singletonList(mSourceName);
+      return mSourceName;
     }
   }
 

@@ -45,6 +45,9 @@ public class LocalFlumeSinkElement extends FlowElementImpl {
   /** The fields of each record emitted by this node, and their types. */ 
   private List<TypedField> mFieldTypes;
 
+  /** Name of the stream we are reading from. */
+  private String mStreamName;
+
   /**
    * The EventSource that we couple to our internal sink for
    * this logical node.
@@ -53,7 +56,7 @@ public class LocalFlumeSinkElement extends FlowElementImpl {
 
   public LocalFlumeSinkElement(FlowElementContext context, String flowSourceId,
       EmbeddedFlumeConfig flumeConfig, String dataSource, Schema outputSchema,
-      List<TypedField> fieldTypes) {
+      List<TypedField> fieldTypes, String streamName) {
     super(context);
 
     mFlowSourceId = flowSourceId;
@@ -61,12 +64,13 @@ public class LocalFlumeSinkElement extends FlowElementImpl {
     mDataSource = dataSource;
     mOutputSchema = outputSchema;
     mFieldTypes = fieldTypes;
+    mStreamName = streamName;
   }
 
   @Override
   public void open() throws IOException {
     mEmbeddedFlumeNode = new EmbeddedNode(mFlowSourceId, getContext(), mFlumeConfig,
-        mDataSource, mOutputSchema, mFieldTypes);
+        mDataSource, mOutputSchema, mFieldTypes, mStreamName);
     mEmbeddedFlumeNode.open();
   }
 

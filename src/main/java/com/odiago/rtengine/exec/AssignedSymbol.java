@@ -40,7 +40,7 @@ public class AssignedSymbol extends Symbol {
 
   @Override
   public String toString() {
-    return getName() + "[" + mAssignedName + "] (" + getType() + ")";
+    return getName() + "[" + mParentName + "." + mAssignedName + "] (" + getType() + ")";
   }
 
   @Override

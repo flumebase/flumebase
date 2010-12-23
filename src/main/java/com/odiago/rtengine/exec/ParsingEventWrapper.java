@@ -25,7 +25,7 @@ import com.odiago.rtengine.parser.TypedField;
  * An EventWrapper that operates on raw input events and parses them
  * into fields.
  */
-public class ParsingEventWrapper extends EventWrapper {
+public class ParsingEventWrapper extends EventWrapperImpl {
   private static final Logger LOG = LoggerFactory.getLogger(
       ParsingEventWrapper.class.getName());
   private EventParser mParser;

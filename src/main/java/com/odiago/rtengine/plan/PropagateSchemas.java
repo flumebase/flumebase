@@ -23,8 +23,10 @@ import com.odiago.rtengine.util.DAGOperatorException;
  *   <li>The input schema of this node should match the output schemas from
  *   the predecessor nodes. Fail if this is not. If this is unset, copy from
  *   a predecssor node.</li>
+ *   <li>If a node has multiple input schemas, each of the precedessors should
+ *   match one of the node's inputs.</li>
  *   <li>The output schema of this node, if unset, should be set to match the
- *   input schema.</li>
+ *   input schema. Fail if a node has multiple input schemas.</li>
  * </ul>
  * </p>
  *
@@ -42,6 +44,12 @@ public class PropagateSchemas extends DAG.Operator<PlanNode> {
     }
 
     List<PlanNode> parents = node.getParents();
+
+    // A node is either defined as having one well-specified input schema, or a list
+    // of options. If the list is set, each predecessor output must match one of the
+    // options.
+    List<Schema> myInputSchemas = (List<Schema>)
+        node.getAttr(PlanNode.MULTI_INPUT_SCHEMA_ATTR);
     Schema inputSchema = null;
     for (PlanNode parent : parents) {
       Schema parentOutputSchema = (Schema) parent.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
@@ -49,11 +57,27 @@ public class PropagateSchemas extends DAG.Operator<PlanNode> {
         // This should not happen if we use this operator correctly with BFS.
         throw new DAGOperatorException("Node " + parent + " does not have output schema set");
       }
-      if (null == inputSchema) {
-        // Catch the first parent's output schema.
+
+      if (myInputSchemas != null) {
+        // This node accepts multiple input schemas. Check that the parent's output
+        // schema matches one of them.
+        boolean match = false;
+        for (Schema candidate : myInputSchemas) {
+          if (candidate.equals(parentOutputSchema)) {
+            match = true;
+            break;
+          }
+        }
+
+        if (!match) {
+          throw new DAGOperatorException("Schema resolution execption; node [" + node
+              + "] has a parent output schema that does not match any candidate input schema.");
+        }
+      } else if (null == inputSchema) {
+        // This node will have a single input schema. Cache the first parent's output schema.
         inputSchema = parentOutputSchema;
       } else {
-        // Now check that each other parent has the same schema.
+        // Now check that each other parent has the same schema as the first parent.
         if (!parentOutputSchema.equals(inputSchema)) {
           throw new DAGOperatorException("Schema resolution exception; node [" + node
               + "] has parents with mismatched schemas:\nSchema 1:\n"
@@ -62,23 +86,43 @@ public class PropagateSchemas extends DAG.Operator<PlanNode> {
       }
     }
 
-    Schema myInputSchema = (Schema) node.getAttr(PlanNode.INPUT_SCHEMA_ATTR);
-    if (null == myInputSchema) {
-      node.setAttr(PlanNode.INPUT_SCHEMA_ATTR, inputSchema);
-      myInputSchema = inputSchema;
-    }
-
-    if (null != myInputSchema && null != inputSchema) {
-      // Check that these are equal.
-      if (!inputSchema.equals(myInputSchema)) {
-        throw new DAGOperatorException("Node [" + node + "] has set input schema:\n"
-            + myInputSchema + "\nbut parents have output schema:\n" + inputSchema);
+    if (myInputSchemas == null) {
+      // For nodes with exactly one input schema, check that the defined input
+      // schema (if any) matches the output of the predecessors. If unset,
+      // set it to the predecessor output.
+      Schema myInputSchema = (Schema) node.getAttr(PlanNode.INPUT_SCHEMA_ATTR);
+      if (null == myInputSchema) {
+        node.setAttr(PlanNode.INPUT_SCHEMA_ATTR, inputSchema);
+        myInputSchema = inputSchema;
       }
-    }
 
-    Schema myOutputSchema = (Schema) node.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
-    if (null == myOutputSchema) {
-      node.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, myInputSchema);
+      if (null != myInputSchema && null != inputSchema) {
+        // Check that these are equal.
+        if (!inputSchema.equals(myInputSchema)) {
+          throw new DAGOperatorException("Node [" + node + "] has set input schema:\n"
+              + myInputSchema + "\nbut parents have output schema:\n" + inputSchema);
+        }
+      }
+
+      // And if there's no output schema defined, set it equal to our input schema.
+      Schema myOutputSchema = (Schema) node.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
+      if (null == myOutputSchema) {
+        node.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, myInputSchema);
+      }
+    } else {
+      // For nodes that accept multiple input schemas, just check that the
+      // output schema is set, since we can't infer the output schema from the set
+      // of input schemas.
+      if (null == node.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR)) {
+        throw new DAGOperatorException("Node [" + node
+            + "] has multiple input schemas but the output schema is unset.");
+      }
+
+      // Sanity check: If this also has a singleton input schema set, complain.
+      if (null != node.getAttr(PlanNode.INPUT_SCHEMA_ATTR)) {
+        throw new DAGOperatorException("Node [" + node
+            + "] has multiple input schemas and singleton input schema set.");
+      }
     }
   }
 

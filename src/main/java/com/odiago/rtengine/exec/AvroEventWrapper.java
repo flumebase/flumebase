@@ -20,7 +20,7 @@ import com.odiago.rtengine.parser.TypedField;
  * An EventWrapper that operates on events containing parsed records
  * that are encoded as Avro record instances.
  */
-public class AvroEventWrapper extends EventWrapper {
+public class AvroEventWrapper extends EventWrapperImpl {
   private Event mEvent;
   private boolean mIsDecoded; // true if mEvent has been decoded into mRecord.
 

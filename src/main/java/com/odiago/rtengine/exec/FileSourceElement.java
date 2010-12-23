@@ -90,6 +90,7 @@ public class FileSourceElement extends FlowElementImpl {
             long timestamp = Long.parseLong(line.substring(0, tabIdx));
             byte [] body = line.substring(tabIdx + 1).getBytes();
             EventImpl event = new EventImpl(body, timestamp, Priority.INFO, 0, "localhost");
+            event.set(STREAM_NAME_ATTR, mStream.getName().getBytes());
             EventWrapper wrapper = new ParsingEventWrapper(mStream.getEventParser(),
                 mFieldNames);
             wrapper.reset(event);

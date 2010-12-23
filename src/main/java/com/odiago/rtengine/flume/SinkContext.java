@@ -15,12 +15,14 @@ public class SinkContext {
   private final FlowElementContext mFlowContext;
   private final Schema mOutputSchema;
   private final List<TypedField> mFieldTypes;
+  private final String mStreamName;
 
   public SinkContext(FlowElementContext flowContext, Schema outputSchema,
-      List<TypedField> fieldTypes) {
+      List<TypedField> fieldTypes, String streamName) {
     mFlowContext = flowContext;
     mOutputSchema = outputSchema;
     mFieldTypes = fieldTypes;
+    mStreamName = streamName;
   }
 
   public FlowElementContext getFlowElementContext() {
@@ -33,5 +35,9 @@ public class SinkContext {
 
   public List<TypedField> getFieldTypes() {
     return mFieldTypes;
+  }
+
+  public String getStreamName() {
+    return mStreamName;
   }
 }

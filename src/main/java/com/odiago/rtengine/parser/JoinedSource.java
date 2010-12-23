@@ -2,18 +2,32 @@
 
 package com.odiago.rtengine.parser;
 
+import java.io.IOException;
+
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.avro.Schema;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.odiago.rtengine.exec.AssignedSymbol;
+import com.odiago.rtengine.exec.EmptyEventWrapper;
 import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
+import com.odiago.rtengine.plan.FlowSpecification;
+import com.odiago.rtengine.plan.HashJoinNode;
 import com.odiago.rtengine.plan.PlanContext;
+import com.odiago.rtengine.plan.PlanNode;
 
 /**
  * Represents two sources to a SELECT statement, married by a (windowed) JOIN clause.
  */
 public class JoinedSource extends RecordSource {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      JoinedSource.class.getName());
 
   private RecordSource mLeftSrc;
   private RecordSource mRightSrc;
@@ -28,6 +42,9 @@ public class JoinedSource extends RecordSource {
 
   // Symbol representing the key field for the right source.
   private Symbol mRightKey;
+
+  // Virtual name assigned to the output stream from this source.
+  private String mJoinName;
 
   /**
    * Specifies a statement of the form "... &lt;leftSrc&gt; JOIN &lt;rightSrc&gt; ON ..."
@@ -61,13 +78,30 @@ public class JoinedSource extends RecordSource {
     return mWindowExpr;
   }
 
+
   /** {@inheritDoc} */
   @Override
   public List<String> getSourceNames() {
     List<String> out = new ArrayList<String>();
     out.addAll(mLeftSrc.getSourceNames());
     out.addAll(mRightSrc.getSourceNames());
+    out.add(getSourceName());
     return out;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public String getSourceName() {
+    return mJoinName;
+  }
+
+  /**
+   * Assign a name to the output of this join stmt, so that nested
+   * joins can identify whether an input event is on the left or
+   * right side.
+   */
+  public void setSourceName(String srcName) {
+    mJoinName = srcName;
   }
 
   /** {@inheritDoc} */
@@ -116,8 +150,69 @@ public class JoinedSource extends RecordSource {
 
   @Override
   public PlanContext createExecPlan(PlanContext planContext) {
-    throw new RuntimeException("joinedsource.createexecplan() needs to be written next.");
-    
-  }
+    RecordSource leftSrc = getLeft();
+    RecordSource rightSrc = getRight();
 
+    // Create separate execution plans to gather data from our upstream sources.
+    PlanContext leftContext = getSubPlan(leftSrc, planContext);
+    PlanContext rightContext = getSubPlan(rightSrc, planContext);
+
+    // Add our upstream source plans to our graph.
+    FlowSpecification flowSpec = planContext.getFlowSpec();
+    flowSpec.addNodesFromDAG(leftContext.getFlowSpec());
+    flowSpec.addNodesFromDAG(rightContext.getFlowSpec());
+    
+    // Get the true field names that represent keys on the left and right
+    // sides of the join.
+    String leftName = leftSrc.getSourceName();
+    AssignedSymbol leftSym = (AssignedSymbol) getLeftKey().resolveAliases();
+    TypedField leftKey = new TypedField(leftSym.getAssignedName(), leftSym.getType());
+
+    String rightName = rightSrc.getSourceName();
+    AssignedSymbol rightSym = (AssignedSymbol) getRightKey().resolveAliases();
+    TypedField rightKey = new TypedField(rightSym.getAssignedName(), rightSym.getType());
+
+    WindowSpec window = null;
+    try {
+      // This should evaluate to itself, but make sure to resolve it anyway.
+      assert mWindowExpr.isConstant();
+      window = (WindowSpec) mWindowExpr.eval(new EmptyEventWrapper());
+    } catch (IOException ioe) {
+      // mWindowExpr should be constant, so this should be impossible.
+      LOG.error("IOException calculating window expression: " + ioe);
+      // Signal error by returning a null flow specification anyway.
+      planContext.setFlowSpec(null);
+      return planContext;
+    }
+
+    HashJoinNode joinNode = new HashJoinNode(leftName, rightName, leftKey, rightKey,
+        window, getSourceName(), leftContext.getOutFields(), rightContext.getOutFields());
+
+    // Set this node to expect multiple input schemas.
+    List<Schema> inputSchemas = new ArrayList<Schema>();
+    inputSchemas.add(leftContext.getSchema());
+    inputSchemas.add(rightContext.getSchema());
+    joinNode.setAttr(PlanNode.MULTI_INPUT_SCHEMA_ATTR, inputSchemas);
+
+    flowSpec.attachToLastLayer(joinNode);
+
+    // Create an output context defining our fields, etc.
+    PlanContext outContext = new PlanContext(planContext);
+
+    SymbolTable outTable = SymbolTable.mergeSymbols(leftContext.getSymbolTable(),
+        rightContext.getSymbolTable(), planContext.getSymbolTable());
+    outContext.setSymbolTable(outTable);
+
+    List<TypedField> outputFields = new ArrayList<TypedField>();
+    outputFields.addAll(leftContext.getOutFields());
+    outputFields.addAll(rightContext.getOutFields());
+    outputFields = distinctFields(outputFields);
+    outContext.setOutFields(outputFields);
+
+    Schema outSchema = createFieldSchema(outputFields);
+    outContext.setSchema(outSchema);
+    joinNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, outSchema);
+
+    return outContext;
+  }
 }

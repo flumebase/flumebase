@@ -14,6 +14,7 @@ import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
 
 import com.odiago.rtengine.exec.EventWrapper;
+import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.ParsingEventWrapper;
 
@@ -82,6 +83,7 @@ public class RtsqlSink extends EventSink.Base {
     try {
       // TODO - Support other input types, delimiters, etc.
       
+      e.set(FlowElement.STREAM_NAME_ATTR, mSinkContext.getStreamName().getBytes());
       EventWrapper wrapper = new ParsingEventWrapper(new DelimitedEventParser(),
           mFieldNames);
       wrapper.reset(e);
