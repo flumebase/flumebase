@@ -265,7 +265,10 @@ public class CmdLineClient {
       throw new IOException("Interrupted while connecting to environment: " + ie);
     }
 
+    HistoryFile history = new HistoryFile();
     ConsoleReader conReader = new ConsoleReader();
+    history.populateConsoleReader(conReader);
+    history.open();
 
     mInCommand = false;
     mCmdBuilder = new StringBuilder();
@@ -283,7 +286,7 @@ public class CmdLineClient {
           if (trimmed.length() == 1) {
             System.err.println("Control sequence '\\' requires a command character. Try \\h");
           } else {
-            handleEscape(line.charAt(1));
+            handleEscape(trimmed.charAt(1));
           }
           resetCmdState();
         } else if (trimmed.endsWith(";")) {
@@ -294,6 +297,7 @@ public class CmdLineClient {
           } catch (InterruptedException ie) {
             LOG.warn("Interrupted while processing command: " + ie);
           }
+          history.logCommand(mCmdBuilder.toString());
           resetCmdState();
         } else if (line.length() > 0) {
           mCmdBuilder.append(line);
@@ -305,6 +309,12 @@ public class CmdLineClient {
       System.out.println("Goodbye");
       return qe.getStatus();
     } finally {
+      try {
+        history.close();
+      } catch (IOException ioe) {
+        LOG.warn("IOException closing history file: " + ioe);
+      }
+
       try {
         mExecEnv.disconnect();
       } catch (InterruptedException ie) {
