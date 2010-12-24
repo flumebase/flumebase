@@ -1,10 +1,6 @@
 
 
 Joins:
-  CompositeEventWrapper should actually just handle a single CompositeEvent
-  that does all this logic, but still maintains the Event API (needed for
-  AvroOutputElementImpl).
-
   I don't know that the various calls to streamSymbol.getName() are actually
   the correct name here -- I think we want the user's alias to get its way
   into the various source types.

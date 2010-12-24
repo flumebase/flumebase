@@ -191,21 +191,26 @@ public class HashJoinElement extends FlowElementImpl {
       otherMapLo = curTime + mTimeSpan.lo;
     }
 
+    LOG.info("Working on key: " + key);
+
     // Join with all the events in the window.
     List<EventWrapper> joinEvents = joinMap.getRange(key, lo, hi);
     for (EventWrapper joinWrapper : joinEvents) {
-      CompositeEventWrapper out = new CompositeEventWrapper(mFieldMap);
+      CompositeEvent outEvent = new CompositeEvent(mFieldMap,
+          event.getPriority(), event.getTimestamp(), event.getNanos(), event.getHost());
+      CompositeEventWrapper outWrapper = new CompositeEventWrapper();
       if (isLeft) {
-        out.add(e);
-        out.add(joinWrapper);
+        outEvent.add(e);
+        outEvent.add(joinWrapper);
       } else {
         // Add the left event to the composite first.
         // Order matters due to the fixed mFieldMap.
-        out.add(joinWrapper);
-        out.add(e);
+        outEvent.add(joinWrapper);
+        outEvent.add(e);
       }
-      out.setAttr(STREAM_NAME_ATTR, mOutName); // set the output stream name.
-      emit(out);
+      outEvent.setAttr(STREAM_NAME_ATTR, mOutName); // set the output stream name.
+      outWrapper.reset(outEvent);
+      emit(outWrapper);
     }
 
     // Save the event for joining with other events that arrive in the future.
@@ -214,7 +219,7 @@ public class HashJoinElement extends FlowElementImpl {
     // Remove entries from the join target map that are behind the current
     // window, to keep the window maps from overfilling.
     // Anything behind the 'lo' value can be removed.
-    joinMap.removeOlderThan(lo);
+//    joinMap.removeOlderThan(lo);
 
     // TODO(aaron): Introduce a notion of "slack." Don't remove things until they
     // are 'lo - slack' behind.
@@ -223,6 +228,6 @@ public class HashJoinElement extends FlowElementImpl {
     // on the other side for an extended period of time, we won't be culling the
     // correct map. Given 'lo' calculated from the perspective of an entry in
     // the other map, remove obsolete values from insertMap.
-    insertMap.removeOlderThan(otherMapLo);
+//    insertMap.removeOlderThan(otherMapLo);
   }
 }
