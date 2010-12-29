@@ -25,6 +25,16 @@ public abstract class FlowElement {
    */
   public abstract void open() throws IOException, InterruptedException;
 
+  /** Notify to the FlowElement that it has an open upstream element. */
+  public abstract void registerUpstream();
+
+  /**
+   * Notify an element that one of its upstream elements has closed. When
+   * the last upstream element notifies this one of its closure, this will
+   * close the current FlowElement.
+   */
+  public abstract void closeUpstream() throws IOException, InterruptedException;
+
   /**
    * Called to notify the FlowElement to stop processing events. After
    * the close() call returns, the FE may not emit further events

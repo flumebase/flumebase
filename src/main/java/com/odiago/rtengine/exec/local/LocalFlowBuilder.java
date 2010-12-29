@@ -98,7 +98,9 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     if (childElements.size() == 0) {
       return new SinkFlowElemContext(mFlowId);
     } else if (childElements.size() == 1) {
-      return new DirectCoupledFlowElemContext(childElements.get(0).getFlowElement());
+      FlowElement childElem = childElements.get(0).getFlowElement();
+      childElem.registerUpstream();
+      return new DirectCoupledFlowElemContext(childElem);
     } else {
       // TODO(aaron): Create a multi-output context and use here.
       LOG.error("No local context available for fan-out");

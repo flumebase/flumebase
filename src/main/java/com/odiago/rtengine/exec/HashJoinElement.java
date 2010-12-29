@@ -173,28 +173,24 @@ public class HashJoinElement extends FlowElementImpl {
     long curTime = event.getTimestamp();
     Long lo;
     Long hi;
-    Long otherMapLo;
 
     if (isLeft) {
       // If this event is from the left stream, calculate the relative time interval normally. 
       lo = curTime + mTimeSpan.lo;
       hi = curTime + mTimeSpan.hi;
-
-      otherMapLo = curTime - mTimeSpan.hi;
     } else {
       // If this event is from the right stream, use the "mirror image" of the timespan.
       // "RANGE INTERVAL 10 MINUTES PRECEDING" actually means, join with the /next/ 10
       // minutes of data from this perspective.
       lo = curTime - mTimeSpan.hi;
       hi = curTime - mTimeSpan.lo;
-
-      otherMapLo = curTime + mTimeSpan.lo;
     }
 
-    LOG.info("Working on key: " + key);
+    LOG.debug("Working on key: " + key + ", isLeft=" + isLeft);
+    LOG.debug("Timestamp=" + curTime + ", interval=" + lo + ", " + hi);
 
     // Join with all the events in the window.
-    List<EventWrapper> joinEvents = joinMap.getRange(key, lo, hi);
+    List<EventWrapper> joinEvents = joinMap.getRange(key, lo, hi, isLeft, !isLeft);
     for (EventWrapper joinWrapper : joinEvents) {
       CompositeEvent outEvent = new CompositeEvent(mFieldMap,
           event.getPriority(), event.getTimestamp(), event.getNanos(), event.getHost());
@@ -219,15 +215,27 @@ public class HashJoinElement extends FlowElementImpl {
     // Remove entries from the join target map that are behind the current
     // window, to keep the window maps from overfilling.
     // Anything behind the 'lo' value can be removed.
-//    joinMap.removeOlderThan(lo);
+    joinMap.removeOlderThan(lo);
 
     // TODO(aaron): Introduce a notion of "slack." Don't remove things until they
     // are 'lo - slack' behind.
 
     // If we get lots of records on one side of the join but no records
     // on the other side for an extended period of time, we won't be culling the
-    // correct map. Given 'lo' calculated from the perspective of an entry in
-    // the other map, remove obsolete values from insertMap.
-//    insertMap.removeOlderThan(otherMapLo);
+    // correct map. Given 'lo' calculated from the perspective of oldest entry in
+    // the other map, remove obsolete values from insertMap. Calculating based
+    // on the oldest entry in the other map ensures that we are not discarding
+    // values that we cannot process yet because one stream is delayed.
+    Long oldestInOtherMap = joinMap.oldestTimestamp();
+    if (null != oldestInOtherMap) {
+      Long otherMapLo;
+      if (isLeft) {
+        otherMapLo = oldestInOtherMap - mTimeSpan.hi;
+      } else {
+        otherMapLo = oldestInOtherMap + mTimeSpan.lo;
+      }
+      LOG.debug("otherMapLo=" + otherMapLo);
+      insertMap.removeOlderThan(otherMapLo);
+    }
   }
 }

@@ -17,9 +17,26 @@ public abstract class FlowElementImpl extends FlowElement {
 
   private boolean mIsClosed;
 
+  private int mNumOpenUpstream;
+
   public FlowElementImpl(FlowElementContext ctxt) {
     mContext = ctxt;
     mIsClosed = false;
+    mNumOpenUpstream = 0;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void registerUpstream() {
+    mNumOpenUpstream++;
+  }
+
+  @Override
+  public void closeUpstream() throws IOException, InterruptedException {
+    mNumOpenUpstream--;
+    if (mNumOpenUpstream == 0) { 
+      close();
+    }
   }
 
   /**

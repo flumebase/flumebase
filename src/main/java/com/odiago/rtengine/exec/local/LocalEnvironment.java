@@ -313,8 +313,9 @@ public class LocalEnvironment extends ExecEnvironment {
                   DirectCoupledFlowElemContext directContext =
                       (DirectCoupledFlowElemContext) context;
                   downstream = directContext.getDownstream();
+                  // TODO(aaron): Is this call correctly placed? Or even relevant?
                   downstream.completeWindow();
-                  downstream.close();
+                  downstream.closeUpstream();
                 } else if (context instanceof SinkFlowElemContext) {
                   // We have received close() notification from the last element in a flow.
                   // Remove the entire flow from service.

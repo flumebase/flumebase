@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.cloudera.util.Pair;
 
 /**
@@ -31,6 +34,10 @@ import com.cloudera.util.Pair;
  */
 public class WindowedHashMap<K, V, T extends Comparable<T>>
     implements Map<K, List<Pair<T, V>>> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(
+      WindowedHashMap.class.getName());
+
   private HashMap<K, List<Pair<T, V>>> mHashMap;
   private TreeMap<T, List<K>> mTimestamps;
 
@@ -150,7 +157,7 @@ public class WindowedHashMap<K, V, T extends Comparable<T>>
   }
 
   @Override
-  public void putAll(Map<? extends K,? extends List<Pair<T, V>>> m) {
+  public void putAll(Map<? extends K, ? extends List<Pair<T, V>>> m) {
     for (Map.Entry<? extends K, ? extends List<Pair<T, V>>> entry : m.entrySet()) {
       put(entry.getKey(), entry.getValue());
     }
@@ -173,7 +180,7 @@ public class WindowedHashMap<K, V, T extends Comparable<T>>
   }
 
   @Override
-  public Set<Map.Entry<K,List<Pair<T, V>>>> entrySet() {
+  public Set<Map.Entry<K, List<Pair<T, V>>>> entrySet() {
     return mHashMap.entrySet();
   }
 
@@ -196,10 +203,12 @@ public class WindowedHashMap<K, V, T extends Comparable<T>>
 
   /**
    * Look up all values for a key within a given timestamp range. 
-   * @returns a list of values such that m[key, t] = v and lo &lt;= t &lt; hi.
+   * @returns a list of values such that m[key, t] = v and t is in the interval
+   * bounded by lo and hi. Arguments specify whether the lower and upper bounds
+   * of the interval are open-ended or closed.
    * Returns the empty list if no such key can be found within that window.
    */
-  public List<V> getRange(K key, T lo, T hi) {
+  public List<V> getRange(K key, T lo, T hi, boolean openLo, boolean openHi) {
     List<Pair<T, V>> timesAndVals = mHashMap.get(key);
     
     boolean first = true;
@@ -211,7 +220,7 @@ public class WindowedHashMap<K, V, T extends Comparable<T>>
     }
 
     for (Pair<T, V> pr : timesAndVals) {
-      if (timeInRange(lo, pr.getLeft(), hi)) {
+      if (timeInRange(lo, pr.getLeft(), hi, openLo, openHi)) {
         if (null == out) {
           // Start by using a singleton list to hold this object. 
           out = Collections.singletonList(pr.getRight());
@@ -235,10 +244,21 @@ public class WindowedHashMap<K, V, T extends Comparable<T>>
   }
 
   /**
-   * @return true if lo &lt;= test &lt; hi.
+   * @return true if test is in the interval between lo and hi;
+   * both endpoints can be open or closed.
    */
-  private boolean timeInRange(T lo, T test, T hi) {
-    return lo.compareTo(test) <= 0 && test.compareTo(hi) < 0;
+  private boolean timeInRange(T lo, T test, T hi, boolean openLo, boolean openHi) {
+    int loVsTest = lo.compareTo(test);
+    if (!(openLo ? loVsTest < 0 : loVsTest <= 0)) {
+      return false; // 'test' is not above the lo end of the interval.
+    }
+
+    int hiVsTest = test.compareTo(hi);
+    if (!(openHi ? hiVsTest < 0 : hiVsTest <= 0)) {
+      return false; // 'test' is not below the hi end of the interval.
+    }
+
+    return true;
   }
 
   /**
@@ -249,6 +269,7 @@ public class WindowedHashMap<K, V, T extends Comparable<T>>
     // Get a view of all timestamps in the map less than 'test'.
     Map<T, List<K>> subMap = mTimestamps.headMap(test, false);
 
+    LOG.debug("Remove older than: " + test);
     Set<Map.Entry<T, List<K>>> entrySet = subMap.entrySet();
     Iterator<Map.Entry<T, List<K>>> entries = entrySet.iterator();
     while (entries.hasNext()) {
@@ -265,6 +286,7 @@ public class WindowedHashMap<K, V, T extends Comparable<T>>
         while (pairIter.hasNext()) {
           Pair<T, V> pr = pairIter.next();
           if (pr.getLeft().equals(removeTime)) {
+            LOG.debug("Removing: " + removeKey + " (t=" + removeTime + ")");
             pairIter.remove();
           }
         }
@@ -278,5 +300,16 @@ public class WindowedHashMap<K, V, T extends Comparable<T>>
       // Remove the entry for this timestamp from the underlying map.
       entries.remove();
     }
+  }
+
+  /**
+   * @return the oldest timestamp in the map, or null if the map is empty.
+   */
+  public T oldestTimestamp() {
+    if (mTimestamps.isEmpty()) {
+      return null;
+    }
+
+    return mTimestamps.firstKey();
   }
 }
