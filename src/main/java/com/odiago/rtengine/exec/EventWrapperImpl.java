@@ -16,4 +16,10 @@ public abstract class EventWrapperImpl extends EventWrapper {
       return new String(bytes);
     }
   }
+
+  /** {@inheritDoc} */
+  @Override
+  public String getEventText() {
+    return new String(getEvent().getBody());
+  }
 }

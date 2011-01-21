@@ -54,7 +54,6 @@ Technical debt surrounding tests:
 
 SQL Features (in rough priority order):
   - Aggregation and aggregate functions
-  - Join
   - Filtering (HAVING)
   - LIMIT
   - ORDER BY

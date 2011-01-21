@@ -4,6 +4,8 @@ package com.odiago.rtengine.exec;
 
 import java.io.IOException;
 
+import java.util.List;
+
 import com.cloudera.flume.core.Event;
 
 import com.odiago.rtengine.parser.TypedField;
@@ -42,5 +44,23 @@ public class CompositeEventWrapper extends EventWrapper {
   /** Set an attribute on the composite event. */
   public void setAttr(String attrName, String attrVal) {
     mEvent.setAttr(attrName, attrVal);
+  }
+
+  @Override
+  public String getEventText() {
+    List<EventWrapper> innerWrappers = mEvent.getEventWrappers();
+    StringBuilder sb = new StringBuilder();
+    sb.append("[{");
+    boolean first = true;
+    for (EventWrapper ew : innerWrappers) {
+      if (!first) {
+        sb.append("}, {");
+      }
+
+      first = false;
+      sb.append(ew.getEventText());
+    }
+    sb.append("}]");
+    return sb.toString();
   }
 }

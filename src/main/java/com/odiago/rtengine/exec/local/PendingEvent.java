@@ -29,7 +29,7 @@ public class PendingEvent {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("(\"");
-    String eventStr = new String(mEvent.getEvent().getBody());
+    String eventStr = mEvent.getEventText();
     sb.append(eventStr);
     sb.append("\" -> ");
     sb.append(mTarget);

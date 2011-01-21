@@ -38,6 +38,11 @@ public abstract class EventWrapper {
   public abstract Event getEvent();
 
   /**
+   * Return a textual description of the event body.
+   */
+  public abstract String getEventText();
+
+  /**
    * Get an attribute of the underlying event and return its string representation,
    * or null if it is unset.
    */

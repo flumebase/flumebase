@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.cloudera.flume.core.Event;
+
+import com.cloudera.flume.core.Event.Priority;
 import com.cloudera.flume.core.EventImpl;
 
 import com.odiago.rtengine.exec.InMemStreamSymbol;
@@ -54,6 +56,10 @@ public class MemStreamBuilder {
 
   public void addEvent(String eventBodyText) {
     addEvent(eventBodyText.getBytes());
+  }
+
+  public void addEvent(String eventBodyText, long eventTime) {
+    mEvents.add(new EventImpl(eventBodyText.getBytes(), eventTime, Priority.INFO, 0, null));
   }
 
   public void addField(TypedField tf) {

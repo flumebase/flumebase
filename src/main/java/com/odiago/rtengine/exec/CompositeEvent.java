@@ -146,4 +146,9 @@ public class CompositeEvent extends Event {
   public void hierarchicalMerge(String arg, Event event) {
     throw new RuntimeException("Unsupported operation.");
   }
+
+  /** @return the set of EventWrappers that compose this composite event. */
+  List<EventWrapper> getEventWrappers() {
+    return mEventWrappers;
+  }
 }
