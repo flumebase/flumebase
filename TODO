@@ -72,8 +72,6 @@ Bugs:
     a data structure that allows bounded puts from other threads, but the internal
     thread is allowed to override the limit.
 
-  - Flume is super-chatty when you start it up locally. We should squash its logs,
-    unless we're in debug mode.
 
   - Quitting is very slow due to the Flume shutdown. Can we improve this?
     ... it also emits a scary looking error message, that we should suppress for
