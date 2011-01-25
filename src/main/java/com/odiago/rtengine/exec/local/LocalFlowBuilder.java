@@ -194,7 +194,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
         newElem = new FileSourceElement(newContext, fileName, streamSymbol.isLocal(),
             namedInput.getFields(), streamSymbol);
         break;
-      case Sink:
+      case Source:
         if (!streamSymbol.isLocal()) {
           throw new DAGOperatorException("Do not know how to handle a non-local source yet.");
         }

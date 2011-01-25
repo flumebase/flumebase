@@ -252,7 +252,7 @@ source_definition returns [RecordSource val]:
 // Indicates in a CREATE STREAM statement what the type of source is. 
 src_type returns [StreamSourceType val]:
     FILE { $val = StreamSourceType.File; }
-  | SINK { $val = StreamSourceType.Sink; }
+  | SOURCE { $val = StreamSourceType.Source; }
   | NODE { $val = StreamSourceType.Node; }
   ;
     
