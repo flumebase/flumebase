@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -30,6 +31,7 @@ import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.ExecEnvironment;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowId;
+import com.odiago.rtengine.exec.FlowInfo;
 import com.odiago.rtengine.exec.HashSymbolTable;
 import com.odiago.rtengine.exec.QuerySubmitResponse;
 import com.odiago.rtengine.exec.SymbolTable;
@@ -74,6 +76,7 @@ public class LocalEnvironment extends ExecEnvironment {
       ElementComplete, // A flow element is complete and should be freed.
       Join,            // Add an object to the list of objects to be notified when a
                        // flow is canceled.
+      ListFlows,       // Enumerate the running flows.
     };
 
     /** What operation should be performed by the worker thread? */
@@ -266,6 +269,26 @@ public class LocalEnvironment extends ExecEnvironment {
       mActiveFlows.clear();
     }
 
+    /**
+     * Populate the provided map with info about all running flows. This map
+     * is provided by the user process, so we need to synchronize on it before
+     * writing. Furthermore, we must notify the calling thread when it is ready
+     * for consumption.
+     */
+    private void listFlows(Map<FlowId, FlowInfo> outMap) {
+      assert outMap != null;
+      synchronized (outMap) {
+        for (Map.Entry<FlowId, ActiveFlowData> entry : mActiveFlows.entrySet()) {
+          FlowId id = entry.getKey();
+          ActiveFlowData activeData = entry.getValue();
+          outMap.put(id, new FlowInfo(id, activeData.getFlow().getQuery()));
+        }
+
+        // Notify the calling thread when we're done.
+        outMap.notify();
+      }
+    }
+
     @Override
     public void run() {
       try {
@@ -350,6 +373,10 @@ public class LocalEnvironment extends ExecEnvironment {
                 // Mark the waitObj as one we should notify when the flow is canceled.
                 flowData.subscribeToCancelation(waitObj);
               }
+              break;
+            case ListFlows:
+              Map<FlowId, FlowInfo> resultMap = (Map<FlowId, FlowInfo>) nextOp.getDatum();
+              listFlows(resultMap);
               break;
             }
           }
@@ -534,6 +561,7 @@ public class LocalEnvironment extends ExecEnvironment {
       msgBuilder.append(retContext.getMsgBuilder().toString());
       FlowSpecification spec = retContext.getFlowSpec();
       if (null != spec) {
+        spec.setQuery(query);
         // Given a flow specification from the AST, run it through
         // necessary post-processing and optimization phases.
         spec.bfs(new PropagateSchemas());
@@ -574,6 +602,7 @@ public class LocalEnvironment extends ExecEnvironment {
         return null;
       }
       LocalFlow localFlow = flowBuilder.getLocalFlow();
+      localFlow.setQuery(spec.getQuery());
       if (localFlow.getRootSet().size() == 0) {
         // No nodes created (empty flow, or DDL-only flow, etc.)
         return null;
@@ -609,6 +638,22 @@ public class LocalEnvironment extends ExecEnvironment {
       joinObj.wait(timeout);
       return joinObj.item;
     }
+  }
+
+  @Override
+  public Map<FlowId, FlowInfo> listFlows() throws InterruptedException {
+    Map<FlowId, FlowInfo> outData = new TreeMap<FlowId, FlowInfo>();
+    synchronized (outData) {
+      while (true) {
+        mControlQueue.put(new ControlOp(ControlOp.Code.ListFlows, outData));
+        try {
+          outData.wait();
+          break;
+        } catch (InterruptedException ie) {
+        }
+      }
+    }
+    return outData;
   }
 
   /**

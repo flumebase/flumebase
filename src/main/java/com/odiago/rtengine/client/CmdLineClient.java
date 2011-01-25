@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -19,10 +20,12 @@ import org.slf4j.LoggerFactory;
 
 import com.odiago.rtengine.exec.ExecEnvironment;
 import com.odiago.rtengine.exec.FlowId;
+import com.odiago.rtengine.exec.FlowInfo;
 import com.odiago.rtengine.exec.QuerySubmitResponse;
 
 import com.odiago.rtengine.exec.local.LocalEnvironment;
 import com.odiago.rtengine.util.QuitException;
+import com.odiago.rtengine.util.StringUtils;
 
 import jline.ConsoleReader;
 
@@ -73,6 +76,21 @@ public class CmdLineClient {
     System.out.println(VERSION_STRING);
   }
 
+  /**
+   * Format the currently-running flow info to stdout.
+   */
+  private void showFlows() {
+    try {
+      Map<FlowId, FlowInfo> flows = mExecEnv.listFlows();
+      for (Map.Entry<FlowId, FlowInfo> entry : flows.entrySet()) {
+        System.out.println(entry.getValue().toString());
+      }
+    } catch (Exception e) {
+      LOG.error("Exception listing flows: " + StringUtils.stringifyException(e));
+      return;
+    }
+  }
+
   private void printUsage() {
     System.out.println("");
     System.out.println("All text commands must end with a ';' character.");
@@ -80,6 +98,7 @@ public class CmdLineClient {
     System.out.println("");
     System.out.println("Session control commands:");
     System.out.println("  \\c  Cancel the current input statement.");
+    System.out.println("  \\f  List flows");
     System.out.println("  \\h  Print help message.");
     System.out.println("  \\q  Quit the client.");
     System.out.println("");
@@ -100,6 +119,9 @@ public class CmdLineClient {
     switch(escapeChar) {
     case 'c':
       resetCmdState();
+      break;
+    case 'f':
+      showFlows();
       break;
     case 'h':
       printUsage();

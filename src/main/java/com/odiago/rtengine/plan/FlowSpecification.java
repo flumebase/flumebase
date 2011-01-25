@@ -2,10 +2,6 @@
 
 package com.odiago.rtengine.plan;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
 import com.odiago.rtengine.util.DAG;
 
 /**
@@ -15,6 +11,23 @@ import com.odiago.rtengine.util.DAG;
  * locations.
  */
 public class FlowSpecification extends DAG<PlanNode> {
+  private String mQuery;
+
+  public FlowSpecification(String query) {
+    mQuery = query;
+  }
+
   public FlowSpecification() {
+  }
+
+  /**
+   * @return the query associated with this flow.
+   */
+  public String getQuery() {
+    return mQuery;
+  }
+
+  public void setQuery(String query) {
+    mQuery = query;
   }
 }

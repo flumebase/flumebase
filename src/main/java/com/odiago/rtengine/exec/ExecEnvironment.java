@@ -4,6 +4,8 @@ package com.odiago.rtengine.exec;
 
 import java.io.IOException;
 
+import java.util.Map;
+
 import com.odiago.rtengine.plan.FlowSpecification;
 
 /**
@@ -53,6 +55,12 @@ public abstract class ExecEnvironment {
    * Terminates a running flow.
    */
   public abstract void cancelFlow(FlowId id) throws InterruptedException, IOException;
+
+  /**
+   * Return information about all active flows in the execution environment, keyed
+   * by FlowId.
+   */
+  public abstract Map<FlowId, FlowInfo> listFlows() throws InterruptedException, IOException;
 
   /**
    * Waits for the specified flow to complete.

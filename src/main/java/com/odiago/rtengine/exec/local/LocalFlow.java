@@ -12,10 +12,12 @@ public class LocalFlow extends DAG<FlowElementNode> {
   private FlowId mFlowId;
 
   private boolean mRequiresFlume; 
+  private String mQuery;
 
   public LocalFlow(FlowId id) {
     mFlowId = id;
     mRequiresFlume = false;
+    mQuery = null;
   }
 
   public FlowId getId() {
@@ -35,6 +37,15 @@ public class LocalFlow extends DAG<FlowElementNode> {
    */
   void setFlumeRequired(boolean required) {
     mRequiresFlume = required;
+  }
+
+  /** Set the query string that this flow represents. */
+  void setQuery(String query) {
+    mQuery = query;
+  }
+
+  public String getQuery() {
+    return mQuery;
   }
 
 

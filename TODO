@@ -82,7 +82,6 @@ Features:
   - Need ability to create a remote physical plan
   -- Need ability to run remote physical plan on a set of configured nodes.
   - Need a DROP FLOW operation
-  - Need SHOW FLOWS operation
 
   - EventParser names/implementations should be accessed through the BuiltInSymbolTable.
   - Need a MapFunc API to allow 1-to-many transformations.
