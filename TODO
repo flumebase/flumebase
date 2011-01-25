@@ -85,7 +85,6 @@ Features:
   -- Need ability to run remote physical plan on a set of configured nodes.
   - Need a DROP FLOW operation
   - Need SHOW FLOWS operation
-  - Need ExecEnvironment.joinFlow(flowId, timeout)
 
   - EventParser names/implementations should be accessed through the BuiltInSymbolTable.
   - Need a MapFunc API to allow 1-to-many transformations.

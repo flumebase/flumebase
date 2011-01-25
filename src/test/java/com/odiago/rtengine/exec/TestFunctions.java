@@ -114,7 +114,7 @@ public class TestFunctions extends RtsqlTestCase {
     QuerySubmitResponse response = env.submitQuery(query);
     FlowId id = response.getFlowId();
     assertNotNull(response.getMessage(), id);
-    env.joinFlow(id);
+    joinFlow(id);
 
     // Examine the response records.
     MemoryOutputElement output = getOutput("testSelect");

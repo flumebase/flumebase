@@ -60,6 +60,15 @@ public abstract class ExecEnvironment {
   public abstract void joinFlow(FlowId id) throws InterruptedException, IOException;
 
   /**
+   * Waits up to 'timeout' milliseconds for the specified flow to complete. If timeout
+   * is zero, blocks indefinitely.
+   *
+   * @return true if the flow completed, false if the timeout was reached instead.
+   */
+  public abstract boolean joinFlow(FlowId id, long timeout)
+      throws InterruptedException, IOException;
+
+  /**
    * Disconnects this client from the environment.
    */
   public abstract void disconnect() throws InterruptedException, IOException;

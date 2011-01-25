@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.odiago.rtengine.exec.BuiltInSymbolTable;
+import com.odiago.rtengine.exec.FlowId;
 import com.odiago.rtengine.exec.HashSymbolTable;
 import com.odiago.rtengine.exec.SymbolTable;
 
@@ -80,6 +81,17 @@ public class RtsqlTestCase {
 
   protected MemoryOutputElement getOutput(String outputName) {
     return mOutputs.get(outputName);
+  }
+
+  /**
+   * Waits for a flow to complete. If this does not happen within 60 seconds,
+   * a timeout occurs and the test fails.
+   */
+  protected void joinFlow(FlowId id) throws IOException, InterruptedException {
+    boolean finished = mEnvironment.joinFlow(id, 60000);
+    if (!finished) {
+      fail("Waited > 60s for flow to complete -- flow executor is stuck?");
+    }
   }
 
   /**

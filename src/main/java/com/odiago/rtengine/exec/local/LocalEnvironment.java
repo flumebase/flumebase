@@ -51,6 +51,7 @@ import com.odiago.rtengine.plan.PropagateSchemas;
 
 import com.odiago.rtengine.util.DAG;
 import com.odiago.rtengine.util.DAGOperatorException;
+import com.odiago.rtengine.util.Ref;
 
 /**
  * Standalone local execution environment for flows.
@@ -105,13 +106,14 @@ public class LocalEnvironment extends ExecEnvironment {
 
     /**
      * Set of objects which will have notify() called when the flow is
-     * complete.
+     * complete. The join target is a reference to a Boolean, which
+     * will be set to True when the flow is complete.
      */
-    private final List<Object> mJoinTargets;
+    private final List<Ref<Boolean>> mJoinTargets;
 
     public ActiveFlowData(LocalFlow flow) {
       mLocalFlow = flow;
-      mJoinTargets = new ArrayList<Object>();
+      mJoinTargets = new ArrayList<Ref<Boolean>>();
     }
 
     public LocalFlow getFlow() {
@@ -124,15 +126,16 @@ public class LocalEnvironment extends ExecEnvironment {
 
     /** Notifies everyone waiting on this flow that it is canceled. */
     public void cancel() {
-      for (Object joinTarget : mJoinTargets) {
+      for (Ref<Boolean> joinTarget : mJoinTargets) {
         synchronized (joinTarget) {
+          joinTarget.item = Boolean.TRUE;
           joinTarget.notify();
         }
       }
     }
 
     /** Waits for this flow to terminate. */
-    public void subscribeToCancelation(Object obj) {
+    public void subscribeToCancelation(Ref<Boolean> obj) {
       mJoinTargets.add(obj);
     }
   }
@@ -335,11 +338,12 @@ public class LocalEnvironment extends ExecEnvironment {
             case Join:
               FlowJoinRequest joinReq = (FlowJoinRequest) nextOp.getDatum();
               FlowId id = joinReq.getFlowId();
-              Object waitObj = joinReq.getJoinObj();
+              Ref<Boolean> waitObj = joinReq.getJoinObj();
               ActiveFlowData flowData = mActiveFlows.get(id);
               if (null == flowData) {
                 // This flow id is already canceled. Return immediately.
                 synchronized (waitObj) {
+                  waitObj.item = Boolean.TRUE;
                   waitObj.notify();
                 }
               } else {
@@ -589,10 +593,21 @@ public class LocalEnvironment extends ExecEnvironment {
 
   @Override
   public void joinFlow(FlowId id) throws InterruptedException {
-    Object joinObj = new Object();
+    Ref<Boolean> joinObj = new Ref<Boolean>();
     synchronized (joinObj) {
       mControlQueue.put(new ControlOp(ControlOp.Code.Join, new FlowJoinRequest(id, joinObj)));
       joinObj.wait();
+    }
+  }
+
+  @Override
+  public boolean joinFlow(FlowId id, long timeout) throws InterruptedException {
+    Ref<Boolean> joinObj = new Ref<Boolean>();
+    joinObj.item = Boolean.FALSE;
+    synchronized (joinObj) {
+      mControlQueue.put(new ControlOp(ControlOp.Code.Join, new FlowJoinRequest(id, joinObj)));
+      joinObj.wait(timeout);
+      return joinObj.item;
     }
   }
 
