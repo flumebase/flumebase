@@ -16,6 +16,7 @@ import com.odiago.rtengine.exec.FileSourceElement;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowId;
+import com.odiago.rtengine.exec.FlumeNodeElement;
 import com.odiago.rtengine.exec.HashJoinElement;
 import com.odiago.rtengine.exec.InMemStreamSymbol;
 import com.odiago.rtengine.exec.ProjectionElement;
@@ -214,6 +215,19 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       case Memory:
         newElem = new LocalInMemSourceElement(newContext,
             namedInput.getFields(), (InMemStreamSymbol) streamSymbol);
+        break;
+      case Node:
+        String nodeSourceId = "rtengine-flow-" + mFlowId.getId() + "-" + streamSymbol.getName();
+        newElem = new FlumeNodeElement(newContext, nodeSourceId,
+            mFlumeConfig, streamSymbol.getSource(),
+            (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
+            namedInput.getFields(), streamSymbol.getName());
+
+        LOG.info("Created local Flume receiver context: " + nodeSourceId);
+        LOG.info("This will be connected to upstream Flume node: " + streamSymbol.getSource());
+
+        // Mark Flume as required to execute this flow.
+        mLocalFlow.setFlumeRequired(true);
         break;
       default:
         throw new DAGOperatorException("Unhandled stream source type: "

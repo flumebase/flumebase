@@ -49,6 +49,12 @@ fi
 add_to_classpath "${LIB_DIR}"
 add_to_classpath "${MVN_BUILD_DEPS_DIR}"
 
+# For now, put Flume on the classpath directly. Some day, this will be mvn-managed.
+# TODO(aaron): Remove this!!
+if [ ! -z "${FLUME_HOME}" -a -d "${FLUME_HOME}/lib" ]; then
+  add_to_classpath "${FLUME_HOME}/lib"
+fi
+
 if [ -d "${MVN_TARGET_DIR}/classes" ]; then
   # If there's a target/classes/ dir, then we want to put this ahead of any
   # jar on the classpath; use the most recently compiled bits.

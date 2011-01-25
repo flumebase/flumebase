@@ -30,18 +30,11 @@ stmt returns [SQLStatement val]:
   ;
 
 stmt_create_stream returns [CreateStreamStmt val]:
-    CREATE STREAM fid=stream_sel ft=typed_field_list FROM flcl=LOCAL? FILE f=file_spec
+    CREATE STREAM sid=stream_sel fields=typed_field_list FROM lcl=LOCAL? st=src_type src=src_spec
         {
-          boolean fileIsLocal = flcl != null;
-          $val = new CreateStreamStmt($fid.val,
-              StreamSourceType.File, $f.val, fileIsLocal, $ft.val);
-        }
-      ffmt=optional_format_spec { $val.setFormatSpec($ffmt.val); }
-  | CREATE STREAM sid=stream_sel st=typed_field_list FROM slcl=LOCAL? SOURCE src=src_spec
-        {
-          boolean srcIsLocal = slcl != null;
+          boolean srcIsLocal = lcl != null;
           $val = new CreateStreamStmt($sid.val,
-              StreamSourceType.Sink, $src.val, srcIsLocal, $st.val);
+              $st.val, $src.val, srcIsLocal, $fields.val);
         }
       sfmt=optional_format_spec { $val.setFormatSpec($sfmt.val); }
   ;
@@ -240,11 +233,7 @@ maybe_qualified_user_sel returns [String val] :
     ( DOT id2=ID { $val = $val + "." + $id2.text.toLowerCase(); } )?
   | QQ_STRING {$val=unescape($QQ_STRING.text);};
     
-// filename is provided as a 'single quoted string'.
-file_spec returns [String val] :
-    q=Q_STRING { $val=unescape($q.text); };
-
-// Flume source is a 'single quoted string.'
+// Flume source, filename, etc. is a 'single quoted string.'
 src_spec returns [String val] :
     q=Q_STRING { $val=unescape($q.text); };
 
@@ -258,6 +247,13 @@ source_definition returns [RecordSource val]:
     )*
   | LPAREN st=stmt_select RPAREN { $val = $st.val; }
     ( AS? alias=stream_sel { ((SelectStmt) $val).setAlias($alias.val); } )?
+  ;
+
+// Indicates in a CREATE STREAM statement what the type of source is. 
+src_type returns [StreamSourceType val]:
+    FILE { $val = StreamSourceType.File; }
+  | SINK { $val = StreamSourceType.Sink; }
+  | NODE { $val = StreamSourceType.Node; }
   ;
     
 

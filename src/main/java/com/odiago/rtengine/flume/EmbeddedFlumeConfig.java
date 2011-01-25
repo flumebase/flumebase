@@ -7,8 +7,10 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 
@@ -27,7 +29,12 @@ import com.cloudera.flume.agent.FlumeNode;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.thrift.FlumeMasterAdminServer.Client;
 import com.cloudera.flume.conf.thrift.FlumeMasterCommandThrift;
+import com.cloudera.flume.conf.thrift.ThriftFlumeConfigData;
 import com.cloudera.flume.master.FlumeMaster;
+
+import com.cloudera.util.Pair;
+
+import com.odiago.rtengine.util.StringUtils;
 
 /**
  * Manages the configuration of embedded Flume components within the
@@ -58,7 +65,7 @@ public class EmbeddedFlumeConfig {
   public static final String FLUME_MASTER_PORT_KEY = "rtengine.flume.master.port";
   public static final int DEFAULT_FLUME_MASTER_PORT = 35873;
 
-  /** The complete set of Flume nodes spawned for our application. */
+  /** The complete set of (physical) Flume nodes spawned for our application. */
   private Collection<FlumeNode> mFlumeNodes;
 
   /** Thrift client to communicate with the master node. */
@@ -79,10 +86,24 @@ public class EmbeddedFlumeConfig {
    * and which is a component of all the logical nodes we spawn on it. */
   private String mHostName;
 
+  /** Name of the physical node we manage. */
+  private String mPhysicalNodeName;
+
+  /** True after start() has been called. */
+  private boolean mIsRunning;
+
+  /**
+   * Set of connections to external logical nodes acting as stream sources, keyed by
+   * logical node name.
+   */
+  private Map<String, ForeignNodeConn> mForeignNodeConnections;
+
   public EmbeddedFlumeConfig(Configuration conf) {
     mConf = conf;
+    mForeignNodeConnections = new HashMap<String, ForeignNodeConn>();
     mFlumeNodes = new LinkedList<FlumeNode>();
-    mHostName = getHostName();
+    getHostName(); // resolve the hostname and cache the result.
+    mIsRunning = false;
   }
   
   /**
@@ -115,6 +136,11 @@ public class EmbeddedFlumeConfig {
 
   /** Starts Flume services. */
   public void start() throws IOException {
+    if (mIsRunning) {
+      LOG.warn("Superfluous call to start(): already running.");
+      return;
+    }
+
     LOG.debug("Starting embedded Flume service");
 
     // If we've configured within this application the means to find Flume,
@@ -145,17 +171,23 @@ public class EmbeddedFlumeConfig {
 
     startPhysicalNode();
     LOG.debug("Physical node is ready");
+    mIsRunning = true;
+  }
+
+  /** @return true if the local Flume environment has been started. */
+  public boolean isRunning() {
+    return mIsRunning;
   }
 
   /**
    * Starts a Flume PhysicalNode that manages our data flows.
    */
   private void startPhysicalNode() {
-    String nodeName = mHostName;
     boolean startHttp = false;
     boolean isOneShot = false;
 
-    FlumeNode node = new FlumeNode(nodeName, mFlumeConf, startHttp, isOneShot);
+    mPhysicalNodeName = "rtsql-" + mHostName;
+    FlumeNode node = new FlumeNode(mPhysicalNodeName, mFlumeConf, startHttp, isOneShot);
     node.start();
     addFlumeNode(node);
   }
@@ -175,6 +207,7 @@ public class EmbeddedFlumeConfig {
     String nodeName = flowSourceId;
     String sinkStr = "rtsqlsink(\"" + flowSourceId + "\")";
 
+    // Configure the logical node to use our rtsqlsink and the user's source.
     spawnLogicalNode(nodeName, sourceStr, sinkStr);
   }
 
@@ -188,25 +221,46 @@ public class EmbeddedFlumeConfig {
     mMasterClient.submit(cmd);
   }
 
-  private void spawnLogicalNode(String logicalNode, String source, String sink)
+  /**
+   * Spawn a new logical node, hosted on our physical node, which has the
+   * specified source and sink.
+   */
+  public void spawnLogicalNode(String logicalNode, String source, String sink)
       throws TException {
 
-    // Configure the logical node to use our rtsqlsink and the user's source.
+    LOG.info("Spawning local logical node: " + logicalNode + ": " + source + " -> " + sink);
+
+    // Put the node configuration in the master first.
+    configureLogicalNode(logicalNode, source, sink);
+
+    // Spawn the logical node on our local physical node.
+    List<String> args = new ArrayList<String>();
+    args.add(mPhysicalNodeName);
+    args.add(logicalNode);
+    FlumeMasterCommandThrift cmd = new FlumeMasterCommandThrift("spawn", args);
+    mMasterClient.submit(cmd);
+  }
+
+  /**
+   * Tell the Flume master to configure a given logical node with the specified
+   * source and sink.
+   */
+  public void configureLogicalNode(String logicalNode, String source, String sink)
+      throws TException {
     List<String> args = new ArrayList<String>();
     args.add(logicalNode);
     args.add(source);
     args.add(sink);
     FlumeMasterCommandThrift cmd = new FlumeMasterCommandThrift("config", args);
     mMasterClient.submit(cmd);
-
-    // Spawn the logical node on our local physical node.
-    args.clear();
-    args.add(mHostName);
-    args.add(logicalNode);
-    cmd = new FlumeMasterCommandThrift("spawn", args);
-    mMasterClient.submit(cmd);
   }
 
+  public void decommissionLogicalNode(String logicalNode) throws TException {
+    List<String> args = new ArrayList<String>();
+    args.add(logicalNode);
+    FlumeMasterCommandThrift cmd = new FlumeMasterCommandThrift("decommission", args);
+    mMasterClient.submit(cmd);
+  }
 
   /**
    * Starts an embedded instance of the FlumeMaster service.  Used when
@@ -225,9 +279,39 @@ public class EmbeddedFlumeConfig {
   }
 
   /**
+   * @return the source and sink specification for the specified logical node.
+   *
+   * Contacts the master and asks for the source/sink specification for a
+   * logical node. Returns null if there is no such configuration, or else
+   * a pair containing these two values.
+   */
+  public Pair<String, String> getNodeConfig(String logicalNodeName) throws TException {
+    Map<String, ThriftFlumeConfigData> configMap = mMasterClient.getConfigs();
+
+    ThriftFlumeConfigData nodeData = configMap.get(logicalNodeName);
+    if (null == nodeData) {
+      return null; // No such node.
+    }
+
+    return new Pair<String, String>(nodeData.getSourceConfig(), nodeData.getSinkConfig());
+  }
+
+  /**
    * Stop our Flume nodes.
    */
   public void stop() {
+    LOG.info("Disconnecting from foreign resources");
+    for (Map.Entry<String, ForeignNodeConn>  entry : mForeignNodeConnections.entrySet()) {
+      String foreignName = entry.getKey();
+      ForeignNodeConn foreignConn = entry.getValue();
+      try {
+        foreignConn.close();
+      } catch (IOException ioe) {
+        LOG.warn("Error disconnecting from foreign node " + foreignName + ": "
+            + StringUtils.stringifyException(ioe));
+      }
+    }
+
     LOG.info("Stopping Flume nodes...");
     for (FlumeNode flumeNode : mFlumeNodes) {
       flumeNode.stop();
@@ -241,6 +325,62 @@ public class EmbeddedFlumeConfig {
     mMasterClient = null;
     mFlumeNodes.clear();
     mFlumeMaster = null;
+    mIsRunning = false;
+  }
+
+  /**
+   * Set up a connection from a foreign logical node 'nodeName' to forward a copy
+   * of its data to our process.
+   */
+  private ForeignNodeConn connectToForeignNode(String nodeName) throws IOException {
+    ForeignNodeConn newConn = null;
+    ForeignNodeConn existingConn = null;
+    synchronized (mForeignNodeConnections) {
+      // Check if this is already a thing.
+      existingConn = mForeignNodeConnections.get(nodeName);
+      if (null == existingConn) {
+        // Nope, do it.
+        newConn = new ForeignNodeConn(nodeName, mConf, this);
+        mForeignNodeConnections.put(nodeName, newConn);
+      }
+    }
+
+    if (null != newConn) {
+      // Actually open the connection here.
+      newConn.connect();
+      return newConn;
+    }
+
+    return existingConn;
+  }
+
+  /**
+   * Connect to a foreign logical node 'nodeName' and open a local tap to deliver
+   * events into the flow with the specified flowSourceId.
+   */
+  public void addFlowToForeignNode(String nodeName, String flowSourceId) throws IOException {
+    ForeignNodeConn conn = connectToForeignNode(nodeName);
+    conn.addLocalSink(flowSourceId);
+  }
+
+  /**
+   * Disconnect a local sink identified by flowSourceId from the local endpoint
+   * for a connection to foreign node nodeName.
+   */
+  public void cancelForeignConn(String nodeName, String flowSourceId) throws IOException {
+    LOG.info("Removing connection for flow " + flowSourceId
+        + " from endpoint for foreign node " + nodeName);
+
+    ForeignNodeConn conn = null;
+    synchronized (mForeignNodeConnections) {
+      conn = mForeignNodeConnections.get(nodeName);
+    }
+
+    if (null == conn) {
+      throw new IOException("No such connection: " + nodeName);
+    }
+
+    conn.removeLocalSink(flowSourceId);
   }
 
   /**
@@ -254,13 +394,19 @@ public class EmbeddedFlumeConfig {
   /**
    * @return the local hostname.
    */
-  private String getHostName() {
+  public String getHostName() {
+    if (null != mHostName) {
+      return mHostName;
+    }
+
     try {
-      return InetAddress.getLocalHost().getCanonicalHostName();
+      mHostName = InetAddress.getLocalHost().getCanonicalHostName();
     } catch (UnknownHostException uhe) {
       LOG.warn("Could not determine local hostname: " + uhe);
-      return "localhost";
+      mHostName = "localhost";
     }
+
+    return mHostName;
   }
 
   /**

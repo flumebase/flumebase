@@ -40,6 +40,7 @@ JOIN : J O I N ;
 LOCAL : L O C A L ;
 MINUTES : M I N U T E S ;
 MONTHS : M O N T H S ;
+NODE : N O D E ;
 NOT : N O T ;
 NULL : N U L L ;
 ON : O N ;

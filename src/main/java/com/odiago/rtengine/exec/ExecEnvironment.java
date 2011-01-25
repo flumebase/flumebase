@@ -8,7 +8,7 @@ import com.odiago.rtengine.plan.FlowSpecification;
 
 /**
  * Specification of an environment in which FlowElements
- * can be executed. Supports a Flume-based implementation, a local implementation, and
+ * can be executed. Supports a local (in-process) implementation, a remote implementation, and
  * potentially others.
  */
 public abstract class ExecEnvironment {

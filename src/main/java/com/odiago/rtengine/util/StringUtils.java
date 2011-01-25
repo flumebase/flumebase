@@ -39,4 +39,13 @@ public final class StringUtils {
       return input.substring(dotPos + 1);
     }
   }
+
+  /**
+   * Create a string representation of the specified throwable and its reified call stack.
+   */
+  public static String stringifyException(Throwable t) {
+    // Hadoop already has this implementation; we call it from here so clients can import
+    // a single StringUtils implementation.
+    return org.apache.hadoop.util.StringUtils.stringifyException(t);
+  }
 }

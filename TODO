@@ -55,8 +55,8 @@ Technical debt surrounding tests:
 SQL Features (in rough priority order):
   - Aggregation and aggregate functions
   - Filtering (HAVING)
-  - LIMIT
-  - ORDER BY
+  - LIMIT (within a window?)
+  - [windowed] ORDER BY -- how does this work for overlapping windows?
 
 Aggregation:
 
@@ -86,7 +86,6 @@ Features:
   - Need a DROP FLOW operation
   - Need SHOW FLOWS operation
   - Need ExecEnvironment.joinFlow(flowId, timeout)
-  - Need ability to auto-connect to a remote Flume resource.
 
   - EventParser names/implementations should be accessed through the BuiltInSymbolTable.
   - Need a MapFunc API to allow 1-to-many transformations.

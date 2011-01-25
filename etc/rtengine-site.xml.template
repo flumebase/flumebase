@@ -30,4 +30,18 @@
     <value>35873</value>
   </property>
   -->
+
+  <!-- Remote Flume sources are forwarded to local Flume collectors,
+       each of which listens on a different port. Specify the range
+       of ports to be used for this purpose with these properties:
+
+  <property>
+    <name>rtengine.flume.collector.port.min</name>
+    <value>45000</value>
+  </property>
+  <property>
+    <name>rtengine.flume.collector.port.max</name>
+    <value>46000</value>
+  </property>
+  -->
 </configuration>

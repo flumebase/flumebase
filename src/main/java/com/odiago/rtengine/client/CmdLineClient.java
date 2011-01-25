@@ -10,6 +10,8 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 
+import org.apache.hadoop.fs.Path;
+
 import org.apache.log4j.PropertyConfigurator;
 
 import org.slf4j.Logger;
@@ -162,7 +164,7 @@ public class CmdLineClient {
    * @return the home directory for this application installation.
    * This is taken from $RTENGINE_HOME. Returns null if this is not set.
    */
-  private String getAppHomeDir() {
+  private static String getAppHomeDir() {
     String homeEnv = System.getenv(RTENGINE_HOME_ENV);
     if (null != homeEnv) {
       File homeFile = new File(homeEnv);
@@ -182,7 +184,7 @@ public class CmdLineClient {
    *   <li>(current dir)</li>
    * </ol>
    */
-  private String getAppConfDir() {
+  private static String getAppConfDir() {
     String rtengineConfDir = System.getProperty(RTENGINE_CONF_DIR_KEY, null);
     if (null == rtengineConfDir) {
       rtengineConfDir = System.getenv(RTENGINE_CONF_DIR_ENV);
@@ -204,7 +206,7 @@ public class CmdLineClient {
     return ".";
   }
 
-  private void initLogging() {
+  private static void initLogging() {
     String confDir = getAppConfDir();
     File confDirFile = new File(confDir);
     File log4jPropertyFile = new File(confDirFile, "log4j.properties");
@@ -239,12 +241,14 @@ public class CmdLineClient {
   }
 
   /**
-   * Add the appropriate rtengine-site.xml file to the Configuration.
+   * @return a Configuration with the appropriate rtengine-site.xml file added.
    */
-  private void initConfResources() {
+  private static Configuration initConfResources() {
     String rtengineConfFile = new File(getAppConfDir(), "rtengine-site.xml").toString();
     LOG.debug("Initializing configuration from " + rtengineConfFile);
-    Configuration.addDefaultResource(rtengineConfFile);
+    Configuration conf = new Configuration();
+    conf.addResource(new Path(rtengineConfFile));
+    return conf;
   }
 
   /**
@@ -252,8 +256,6 @@ public class CmdLineClient {
    * @return the exit code for the program (0 on success).
    */
   public int run() throws IOException {
-    initLogging();
-    initConfResources();
     System.out.println("Welcome to the rtengine client.");
     printVersion();
     System.out.println("Type 'help;' or '\\h' for instructions.");
@@ -324,7 +326,9 @@ public class CmdLineClient {
   }
 
   public static void main(String [] args) throws Exception {
-    CmdLineClient client = new CmdLineClient();
+    initLogging();
+    Configuration conf = initConfResources();
+    CmdLineClient client = new CmdLineClient(conf);
     System.exit(client.run());
   }
 }
