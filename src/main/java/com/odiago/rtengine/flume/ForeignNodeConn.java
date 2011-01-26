@@ -139,13 +139,22 @@ public class ForeignNodeConn {
       // TODO(aaron): Revisit [lack of] reliability guarantee made here.
       String forwardSink = "agentBESink(\"" + mFlumeConf.getHostName() + "\", "
           + mCollectorPort + ")";
-      mOpenedForeignSink = "[" + mInitialForeignSink + ", " + forwardSink + "]";
 
-      // TODO(aaron): This is racy. We want to ensure we're replacing the same configuration
-      // we read, otherwise we might conflict with an external reconfig of this node.
-      LOG.info("Reconfigured foreign node " + mForeignNodeName + ": " + foreignSrc + " -> "
-          + mOpenedForeignSink);
-      mFlumeConf.configureLogicalNode(mForeignNodeName, foreignSrc, mOpenedForeignSink);
+      // Check whether the initial foreign sink already contains the text of 'forwardSink'.
+      // If so, then we don't need them to send us two copies of the data -- don't
+      // reconfigure it!
+      if (mInitialForeignSink.indexOf(forwardSink) != -1) {
+        // Foreign end is already forwarding!
+        mOpenedForeignSink = null;
+      } else {
+        mOpenedForeignSink = "[" + mInitialForeignSink + ", " + forwardSink + "]";
+
+        // TODO(aaron): This is racy. We want to ensure we're replacing the same configuration
+        // we read, otherwise we might conflict with an external reconfig of this node.
+        LOG.info("Reconfigured foreign node " + mForeignNodeName + ": " + foreignSrc + " -> "
+            + mOpenedForeignSink);
+        mFlumeConf.configureLogicalNode(mForeignNodeName, foreignSrc, mOpenedForeignSink);
+      }
     } catch (TException te) {
       throw new IOException(te);
     }
@@ -182,7 +191,9 @@ public class ForeignNodeConn {
       String foreignSrc = curNodeConfig.getLeft();
       String foreignSink = curNodeConfig.getRight();
 
-      if (null == mInitialForeignSink) {
+      if (null == mOpenedForeignSink) {
+        LOG.debug("Did not reconfigure foreign end; no restore required.");
+      } else if (null == mInitialForeignSink) {
         LOG.warn("No initial specification to restore for foreign node: " + mForeignNodeName);
       } else if (foreignSink.equals(mOpenedForeignSink)) {
         // Do the restore.
