@@ -257,6 +257,11 @@ public class LocalEnvironment extends ExecEnvironment {
       mActiveFlows.remove(id);
     }
 
+    /** @return true if 'id' refers to an active flow. */
+    private boolean isActive(FlowId id) {
+      return mActiveFlows.get(id) != null;
+    }
+
     private void cancelAllFlows() {
       LOG.info("Closing all flows");
       Set<Map.Entry<FlowId, ActiveFlowData>> flowSet = mActiveFlows.entrySet();
@@ -350,7 +355,11 @@ public class LocalEnvironment extends ExecEnvironment {
                   SinkFlowElemContext sinkContext = (SinkFlowElemContext) context;
                   FlowId id = sinkContext.getFlowId();
                   LOG.info("Processing complete for flow: " + id);
-                  cancelFlow(id);
+                  if (isActive(id)) {
+                    // If the flow is closing naturally, cancel it. If it's
+                    // already canceled (inactive), don't do this twice.
+                    cancelFlow(id);
+                  }
                 }
               } catch (IOException ioe) {
                 LOG.error("IOException closing flow element (" + downstream + "): " + ioe);

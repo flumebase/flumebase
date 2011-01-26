@@ -215,10 +215,7 @@ public class EmbeddedFlumeConfig {
    * Removes the logical node for the specified flowSourceId from Flume.
    */
   public void stopFlowSink(String flowSourceId) throws TException {
-    List<String> args = new ArrayList<String>();
-    args.add(flowSourceId);
-    FlumeMasterCommandThrift cmd = new FlumeMasterCommandThrift("decommission", args);
-    mMasterClient.submit(cmd);
+    decommissionLogicalNode(flowSourceId);
   }
 
   /**

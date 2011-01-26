@@ -97,10 +97,12 @@ public class CmdLineClient {
     System.out.println("Session control commands must be on a line by themselves.");
     System.out.println("");
     System.out.println("Session control commands:");
-    System.out.println("  \\c  Cancel the current input statement.");
-    System.out.println("  \\f  List flows");
-    System.out.println("  \\h  Print help message.");
-    System.out.println("  \\q  Quit the client.");
+    System.out.println("  \\c              Cancel the current input statement.");
+    System.out.println("  \\d <flowId>     Drop the specified flow.");
+    System.out.println("  \\D <flowId>     Drop a flow and wait for it to stop.");
+    System.out.println("  \\f              List flows.");
+    System.out.println("  \\h              Print help message.");
+    System.out.println("  \\q              Quit the client.");
     System.out.println("");
   }
 
@@ -113,12 +115,55 @@ public class CmdLineClient {
   }
 
   /**
-   * Handle a '\x' event for various values of the escape character 'x'.
+   * Request that the execution environment stop the flow with the specified flowIdStr.
    */
-  private void handleEscape(char escapeChar) throws QuitException {
+  private void tryCancelFlow(String flowIdStr, boolean wait) {
+    try {
+      long idNum = Long.valueOf(flowIdStr);
+      FlowId id = new FlowId(idNum);
+      mExecEnv.cancelFlow(id);
+
+      if (wait) {
+        mExecEnv.joinFlow(id);
+      }
+    } catch (Exception e) {
+      LOG.error("Exception while canceling flow: " + StringUtils.stringifyException(e));
+    }
+  }
+
+  /**
+   * Check if 'array' has at least 'requiredLen' elements. If not, print an error message.
+   * @return true if array.length &gt;= requiredLen.
+   */
+  private boolean requireArgs(String [] array, int requiredLen) {
+    if (array.length < requiredLen) {
+      int printLen = requiredLen - 1; // array[0] is the command, not an "argument."
+      System.err.println("Error: this command requires " + printLen + " argument(s).");
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Handle a '\x' event for various values of the escape character 'x'.
+   * @param escapeChar the first character following the '\\'.
+   * @param args All whitespace-delimited substrings of the command; args[0] is "\\x".
+   */
+  private void handleEscape(char escapeChar, String[] args) throws QuitException {
     switch(escapeChar) {
     case 'c':
       resetCmdState();
+      break;
+    case 'd':
+      if (requireArgs(args, 2)) {
+        tryCancelFlow(args[1], false);
+      }
+      break;
+    case 'D':
+      if (requireArgs(args, 2)) {
+        tryCancelFlow(args[1], true);
+      }
       break;
     case 'f':
       showFlows();
@@ -310,7 +355,8 @@ public class CmdLineClient {
           if (trimmed.length() == 1) {
             System.err.println("Control sequence '\\' requires a command character. Try \\h");
           } else {
-            handleEscape(trimmed.charAt(1));
+            String[] args = trimmed.split("[ \\t]+");
+            handleEscape(trimmed.charAt(1), args);
           }
           resetCmdState();
         } else if (trimmed.endsWith(";")) {
