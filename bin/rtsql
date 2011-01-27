@@ -9,7 +9,29 @@ LIB_DIR="${projectroot}/lib"
 MVN_TARGET_DIR="${projectroot}/target"
 MVN_BUILD_DEPS_DIR="${MVN_TARGET_DIR}/dependency"
 
-RTENGINE_MAIN_CLASS=com.odiago.rtengine.client.CmdLineClient
+function usage() {
+  echo "Usage: rtsql <command> [args...]"
+  echo "Commands include:"
+  echo "  shell     Start the rtsql shell"
+  echo "  server    Start a server to run background queries"
+}
+
+# Format: rtsql <command> [args...]
+action="$1"
+shift
+if [ -z "$action" ]; then
+  usage
+  exit 0
+elif [ "$action" == "shell" ]; then
+  RTENGINE_MAIN_CLASS=com.odiago.rtengine.client.CmdLineClient
+elif [ "$action" == "server" ]; then
+  RTENGINE_MAIN_CLASS=com.odiago.rtengine.server.ServerMain
+else
+  echo "Invalid command: $action"
+  usage
+  exit 1
+fi
+
 
 RTENGINE_CLASSPATH="${RTENGINE_CLASSPATH:-}"
 RTENGINE_OPTS="${RTENGINE_OPTS:-}"

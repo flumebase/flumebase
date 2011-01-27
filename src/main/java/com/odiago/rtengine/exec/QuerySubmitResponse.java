@@ -2,6 +2,9 @@
 
 package com.odiago.rtengine.exec;
 
+import com.odiago.rtengine.thrift.TFlowId;
+import com.odiago.rtengine.thrift.TQuerySubmitResponse;
+
 /**
  * After the user submits a query to the planner, this response
  * is provided with information for the client to make use of.
@@ -28,5 +31,20 @@ public class QuerySubmitResponse {
    */
   public FlowId getFlowId() {
     return mFlowId;
+  }
+
+  public TQuerySubmitResponse toThrift() {
+    TFlowId tId = mFlowId == null ? null : mFlowId.toThrift();
+    TQuerySubmitResponse qsr = new TQuerySubmitResponse();
+    qsr.setMsg(mMsg);
+    qsr.setFlowId(tId);
+    return qsr;
+  }
+
+  public static QuerySubmitResponse fromThrift(TQuerySubmitResponse other) {
+    String msg = other.getMsg();
+    TFlowId tId = other.getFlowId();
+    FlowId id = tId == null ? null : FlowId.fromThrift(tId);
+    return new QuerySubmitResponse(msg, id);
   }
 }

@@ -1,7 +1,8 @@
 // (c) Copyright 2010 Odiago, Inc.
 
-
 package com.odiago.rtengine.exec;
+
+import com.odiago.rtengine.thrift.TFlowId;
 
 /**
  * Identifier for a deployed flow within the environment.
@@ -35,6 +36,14 @@ public class FlowId {
   @Override
   public int hashCode() {
     return (int) (mId & 0xFFFFFFFF);
+  }
+
+  public TFlowId toThrift() {
+    return new TFlowId(mId);
+  }
+
+  public static FlowId fromThrift(TFlowId other) {
+    return new FlowId(other.id);
   }
 }
 

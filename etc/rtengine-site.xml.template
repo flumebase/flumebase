@@ -44,4 +44,12 @@
     <value>46000</value>
   </property>
   -->
+
+  <!-- The port where the server listens. On a client, the default
+       port used to connect to.
+  <property>
+    <name>rtengine.remote.port</name>
+    <value>9292</value>
+  </property>
+  -->
 </configuration>

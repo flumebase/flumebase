@@ -670,6 +670,11 @@ public class LocalEnvironment extends ExecEnvironment {
    */
   @Override
   public void disconnect() throws InterruptedException {
+    shutdown();
+  }
+
+  @Override
+  public void shutdown() throws InterruptedException {
     mControlQueue.put(new ControlOp(ControlOp.Code.CancelAll, null));
     mControlQueue.put(new ControlOp(ControlOp.Code.ShutdownThread, null));
     mLocalThread.join();

@@ -80,5 +80,11 @@ public abstract class ExecEnvironment {
    * Disconnects this client from the environment.
    */
   public abstract void disconnect() throws InterruptedException, IOException;
+
+  /**
+   * Shuts down the execution environment. Closes all flows and prevents new
+   * flows from starting.
+   */
+  public abstract void shutdown() throws InterruptedException, IOException;
 }
 

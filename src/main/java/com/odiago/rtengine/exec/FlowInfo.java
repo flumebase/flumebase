@@ -2,6 +2,8 @@
 
 package com.odiago.rtengine.exec;
 
+import com.odiago.rtengine.thrift.TFlowInfo;
+
 /**
  * Status information about a flow to report back to the client.
  */
@@ -27,5 +29,13 @@ public class FlowInfo {
     sb.append(query);
 
     return sb.toString();
+  }
+
+  public TFlowInfo toThrift() {
+    return new TFlowInfo(flowId.toThrift(), query);
+  }
+  
+  public static FlowInfo fromThrift(TFlowInfo other) {
+    return new FlowInfo(FlowId.fromThrift(other.flowId), other.query);
   }
 }
