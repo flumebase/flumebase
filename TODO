@@ -1,8 +1,15 @@
 
 Remote environment stuff:
 
-  client should pick initial ExecEnv from the configuration.
-  - should support local, none, and host:port.
+  .. watchFlow()/unwatchFlow() make it all the way to the ActiveFlowData.
+  We now need to take it from here to the ConsoleOutputElement. Push to all
+  consoles that are subscribed.
+
+  We also need to bring handles back to the client -- needs to have \w and \u
+  and/or \watch \unwatch to pull the levers.
+  - for bonus points, \f should display what we're watching.
+  - need a flag that specifies whether we autowatch or not.
+
 
   All stdout from a proxied LocalEnv needs to make it back to the client.
 

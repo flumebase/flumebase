@@ -26,6 +26,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.odiago.rtengine.client.ClientConsoleImpl;
+
 import com.odiago.rtengine.exec.BuiltInSymbolTable;
 import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.ExecEnvironment;
@@ -50,6 +52,9 @@ import com.odiago.rtengine.parser.SQLStatement;
 import com.odiago.rtengine.plan.FlowSpecification;
 import com.odiago.rtengine.plan.PlanContext;
 import com.odiago.rtengine.plan.PropagateSchemas;
+
+import com.odiago.rtengine.server.SessionId;
+import com.odiago.rtengine.server.UserSession;
 
 import com.odiago.rtengine.util.DAG;
 import com.odiago.rtengine.util.DAGOperatorException;
@@ -77,6 +82,8 @@ public class LocalEnvironment extends ExecEnvironment {
       Join,            // Add an object to the list of objects to be notified when a
                        // flow is canceled.
       ListFlows,       // Enumerate the running flows.
+      WatchFlow,       // Subscribe to a flow's output.
+      UnwatchFlow,     // Unsubscribe from a flow's output.
     };
 
     /** What operation should be performed by the worker thread? */
@@ -100,6 +107,21 @@ public class LocalEnvironment extends ExecEnvironment {
   }
 
   /**
+   * A request to watch/unwatch a flow.
+   */
+  private static class WatchRequest {
+    public final boolean mIsWatch; // true for watch, false for unwatch.
+    public final SessionId mSessionId;
+    public final FlowId mFlowId;
+
+    public WatchRequest(SessionId sessionId, FlowId flowId, boolean isWatch) {
+      mIsWatch = isWatch;
+      mSessionId = sessionId;
+      mFlowId = flowId;
+    }
+  }
+
+  /**
    * Container for information maintained by the local environment
    * regarding an active flow.
    */
@@ -114,9 +136,12 @@ public class LocalEnvironment extends ExecEnvironment {
      */
     private final List<Ref<Boolean>> mJoinTargets;
 
+    private final List<UserSession> mWatchingSessions;
+
     public ActiveFlowData(LocalFlow flow) {
       mLocalFlow = flow;
       mJoinTargets = new ArrayList<Ref<Boolean>>();
+      mWatchingSessions = new ArrayList<UserSession>();
     }
 
     public LocalFlow getFlow() {
@@ -140,6 +165,18 @@ public class LocalEnvironment extends ExecEnvironment {
     /** Waits for this flow to terminate. */
     public void subscribeToCancelation(Ref<Boolean> obj) {
       mJoinTargets.add(obj);
+    }
+
+    /** This session now watches the output of the flow. */
+    public void addSession(UserSession session) {
+      if (!mWatchingSessions.contains(session)) {
+        mWatchingSessions.add(session);
+      }
+    }
+
+    /** This session no longer watches the output of the flow. */
+    public void removeSession(UserSession session) {
+      mWatchingSessions.remove(session);
     }
   }
 
@@ -294,6 +331,31 @@ public class LocalEnvironment extends ExecEnvironment {
       }
     }
 
+    /**
+     * Sign up the specified session to watch a given flow.
+     */
+    private void watch(WatchRequest watchReq) {
+      UserSession userSession = getSession(watchReq.mSessionId);
+      if (null == userSession) {
+        LOG.warn("Cannot watch flow from user session " + watchReq.mSessionId
+            + "; no such session");
+        return;
+      }
+
+      ActiveFlowData flow = mActiveFlows.get(watchReq.mFlowId);
+      if (null == flow) {
+        LOG.warn("Cannot watch flow from user session " + watchReq.mSessionId
+            + "; no such flow");
+        return;
+      }
+
+      if(watchReq.mIsWatch) {
+        flow.addSession(userSession);
+      } else {
+        flow.removeSession(userSession);
+      }
+    }
+
     @Override
     public void run() {
       try {
@@ -327,6 +389,14 @@ public class LocalEnvironment extends ExecEnvironment {
               break;
             case ShutdownThread:
               isFinished = true;
+              break;
+            case WatchFlow:
+              WatchRequest watchReq = (WatchRequest) nextOp.getDatum();
+              watch(watchReq);
+              break;
+            case UnwatchFlow:
+              WatchRequest unwatchReq = (WatchRequest) nextOp.getDatum();
+              watch(unwatchReq); // the request has the isWatch flag set false. 
               break;
             case Noop:
               // Don't do any control operation; skip ahead to event processing.
@@ -451,6 +521,13 @@ public class LocalEnvironment extends ExecEnvironment {
     }
   }
 
+  /** A UserSession describing the console of this process. */
+  private static final UserSession LOCAL_SESSION;
+
+  static {
+    LOCAL_SESSION = new UserSession(new SessionId(0), null, null, new ClientConsoleImpl());
+  }
+
   /** The configuration for this environment instance. */
   private Configuration mConf;
 
@@ -499,14 +576,16 @@ public class LocalEnvironment extends ExecEnvironment {
    * Main constructor.
    */
   public LocalEnvironment(Configuration conf) {
-    this(conf, new HashSymbolTable(new BuiltInSymbolTable()),
+    this(conf,
+        new HashSymbolTable(new BuiltInSymbolTable()),
         new HashMap<String, MemoryOutputElement>());
   }
 
   /**
    * Constructor for testing; allows dependency injection.
    */
-  public LocalEnvironment(Configuration conf, SymbolTable rootSymbolTable,
+  public LocalEnvironment(Configuration conf,
+      SymbolTable rootSymbolTable,
       Map<String, MemoryOutputElement> memoryOutputMap) {
     mConf = conf;
     mRootSymbolTable = rootSymbolTable;
@@ -650,6 +729,18 @@ public class LocalEnvironment extends ExecEnvironment {
   }
 
   @Override
+  public void watchFlow(SessionId sessionId, FlowId flowId) throws InterruptedException {
+    mControlQueue.put(new ControlOp(ControlOp.Code.WatchFlow,
+        new WatchRequest(sessionId, flowId, true)));
+  }
+
+  @Override
+  public void unwatchFlow(SessionId sessionId, FlowId flowId) throws InterruptedException {
+    mControlQueue.put(new ControlOp(ControlOp.Code.UnwatchFlow,
+        new WatchRequest(sessionId, flowId, false)));
+  }
+
+  @Override
   public Map<FlowId, FlowInfo> listFlows() throws InterruptedException {
     Map<FlowId, FlowInfo> outData = new TreeMap<FlowId, FlowInfo>();
     synchronized (outData) {
@@ -679,6 +770,14 @@ public class LocalEnvironment extends ExecEnvironment {
     mControlQueue.put(new ControlOp(ControlOp.Code.ShutdownThread, null));
     mLocalThread.join();
     mConnected = false;
+  }
+
+  /**
+   * For the LocalEnvironment, there is only the local user session.
+   */
+  @Override
+  protected UserSession getSession(SessionId id) {
+    return LOCAL_SESSION;
   }
 }
 

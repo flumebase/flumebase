@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 
 import com.odiago.rtengine.plan.FlowSpecification;
 
+import com.odiago.rtengine.server.SessionId;
+
 /**
  * Execution engine that logs an error for every operation. This execution engine
  * is used when the client is not connected to any other execution engine.
@@ -64,6 +66,16 @@ public class DummyExecEnv extends ExecEnvironment {
   public boolean joinFlow(FlowId id, long timeout) {
     LOG.error("Not connected");
     return false;
+  }
+
+  @Override
+  public void watchFlow(SessionId sessionId, FlowId flowId) {
+    LOG.error("Not connected");
+  }
+
+  @Override
+  public void unwatchFlow(SessionId sessionId, FlowId flowId) {
+    LOG.error("Not connected");
   }
 
   @Override

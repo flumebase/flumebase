@@ -12,6 +12,18 @@
   -->
 
   <!--
+    By default, the client will execute queries in the 'local' environment,
+    within the same process. To auto-connect to a server, put the host:port
+    in the property below. The value "local" will use the local environment;
+    the value "none" will disable queries until the user explicitly connects
+    to a server with \open.
+  <property>
+    <name>rtengine.autoconnect</name>
+    <value>local</value>
+  </property>
+  -->
+
+  <!--
      By default, rtengine will start a local embedded flume master for
      managing a completely self-contained instance. For production use,
      disable the embedded master and identify the remote FlumeMaster
@@ -50,6 +62,14 @@
   <property>
     <name>rtengine.remote.port</name>
     <value>9292</value>
+  </property>
+  -->
+
+
+  <!-- the port where the client's console callback listens.
+  <property>
+    <name>rtengine.console.port</name>
+    <value>9293</value>
   </property>
   -->
 </configuration>

@@ -8,6 +8,9 @@ import java.util.Map;
 
 import com.odiago.rtengine.plan.FlowSpecification;
 
+import com.odiago.rtengine.server.SessionId;
+import com.odiago.rtengine.server.UserSession;
+
 /**
  * Specification of an environment in which FlowElements
  * can be executed. Supports a local (in-process) implementation, a remote implementation, and
@@ -76,6 +79,14 @@ public abstract class ExecEnvironment {
   public abstract boolean joinFlow(FlowId id, long timeout)
       throws InterruptedException, IOException;
 
+  /** Subscribe the specified user session to watch the output of the specified flow. */
+  public abstract void watchFlow(SessionId sessionId, FlowId flowId)
+      throws InterruptedException, IOException;
+
+  /** Unsubscribe the specified user session from the output of the specified flow. */
+  public abstract void unwatchFlow(SessionId sessionId, FlowId flowId)
+      throws InterruptedException, IOException;
+
   /**
    * Disconnects this client from the environment.
    */
@@ -86,5 +97,14 @@ public abstract class ExecEnvironment {
    * flows from starting.
    */
   public abstract void shutdown() throws InterruptedException, IOException;
+
+  /**
+   * Lookup a user session based on the session id.
+   * @return the UserSession for the specified SessionId, or null if no such
+   * session exists.
+   */
+  protected UserSession getSession(SessionId id) {
+    return null; // Default implementation: there is no such session.
+  }
 }
 

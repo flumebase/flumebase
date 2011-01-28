@@ -4,6 +4,7 @@ package com.odiago.rtengine.server;
 
 import java.io.IOException;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,7 +12,14 @@ import org.apache.hadoop.conf.Configuration;
 
 import org.apache.thrift.TException;
 
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+
 import org.apache.thrift.server.TServer;
+
+import org.apache.thrift.transport.TFramedTransport;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,12 +28,13 @@ import com.odiago.rtengine.exec.ExecEnvironment;
 import com.odiago.rtengine.exec.FlowId;
 import com.odiago.rtengine.exec.FlowInfo;
 
-import com.odiago.rtengine.exec.local.LocalEnvironment;
-
+import com.odiago.rtengine.thrift.CallbackConnectionError;
+import com.odiago.rtengine.thrift.ClientConsole;
 import com.odiago.rtengine.thrift.RemoteServer;
 import com.odiago.rtengine.thrift.TFlowId;
 import com.odiago.rtengine.thrift.TFlowInfo;
 import com.odiago.rtengine.thrift.TQuerySubmitResponse;
+import com.odiago.rtengine.thrift.TSessionId;
 
 /**
  * Implementation of the RemoteServer thrift interface.
@@ -47,9 +56,18 @@ class RemoteServerImpl implements RemoteServer.Iface {
 
   private boolean mStarted; 
 
+  private long mNextSessionId;
+
+  /**
+   * Map of sessionId to state about the user's session.
+   */
+  private Map<SessionId, UserSession> mActiveSessions;
+
   public RemoteServerImpl(Configuration conf) {
-    mExecEnv = new LocalEnvironment(conf);
     mStarted = false;
+    mNextSessionId = 0;
+    mActiveSessions = Collections.synchronizedMap(new HashMap<SessionId, UserSession>());
+    mExecEnv = new WorkerEnvironment(conf, mActiveSessions);
   }
 
   // Methods to manage the server itself.
@@ -67,7 +85,40 @@ class RemoteServerImpl implements RemoteServer.Iface {
     mThriftServer = server;
   }
 
+  /** Indicate to the server that the specified session is dead. */
+  void removeSession(SessionId id) {
+    mActiveSessions.remove(id);
+  }
+
   // Implementation of remote API follows.
+
+  @Override
+  public TSessionId createSession(String host, short port)
+      throws CallbackConnectionError, TException {
+    SessionId sessionId = new SessionId(mNextSessionId++);
+
+    // Try to connect to the user's host:port. If host is the empty string
+    // or null, do not connect back.
+    if (host != null && !"".equals(host)) {
+      LOG.info("Assigning session id " + sessionId + " to connection to " + host + ":" + port);
+
+      try {
+        TTransport transport = new TFramedTransport(new TSocket(host, port));
+        transport.open();
+        TProtocol protocol = new TBinaryProtocol(transport);
+        ClientConsole.Client client = new ClientConsole.Client(protocol);
+
+        // Store the info about this RPC connection in the active sessions table.
+        UserSession session = new UserSession(sessionId, this, transport, client);
+        mActiveSessions.put(sessionId, session);
+      } catch (TException te) {
+        LOG.error("Could not create callback RPC connection to " + host + ":" + port);
+        throw new CallbackConnectionError();
+      }
+    }
+
+    return sessionId.toThrift();
+  }
 
   @Override
   public TQuerySubmitResponse submitQuery(String query) throws TException {
@@ -115,6 +166,24 @@ class RemoteServerImpl implements RemoteServer.Iface {
 
     try {
       return mExecEnv.joinFlow(FlowId.fromThrift(id), timeout);
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public void watchFlow(TSessionId sessionId, TFlowId flowId) throws TException {
+    try {
+      mExecEnv.watchFlow(SessionId.fromThrift(sessionId), FlowId.fromThrift(flowId));
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public void unwatchFlow(TSessionId sessionId, TFlowId flowId) throws TException {
+    try {
+      mExecEnv.unwatchFlow(SessionId.fromThrift(sessionId), FlowId.fromThrift(flowId));
     } catch (Exception e) {
       throw new TException(e);
     }

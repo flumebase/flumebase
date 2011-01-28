@@ -34,6 +34,7 @@ import com.cloudera.flume.master.FlumeMaster;
 
 import com.cloudera.util.Pair;
 
+import com.odiago.rtengine.util.NetUtils;
 import com.odiago.rtengine.util.StringUtils;
 
 /**
@@ -396,12 +397,7 @@ public class EmbeddedFlumeConfig {
       return mHostName;
     }
 
-    try {
-      mHostName = InetAddress.getLocalHost().getCanonicalHostName();
-    } catch (UnknownHostException uhe) {
-      LOG.warn("Could not determine local hostname: " + uhe);
-      mHostName = "localhost";
-    }
+    mHostName = NetUtils.getHostName();
 
     return mHostName;
   }

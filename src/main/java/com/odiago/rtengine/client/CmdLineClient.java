@@ -35,6 +35,12 @@ public class CmdLineClient {
   private static final Logger LOG = LoggerFactory.getLogger(
       CmdLineClient.class.getName());
 
+  /** Config key specifying what environment to autoconnect to. */
+  public static final String AUTOCONNECT_URL_KEY = "rtengine.autoconnect";
+
+  /** Default autoconnect environment is local. */
+  public static final String DEFAULT_AUTOCONNECT_URL = "local";
+
   /** Application configuration. */
   private Configuration mConf;
 
@@ -53,7 +59,6 @@ public class CmdLineClient {
 
   public CmdLineClient(Configuration conf) {
     mConf = conf;
-    mExecEnv = new LocalEnvironment(mConf);
     resetCmdState();
   }
 
@@ -138,6 +143,10 @@ public class CmdLineClient {
 
   /** Disconnect from the current ExecutionEnvironment. */
   private void disconnect() {
+    if (null == mExecEnv) {
+      return; // Nothing to do.
+    }
+
     try {
       boolean isConnected = mExecEnv.isConnected();
       mExecEnv.disconnect(); // Try anyway
@@ -174,6 +183,8 @@ public class CmdLineClient {
       if ("local".equals(host)) {
         LOG.info("Connecting to local environment.");
         mExecEnv = new LocalEnvironment(mConf);
+      } else if ("none".equals(host)) {
+        mExecEnv = new DummyExecEnv();
       } else {
         int portIndex = host.indexOf(':');
         int port = mConf.getInt(ServerMain.THRIFT_SERVER_PORT_KEY,
@@ -300,11 +311,7 @@ public class CmdLineClient {
     System.out.println("Type 'help;' or '\\h' for instructions.");
     System.out.println("Type 'exit;' or '\\q' to quit.");
 
-    try {
-      mExecEnv.connect();
-    } catch (InterruptedException ie) {
-      throw new IOException("Interrupted while connecting to environment: " + ie);
-    }
+    connect(mConf.get(AUTOCONNECT_URL_KEY, DEFAULT_AUTOCONNECT_URL));
 
     HistoryFile history = new HistoryFile();
     ConsoleReader conReader = new ConsoleReader();
