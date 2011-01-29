@@ -21,8 +21,9 @@ public class DummyExecEnv extends ExecEnvironment {
       DummyExecEnv.class.getName());
 
   @Override
-  public void connect() {
+  public SessionId connect() {
     // Do nothing.
+    return new SessionId(0);
   }
 
   @Override

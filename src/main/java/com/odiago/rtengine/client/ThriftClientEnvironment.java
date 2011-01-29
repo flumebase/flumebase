@@ -81,7 +81,7 @@ public class ThriftClientEnvironment extends ExecEnvironment {
   }
 
   @Override
-  public void connect() throws IOException {
+  public SessionId connect() throws IOException {
     try {
       // Establish the connection to the server.
       LOG.debug("Connecting to remote server.");
@@ -139,6 +139,8 @@ public class ThriftClientEnvironment extends ExecEnvironment {
       mClient = null;
       throw new IOException(e);
     }
+
+    return mSessionId;
   }
 
   @Override

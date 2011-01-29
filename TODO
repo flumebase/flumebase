@@ -1,34 +1,14 @@
 
 Remote environment stuff:
 
-  .. watchFlow()/unwatchFlow() make it all the way to the ActiveFlowData.
-  We now need to take it from here to the ConsoleOutputElement. Push to all
-  consoles that are subscribed.
-
-  We also need to bring handles back to the client -- needs to have \w and \u
-  and/or \watch \unwatch to pull the levers.
-  - for bonus points, \f should display what we're watching.
+  - \f should display what we're watching.
   - need a flag that specifies whether we autowatch or not.
+    need to communicate this to the server.
 
+  When we subscribe to a stream, we need to print the columns header out.
 
-  All stdout from a proxied LocalEnv needs to make it back to the client.
-
-  Maybe we really need a 'ProxyEnv'? Or at least allow a configurable
-  output stream, and a better notion of 'response' from within submitQuery().
-
-  Need ability to specify that the job should submit results back to the client.
-  Proxy that stdout back. We need a 'fetchFlowResults' api for this? Some notion
-  of a cursor, etc....
-
-  Need ability for a query to send its results to an arbitrary Flume output.
-
-  ... need ability to take the mConf from the client and get its settings
-  over to the server. User needs \set operation to set k=v and view key(s)
-  from the mConf.
-
-  ----> question related to the above: what options exist in thrift for
-  isolating per-client state? How do we know which client is operating in
-  the shared server, and thus which mClientconf to select?
+  Need to make sure all random stdout from proxied LocalEnv makes it home
+  (e.g., "CREATE STREAM" notices.)
 
 
 Joins:

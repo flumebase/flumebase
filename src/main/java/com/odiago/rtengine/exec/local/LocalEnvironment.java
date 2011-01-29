@@ -543,9 +543,10 @@ public class LocalEnvironment extends ExecEnvironment {
   }
 
   @Override
-  public void connect() throws IOException {
+  public SessionId connect() throws IOException {
     mLocalThread.start();
     mConnected = true;
+    return new SessionId(0); // Local user is always session 0.
   }
 
   @Override

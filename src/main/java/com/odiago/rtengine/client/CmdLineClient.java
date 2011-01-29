@@ -20,6 +20,7 @@ import com.odiago.rtengine.exec.QuerySubmitResponse;
 import com.odiago.rtengine.exec.local.LocalEnvironment;
 
 import com.odiago.rtengine.server.ServerMain;
+import com.odiago.rtengine.server.SessionId;
 import com.odiago.rtengine.util.AppUtils;
 import com.odiago.rtengine.util.QuitException;
 import com.odiago.rtengine.util.StringUtils;
@@ -52,6 +53,9 @@ public class CmdLineClient {
 
   /** The connected execution environment. */
   private ExecEnvironment mExecEnv;
+
+  /** SessionId in the connected exec env. */
+  private SessionId mSessionId;
 
   public CmdLineClient() {
     this(new Configuration());
@@ -90,16 +94,18 @@ public class CmdLineClient {
     System.out.println("Session control commands must be on a line by themselves.");
     System.out.println("");
     System.out.println("Session control commands:");
-    System.out.println("  \\c                   Cancel the current input statement.");
-    System.out.println("  \\d <flowId>          Drop the specified flow.");
-    System.out.println("  \\D <flowId>          Drop a flow and wait for it to stop.");
-    System.out.println("  \\disconnect          Disconnects from the server.");
-    System.out.println("  \\f                   List flows.");
-    System.out.println("  \\h                   Print help message.");
-    System.out.println("  \\open server [port]  Connects to the specified server.");
-    System.out.println("  \\set property[=val]  Sets or retrieves configuration properties.");
-    System.out.println("  \\shutdown!           Shuts down the server.");
-    System.out.println("  \\q                   Quit the client.");
+    System.out.println("  \\c                    Cancel the current input statement.");
+    System.out.println("  \\d flowId             Drop the specified flow.");
+    System.out.println("  \\D flowId             Drop a flow and wait for it to stop.");
+    System.out.println("  \\disconnect           Disconnects from the server.");
+    System.out.println("  \\f                    List flows.");
+    System.out.println("  \\h                    Print help message.");
+    System.out.println("  \\open server [port]   Connects to the specified server.");
+    System.out.println("  \\set property[=val]   Sets or retrieves configuration properties.");
+    System.out.println("  \\shutdown!            Shuts down the server.");
+    System.out.println("  \\q                    Quit the client.");
+    System.out.println("  \\u, \\unwatch flowId   Stop watching a flow.");
+    System.out.println("  \\w, \\watch flowId     Watch the output of a flow.");
     System.out.println("");
   }
 
@@ -200,7 +206,7 @@ public class CmdLineClient {
         mExecEnv = new ThriftClientEnvironment(mConf, hostname, port);
       }
 
-      mExecEnv.connect();
+      mSessionId = mExecEnv.connect();
     } catch (Exception e) {
       LOG.error("Could not connect to environment: " + e);
     }
@@ -238,6 +244,34 @@ public class CmdLineClient {
   }
 
   /**
+   * Watch the output of the specified flow.
+   */
+  private void watch(String flowIdStr) {
+    try {
+      long idNum = Long.valueOf(flowIdStr);
+      FlowId flowId = new FlowId(idNum);
+      mExecEnv.watchFlow(mSessionId, flowId);
+
+    } catch (Exception e) {
+      LOG.error("Exception subscribing to flow: " + StringUtils.stringifyException(e));
+    }
+  }
+
+  /**
+   * Stop watching the output of the specified flow.
+   */
+  private void unwatch(String flowIdStr) {
+    try {
+      long idNum = Long.valueOf(flowIdStr);
+      FlowId flowId = new FlowId(idNum);
+      mExecEnv.unwatchFlow(mSessionId, flowId);
+
+    } catch (Exception e) {
+      LOG.error("Exception unsubscribing from flow: " + StringUtils.stringifyException(e));
+    }
+  }
+
+  /**
    * Handle a '\x' event for various values of the escape character 'x'.
    * @param escapeChar the first character following the '\\'.
    * @param args All whitespace-delimited substrings of the command; args[0] is "\\x".
@@ -259,6 +293,14 @@ public class CmdLineClient {
         setProperty(args[1]);
       } else {
         System.err.println("Unknown syntax.");
+      }
+    } else if (args[0].equals("\\watch") || args[0].equals("\\w")) {
+      if (requireArgs(args, 2)) {
+        watch(args[1]);
+      }
+    } else if (args[0].equals("\\unwatch") || args[0].equals("\\u")) {
+      if (requireArgs(args, 2)) {
+        unwatch(args[1]);
       }
     } else if (args[0].length() == 2) {
       // Handle the one-character escapes here:

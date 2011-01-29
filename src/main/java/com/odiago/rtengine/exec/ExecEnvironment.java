@@ -23,8 +23,9 @@ public abstract class ExecEnvironment {
 
   /**
    * Connect the client to the execution environment.
+   * @return the SessionId of this connection.
    */
-  public abstract void connect() throws InterruptedException, IOException;
+  public abstract SessionId connect() throws InterruptedException, IOException;
 
   /**
    * @return true if we are connected to the execution environment.
