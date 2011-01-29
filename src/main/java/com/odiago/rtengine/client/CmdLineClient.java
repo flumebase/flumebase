@@ -97,6 +97,7 @@ public class CmdLineClient {
     System.out.println("  \\f                   List flows.");
     System.out.println("  \\h                   Print help message.");
     System.out.println("  \\open server [port]  Connects to the specified server.");
+    System.out.println("  \\set property[=val]  Sets or retrieves configuration properties.");
     System.out.println("  \\shutdown!           Shuts down the server.");
     System.out.println("  \\q                   Quit the client.");
     System.out.println("");
@@ -205,6 +206,37 @@ public class CmdLineClient {
     }
   }
 
+  private void printProperties() {
+    for (Map.Entry<String, String> entry : mConf) {
+      System.out.println(entry.getKey() + " = '" + entry.getValue() + "'");
+    }
+  }
+
+  /**
+   * Prints or sets the specified property.
+   * If propKeyVal is of the form 'k=v', sets conf[k] = v. Otherwise, if it
+   * is just a property key, prints the value of that property.
+   */
+  private void setProperty(String propKeyVal) {
+    int equalIdx = propKeyVal.indexOf('=');
+    String key = null;
+    if (-1 != equalIdx) {
+      key = propKeyVal.substring(0, equalIdx);
+      String value = propKeyVal.substring(equalIdx + 1);
+      mConf.set(key, value);
+    } else {
+      // Just a key.
+      key = propKeyVal;
+    }
+
+    String outVal = mConf.get(key);
+    if (null != outVal) {
+      System.out.println(key + " = '" + outVal + "'");
+    } else {
+      System.out.println("No such property: " + key);
+    }
+  }
+
   /**
    * Handle a '\x' event for various values of the escape character 'x'.
    * @param escapeChar the first character following the '\\'.
@@ -219,6 +251,14 @@ public class CmdLineClient {
     } else if (args[0].equals("\\open")) {
       if (requireArgs(args, 2)) {
         connect(args[1]);
+      }
+    } else if (args[0].equals("\\set")) {
+      if (args.length == 1) {
+        printProperties();
+      } else if (args.length == 2) {
+        setProperty(args[1]);
+      } else {
+        System.err.println("Unknown syntax.");
       }
     } else if (args[0].length() == 2) {
       // Handle the one-character escapes here:
