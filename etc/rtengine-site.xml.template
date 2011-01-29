@@ -23,6 +23,14 @@
   </property>
   -->
 
+  <!-- By default, submitted flows output their results to the console. Set
+       this to false to override this behavior.
+  <property>
+    <name>rtengine.flow.autowatch</name>
+    <value>true</value>
+  </property>
+  -->
+
   <!--
      By default, rtengine will start a local embedded flume master for
      managing a completely self-contained instance. For production use,

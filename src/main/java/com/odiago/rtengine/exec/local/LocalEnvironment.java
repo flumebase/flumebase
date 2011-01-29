@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -70,6 +69,13 @@ public class LocalEnvironment extends ExecEnvironment {
 
   /** The max number of events that will be processed in between polling for a control op. */
   private static final int MAX_STEPS = 250;
+
+  /** Config key specifying whether we automatically watch a flow when we create it or not. */
+  public static final String AUTO_WATCH_FLOW_KEY = "rtengine.flow.autowatch";
+  public static final boolean DEFAULT_AUTO_WATCH_FLOW = true;
+
+  /** Config key specifying the session id of the submitting user for a query. */
+  public static final String SUBMITTER_SESSION_ID_KEY = "rtengine.query.submitter.session.id";
 
   static class ControlOp {
     enum Code {
@@ -143,6 +149,20 @@ public class LocalEnvironment extends ExecEnvironment {
 
     private void deployFlow(LocalFlow newFlow) throws IOException, InterruptedException {
       final ActiveFlowData activeFlowData = new ActiveFlowData(newFlow);
+
+      Configuration flowConf = newFlow.getConf();
+      if (flowConf.getBoolean(AUTO_WATCH_FLOW_KEY, DEFAULT_AUTO_WATCH_FLOW)) {
+        // Subscribe to this flow before running it, so we guarantee the user
+        // sees all the results.
+        long idNum = flowConf.getLong(SUBMITTER_SESSION_ID_KEY, -1);
+        SessionId submitterSessionId = new SessionId(idNum);
+        UserSession session = getSession(submitterSessionId);
+        if (session != null) {
+          activeFlowData.addSession(session);
+        } else {
+          LOG.warn("Invalid session id number: " + idNum);
+        }
+      }
 
       // If we haven't yet started Flume, and the flow requires Flume-based sources,
       // start Flume.
@@ -564,9 +584,17 @@ public class LocalEnvironment extends ExecEnvironment {
    * and execute it.
    */
   @Override
-  public QuerySubmitResponse submitQuery(String query) throws InterruptedException {
+  public QuerySubmitResponse submitQuery(String query, Map<String, String> options)
+      throws InterruptedException {
     StringBuilder msgBuilder = new StringBuilder();
     FlowId flowId = null;
+
+    // Build a configuration out of our conf and the user's options.
+    Configuration planConf = new Configuration(mConf);
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      planConf.set(entry.getKey(), entry.getValue());
+    }
+
     try {
       // Send the parser's error messages into a buffer rather than stderr.
       ByteArrayOutputStream errBufferStream = new ByteArrayOutputStream();
@@ -588,13 +616,14 @@ public class LocalEnvironment extends ExecEnvironment {
       stmt.accept(new JoinKeyVisitor()); // Must be after TC.
       stmt.accept(new JoinNameVisitor());
       PlanContext planContext = new PlanContext();
-      planContext.setConf(mConf);
+      planContext.setConf(planConf);
       planContext.setSymbolTable(mRootSymbolTable);
       PlanContext retContext = stmt.createExecPlan(planContext);
       msgBuilder.append(retContext.getMsgBuilder().toString());
       FlowSpecification spec = retContext.getFlowSpec();
       if (null != spec) {
         spec.setQuery(query);
+        spec.setConf(planConf);
         // Given a flow specification from the AST, run it through
         // necessary post-processing and optimization phases.
         spec.bfs(new PropagateSchemas());
@@ -636,6 +665,7 @@ public class LocalEnvironment extends ExecEnvironment {
       }
       LocalFlow localFlow = flowBuilder.getLocalFlow();
       localFlow.setQuery(spec.getQuery());
+      localFlow.setConf(spec.getConf());
       if (localFlow.getRootSet().size() == 0) {
         // No nodes created (empty flow, or DDL-only flow, etc.)
         return null;

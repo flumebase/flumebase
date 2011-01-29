@@ -2,8 +2,6 @@
 Remote environment stuff:
 
   - \f should display what we're watching.
-  - need a flag that specifies whether we autowatch or not.
-    need to communicate this to the server.
 
   When we subscribe to a stream, we need to print the columns header out.
 

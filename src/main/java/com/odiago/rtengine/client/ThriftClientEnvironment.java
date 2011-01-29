@@ -154,9 +154,10 @@ public class ThriftClientEnvironment extends ExecEnvironment {
   }
 
   @Override
-  public QuerySubmitResponse submitQuery(String query) throws IOException {
+  public QuerySubmitResponse submitQuery(String query, Map<String, String> options)
+      throws IOException {
     try {
-      return QuerySubmitResponse.fromThrift(mClient.submitQuery(query));
+      return QuerySubmitResponse.fromThrift(mClient.submitQuery(query, options));
     } catch (TException te) {
       throw new IOException(te);
     }

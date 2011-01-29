@@ -58,7 +58,7 @@ public class TestWhere extends RtsqlTestCase {
     env.connect();
 
     // Run the query.
-    QuerySubmitResponse response = env.submitQuery(query);
+    QuerySubmitResponse response = env.submitQuery(query, getQueryOpts());
     FlowId id = response.getFlowId();
     assertNotNull(response.getMessage(), id);
     joinFlow(id);

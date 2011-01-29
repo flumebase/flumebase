@@ -62,7 +62,8 @@ service RemoteServer {
    * about its status, as well as an optional flow id if the query was
    * successfully submitted.
    */
-  TQuerySubmitResponse submitQuery(1: required string query),
+  TQuerySubmitResponse submitQuery(1: required string query,
+      2: required map<string, string> options),
 
   /** Cancel a running flow. */
   void cancelFlow(1: required TFlowId id),

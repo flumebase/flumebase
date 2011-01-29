@@ -2,6 +2,8 @@
 
 package com.odiago.rtengine.exec.local;
 
+import org.apache.hadoop.conf.Configuration;
+
 import com.odiago.rtengine.exec.FlowId;
 import com.odiago.rtengine.util.DAG;
 
@@ -13,11 +15,13 @@ public class LocalFlow extends DAG<FlowElementNode> {
 
   private boolean mRequiresFlume; 
   private String mQuery;
+  private Configuration mConf;
 
   public LocalFlow(FlowId id) {
     mFlowId = id;
     mRequiresFlume = false;
     mQuery = null;
+    mConf = null;
   }
 
   public FlowId getId() {
@@ -48,6 +52,14 @@ public class LocalFlow extends DAG<FlowElementNode> {
     return mQuery;
   }
 
+  public void setConf(Configuration conf) {
+    mConf = conf;
+  }
+
+  /** @return the configuration governing this flow's behavior. */
+  public Configuration getConf() {
+    return mConf;
+  }
 
   @Override
   public String toString() {

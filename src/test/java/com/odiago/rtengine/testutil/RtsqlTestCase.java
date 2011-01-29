@@ -63,6 +63,11 @@ public class RtsqlTestCase {
     }
   }
 
+  protected Map<String, String> getQueryOpts() {
+    // TODO: Pull "rtengine.*" from mConf.
+    return new HashMap<String, String>();
+  }
+
   protected LocalEnvironment getEnvironment() {
     return mEnvironment;
   }

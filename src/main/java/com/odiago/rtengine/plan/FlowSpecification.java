@@ -2,6 +2,8 @@
 
 package com.odiago.rtengine.plan;
 
+import org.apache.hadoop.conf.Configuration;
+
 import com.odiago.rtengine.util.DAG;
 
 /**
@@ -13,8 +15,11 @@ import com.odiago.rtengine.util.DAG;
 public class FlowSpecification extends DAG<PlanNode> {
   private String mQuery;
 
-  public FlowSpecification(String query) {
+  private Configuration mConf;
+
+  public FlowSpecification(String query, Configuration conf) {
     mQuery = query;
+    mConf = conf;
   }
 
   public FlowSpecification() {
@@ -29,5 +34,16 @@ public class FlowSpecification extends DAG<PlanNode> {
 
   public void setQuery(String query) {
     mQuery = query;
+  }
+
+  /**
+   * @return the configuration options to use for this flow.
+   */
+  public Configuration getConf() {
+    return mConf;
+  }
+
+  public void setConf(Configuration conf) {
+    mConf = conf;
   }
 }

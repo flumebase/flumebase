@@ -37,7 +37,7 @@ public class DummyExecEnv extends ExecEnvironment {
   }
 
   @Override
-  public QuerySubmitResponse submitQuery(String query) {
+  public QuerySubmitResponse submitQuery(String query, Map<String, String> options) {
     return new QuerySubmitResponse("Not connected", null);
   }
 

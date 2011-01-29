@@ -129,9 +129,10 @@ class RemoteServerImpl implements RemoteServer.Iface, CloseHandler<UserSession> 
   }
 
   @Override
-  public TQuerySubmitResponse submitQuery(String query) throws TException {
+  public TQuerySubmitResponse submitQuery(String query, Map<String, String> options)
+      throws TException {
     try {
-      return mExecEnv.submitQuery(query).toThrift();
+      return mExecEnv.submitQuery(query, options).toThrift();
     } catch (Exception e) {
       throw new TException(e);
     }

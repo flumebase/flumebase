@@ -4,6 +4,7 @@ package com.odiago.rtengine.client;
 
 import java.io.IOException;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
@@ -41,6 +42,9 @@ public class CmdLineClient {
 
   /** Default autoconnect environment is local. */
   public static final String DEFAULT_AUTOCONNECT_URL = "local";
+
+  /** All config keys we pass to the environment start with this prefix. */
+  public static final String RTENGINE_KEY_PREFIX = "rtengine.";
 
   /** Application configuration. */
   private Configuration mConf;
@@ -86,6 +90,25 @@ public class CmdLineClient {
       LOG.error("Exception listing flows: " + StringUtils.stringifyException(e));
       return;
     }
+  }
+
+  /**
+   * @return the set of configuration options to pass to the execEnvironment
+   * governing a submitted query's behavior. This is all the elements in our
+   * mConf that match the rtengine key prefix.
+   */
+  private Map<String, String> getQuerySettings() {
+    Map<String, String> settings = new HashMap<String, String>();
+    for (Map.Entry<String, String> entry : mConf) {
+      if (entry.getKey().startsWith(RTENGINE_KEY_PREFIX)) {
+        settings.put(entry.getKey(), entry.getValue());
+      }
+    }
+
+    // Set some values from our environment.
+    settings.put(LocalEnvironment.SUBMITTER_SESSION_ID_KEY, Long.toString(mSessionId.getId()));
+
+    return settings;
   }
 
   private void printUsage() {
@@ -362,7 +385,7 @@ public class CmdLineClient {
     } else if (realCommand.equalsIgnoreCase("exit")) {
       throw new QuitException(0);
     } else {
-      QuerySubmitResponse response = mExecEnv.submitQuery(realCommand);
+      QuerySubmitResponse response = mExecEnv.submitQuery(realCommand, getQuerySettings());
       String msg = response.getMessage();
       if (null != msg) {
         System.out.println(msg);

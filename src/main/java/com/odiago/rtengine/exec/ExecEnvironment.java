@@ -44,7 +44,7 @@ public abstract class ExecEnvironment {
    * @return a response containing any text for the user, as well as any
    * flow ids spawned, etc.
    */
-  public abstract QuerySubmitResponse submitQuery(String query)
+  public abstract QuerySubmitResponse submitQuery(String query, Map<String, String> options)
       throws InterruptedException, IOException;
 
   /**
