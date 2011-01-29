@@ -19,13 +19,13 @@ public class ClientConsoleImpl implements ClientConsole.Iface {
   /** Print ordinary info / records from the server to the console. */
   @Override
   public void sendInfo(String info) {
-    System.out.print(info);
+    System.out.println(info);
   }
 
   /** Print error information to the console. */
   @Override
   public void sendErr(String err) {
-    System.err.print(err);
+    System.err.println(err);
   }
 
 }

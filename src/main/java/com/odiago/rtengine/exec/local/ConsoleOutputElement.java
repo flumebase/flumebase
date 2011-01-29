@@ -14,10 +14,12 @@ import com.odiago.rtengine.exec.FlowElementImpl;
 
 import com.odiago.rtengine.parser.TypedField;
 
+import com.odiago.rtengine.server.UserSession;
+
 import com.odiago.rtengine.util.StringUtils;
 
 /**
- * FlowElement that prints events to the console.
+ * FlowElement that prints events to the consoles of each subscriber.
  */
 public class ConsoleOutputElement extends FlowElementImpl {
   private List<TypedField> mFields;
@@ -60,7 +62,14 @@ public class ConsoleOutputElement extends FlowElementImpl {
         sb.append(fieldVal);
       }
     }
-    System.out.println(sb.toString());
+
+
+    // Notify all subscribers of our output.
+    LocalContext context = (LocalContext) getContext();
+    String output = sb.toString();
+    for (UserSession session : context.getFlowData().getSubscribers()) {
+      session.sendInfo(output);
+    }
   }
 
   @Override

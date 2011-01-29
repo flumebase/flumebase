@@ -122,65 +122,6 @@ public class LocalEnvironment extends ExecEnvironment {
   }
 
   /**
-   * Container for information maintained by the local environment
-   * regarding an active flow.
-   */
-  private static class ActiveFlowData {
-    /** The flow itself. */
-    private final LocalFlow mLocalFlow;
-
-    /**
-     * Set of objects which will have notify() called when the flow is
-     * complete. The join target is a reference to a Boolean, which
-     * will be set to True when the flow is complete.
-     */
-    private final List<Ref<Boolean>> mJoinTargets;
-
-    private final List<UserSession> mWatchingSessions;
-
-    public ActiveFlowData(LocalFlow flow) {
-      mLocalFlow = flow;
-      mJoinTargets = new ArrayList<Ref<Boolean>>();
-      mWatchingSessions = new ArrayList<UserSession>();
-    }
-
-    public LocalFlow getFlow() {
-      return mLocalFlow;
-    }
-
-    public FlowId getFlowId() {
-      return mLocalFlow.getId();
-    }
-
-    /** Notifies everyone waiting on this flow that it is canceled. */
-    public void cancel() {
-      for (Ref<Boolean> joinTarget : mJoinTargets) {
-        synchronized (joinTarget) {
-          joinTarget.item = Boolean.TRUE;
-          joinTarget.notify();
-        }
-      }
-    }
-
-    /** Waits for this flow to terminate. */
-    public void subscribeToCancelation(Ref<Boolean> obj) {
-      mJoinTargets.add(obj);
-    }
-
-    /** This session now watches the output of the flow. */
-    public void addSession(UserSession session) {
-      if (!mWatchingSessions.contains(session)) {
-        mWatchingSessions.add(session);
-      }
-    }
-
-    /** This session no longer watches the output of the flow. */
-    public void removeSession(UserSession session) {
-      mWatchingSessions.remove(session);
-    }
-  }
-
-  /**
    * The thread where the active flows in the local environment actually operate.
    */
   private class LocalEnvThread extends Thread {
@@ -201,6 +142,8 @@ public class LocalEnvironment extends ExecEnvironment {
     }
 
     private void deployFlow(LocalFlow newFlow) throws IOException, InterruptedException {
+      final ActiveFlowData activeFlowData = new ActiveFlowData(newFlow);
+
       // If we haven't yet started Flume, and the flow requires Flume-based sources,
       // start Flume.
       if (newFlow.requiresFlume() && !mFlumeStarted) {
@@ -221,6 +164,7 @@ public class LocalEnvironment extends ExecEnvironment {
             // Get the output queue from this.
             LocalContext elemContext = (LocalContext) flowElem.getContext();
             elemContext.initControlQueue(mControlQueue);
+            elemContext.setFlowData(activeFlowData);
             mAllFlowQueues.add(elemContext.getPendingEventQueue());
 
             try {
@@ -247,7 +191,7 @@ public class LocalEnvironment extends ExecEnvironment {
         }
       }
 
-      mActiveFlows.put(newFlow.getId(), new ActiveFlowData(newFlow));
+      mActiveFlows.put(newFlow.getId(), activeFlowData);
     }
 
     private void cancelFlowInner(ActiveFlowData flowData) {
@@ -525,7 +469,7 @@ public class LocalEnvironment extends ExecEnvironment {
   private static final UserSession LOCAL_SESSION;
 
   static {
-    LOCAL_SESSION = new UserSession(new SessionId(0), null, null, new ClientConsoleImpl());
+    LOCAL_SESSION = new UserSession(new SessionId(0), null, new ClientConsoleImpl());
   }
 
   /** The configuration for this environment instance. */

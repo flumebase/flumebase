@@ -36,12 +36,14 @@ import com.odiago.rtengine.thrift.TFlowInfo;
 import com.odiago.rtengine.thrift.TQuerySubmitResponse;
 import com.odiago.rtengine.thrift.TSessionId;
 
+import com.odiago.rtengine.util.CloseHandler;
+
 /**
  * Implementation of the RemoteServer thrift interface.
  * This is the "guts" of the remote server that translate RPC calls
  * from the client into actions performed on the ExecEnvironment hosted within.
  */
-class RemoteServerImpl implements RemoteServer.Iface {
+class RemoteServerImpl implements RemoteServer.Iface, CloseHandler<UserSession> {
   private static final Logger LOG = LoggerFactory.getLogger(
       RemoteServerImpl.class.getName());
 
@@ -86,8 +88,13 @@ class RemoteServerImpl implements RemoteServer.Iface {
   }
 
   /** Indicate to the server that the specified session is dead. */
-  void removeSession(SessionId id) {
+  private void removeSession(SessionId id) {
     mActiveSessions.remove(id);
+  }
+
+  @Override
+  public void handleClose(UserSession session) {
+    removeSession(session.getId());
   }
 
   // Implementation of remote API follows.
@@ -109,7 +116,8 @@ class RemoteServerImpl implements RemoteServer.Iface {
         ClientConsole.Client client = new ClientConsole.Client(protocol);
 
         // Store the info about this RPC connection in the active sessions table.
-        UserSession session = new UserSession(sessionId, this, transport, client);
+        UserSession session = new UserSession(sessionId, transport, client);
+        session.subscribeToClose(this);
         mActiveSessions.put(sessionId, session);
       } catch (TException te) {
         LOG.error("Could not create callback RPC connection to " + host + ":" + port);

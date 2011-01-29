@@ -30,6 +30,9 @@ public abstract class LocalContext extends FlowElementContext {
   /** Set to true after notifyCompletion() was called once. */
   private boolean mNotifiedCompletion;
 
+  /** Data about the management of the flow by the exec env. */
+  private ActiveFlowData mFlowData;
+
   public LocalContext() {
     mNotifiedCompletion = false;
     mOutputQueue = new ConcurrentLinkedQueue<PendingEvent>();
@@ -82,4 +85,13 @@ public abstract class LocalContext extends FlowElementContext {
         new LocalCompletionEvent(this)));
     mNotifiedCompletion = true;
   }
+
+  void setFlowData(ActiveFlowData flowData) {
+    mFlowData = flowData;
+  }
+
+  public ActiveFlowData getFlowData() {
+    return mFlowData;
+  }
+
 }
