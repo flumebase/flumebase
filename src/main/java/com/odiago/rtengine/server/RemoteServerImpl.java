@@ -4,8 +4,10 @@ package com.odiago.rtengine.server;
 
 import java.io.IOException;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
@@ -193,6 +195,20 @@ class RemoteServerImpl implements RemoteServer.Iface, CloseHandler<UserSession> 
   public void unwatchFlow(TSessionId sessionId, TFlowId flowId) throws TException {
     try {
       mExecEnv.unwatchFlow(SessionId.fromThrift(sessionId), FlowId.fromThrift(flowId));
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public List<TFlowId> listWatchedFlows(TSessionId sessionId) throws TException {
+    try {
+      List<FlowId> flowList = mExecEnv.listWatchedFlows(SessionId.fromThrift(sessionId));
+      List<TFlowId> outList = new ArrayList<TFlowId>();
+      for (FlowId flowId : flowList) {
+        outList.add(flowId.toThrift());
+      }
+      return outList;
     } catch (Exception e) {
       throw new TException(e);
     }

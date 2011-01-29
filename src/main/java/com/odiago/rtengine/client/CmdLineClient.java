@@ -5,6 +5,7 @@ package com.odiago.rtengine.client;
 import java.io.IOException;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
@@ -83,7 +84,14 @@ public class CmdLineClient {
   private void showFlows() {
     try {
       Map<FlowId, FlowInfo> flows = mExecEnv.listFlows();
+      List<FlowId> watchList = mExecEnv.listWatchedFlows(mSessionId);
+      System.out.println("Watch?\tFlowId\tQuery");
       for (Map.Entry<FlowId, FlowInfo> entry : flows.entrySet()) {
+        if (watchList.contains(entry.getKey())) {
+          System.out.print("  *\t"); // Put an asterisk in the front to signify watching.
+        } else {
+          System.out.print("   \t");
+        }
         System.out.println(entry.getValue().toString());
       }
     } catch (Exception e) {

@@ -4,6 +4,8 @@ package com.odiago.rtengine.client;
 
 import java.io.IOException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -225,6 +227,20 @@ public class ThriftClientEnvironment extends ExecEnvironment {
   public void unwatchFlow(SessionId sessionId, FlowId flowId) throws IOException {
     try {
       mClient.unwatchFlow(sessionId.toThrift(), flowId.toThrift());
+    } catch (TException te) {
+      throw new IOException(te);
+    }
+  }
+
+  @Override
+  public List<FlowId> listWatchedFlows(SessionId sessionId) throws IOException {
+    try {
+      List<TFlowId> flowList = mClient.listWatchedFlows(sessionId.toThrift());
+      List<FlowId> outList = new ArrayList<FlowId>();
+      for (TFlowId tFlowId : flowList) {
+        outList.add(FlowId.fromThrift(tFlowId));
+      }
+      return outList;
     } catch (TException te) {
       throw new IOException(te);
     }

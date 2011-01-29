@@ -89,6 +89,11 @@ service RemoteServer {
    */
   void unwatchFlow(1: required TSessionId sessionId, 2: required TFlowId flowId),
 
+  /**
+   * Gather a list of all FlowIds being watched by the specified session.
+   */
+  list<TFlowId> listWatchedFlows(1: required TSessionId sessionId),
+
   /** Shut down the remote server. */
   oneway void shutdown()
 }

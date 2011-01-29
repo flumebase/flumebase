@@ -4,6 +4,7 @@ package com.odiago.rtengine.exec;
 
 import java.io.IOException;
 
+import java.util.List;
 import java.util.Map;
 
 import com.odiago.rtengine.plan.FlowSpecification;
@@ -86,6 +87,10 @@ public abstract class ExecEnvironment {
 
   /** Unsubscribe the specified user session from the output of the specified flow. */
   public abstract void unwatchFlow(SessionId sessionId, FlowId flowId)
+      throws InterruptedException, IOException;
+
+  /** @return a list of all FlowIds being watched by this client. */
+  public abstract List<FlowId> listWatchedFlows(SessionId sessionId)
       throws InterruptedException, IOException;
 
   /**

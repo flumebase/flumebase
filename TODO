@@ -1,8 +1,6 @@
 
 Remote environment stuff:
 
-  - \f should display what we're watching.
-
   When we subscribe to a stream, we need to print the columns header out.
 
   Need to make sure all random stdout from proxied LocalEnv makes it home
@@ -88,8 +86,7 @@ Bugs:
 
 Features:
 
-  - Need ability to create a remote physical plan
-  -- Need ability to run remote physical plan on a set of configured nodes.
+  - Need ability to run remote physical plan on a set of configured nodes.
 
   - EventParser names/implementations should be accessed through the BuiltInSymbolTable.
   - Need a MapFunc API to allow 1-to-many transformations.

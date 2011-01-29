@@ -63,7 +63,6 @@ public class ConsoleOutputElement extends FlowElementImpl {
       }
     }
 
-
     // Notify all subscribers of our output.
     LocalContext context = (LocalContext) getContext();
     String output = sb.toString();

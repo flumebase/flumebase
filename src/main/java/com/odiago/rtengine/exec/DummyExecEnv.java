@@ -2,7 +2,9 @@
 
 package com.odiago.rtengine.exec;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -77,6 +79,11 @@ public class DummyExecEnv extends ExecEnvironment {
   @Override
   public void unwatchFlow(SessionId sessionId, FlowId flowId) {
     LOG.error("Not connected");
+  }
+
+  @Override
+  public List<FlowId> listWatchedFlows(SessionId sessionId) {
+    return Collections.emptyList();
   }
 
   @Override

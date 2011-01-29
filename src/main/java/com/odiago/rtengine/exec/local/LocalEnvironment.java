@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -24,6 +25,8 @@ import org.apache.hadoop.conf.Configuration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.cloudera.util.Pair;
 
 import com.odiago.rtengine.client.ClientConsoleImpl;
 
@@ -90,6 +93,7 @@ public class LocalEnvironment extends ExecEnvironment {
       ListFlows,       // Enumerate the running flows.
       WatchFlow,       // Subscribe to a flow's output.
       UnwatchFlow,     // Unsubscribe from a flow's output.
+      GetWatchList,    // Get a list of flows being watched by a session.
     };
 
     /** What operation should be performed by the worker thread? */
@@ -320,6 +324,30 @@ public class LocalEnvironment extends ExecEnvironment {
       }
     }
 
+    /**
+     * Populate the specified flowList with a list of FlowIds that are
+     * being watched by the specified sessionId.
+     * The flowList is provided by a client in another thread; synchronize
+     * on it and notify the other thread when the request is complete.
+     */
+    private void getWatchList(SessionId sessionId, List<FlowId> flowList) {
+      synchronized(flowList) {
+        UserSession session = getSession(sessionId);
+        if (null != session) {
+          for (ActiveFlowData activeFlow : mActiveFlows.values()) {
+            List<UserSession> subscribers = activeFlow.getSubscribers();
+            if (subscribers.contains(session)) {
+              flowList.add(activeFlow.getFlowId());
+            }
+          }
+        } else {
+          LOG.error("GetWatchList for sessionId " + sessionId + ": no such session");
+        }
+
+        flowList.notify(); // We're done. Wake up the client.
+      }
+    }
+
     @Override
     public void run() {
       try {
@@ -361,6 +389,11 @@ public class LocalEnvironment extends ExecEnvironment {
             case UnwatchFlow:
               WatchRequest unwatchReq = (WatchRequest) nextOp.getDatum();
               watch(unwatchReq); // the request has the isWatch flag set false. 
+              break;
+            case GetWatchList:
+              Pair<SessionId, List<FlowId>> getReq =
+                  (Pair<SessionId, List<FlowId>>) nextOp.getDatum();
+              getWatchList(getReq.getLeft(), getReq.getRight());
               break;
             case Noop:
               // Don't do any control operation; skip ahead to event processing.
@@ -719,16 +752,21 @@ public class LocalEnvironment extends ExecEnvironment {
   public Map<FlowId, FlowInfo> listFlows() throws InterruptedException {
     Map<FlowId, FlowInfo> outData = new TreeMap<FlowId, FlowInfo>();
     synchronized (outData) {
-      while (true) {
-        mControlQueue.put(new ControlOp(ControlOp.Code.ListFlows, outData));
-        try {
-          outData.wait();
-          break;
-        } catch (InterruptedException ie) {
-        }
-      }
+      mControlQueue.put(new ControlOp(ControlOp.Code.ListFlows, outData));
+      outData.wait();
     }
     return outData;
+  }
+
+  @Override
+  public List<FlowId> listWatchedFlows(SessionId sessionId) throws InterruptedException {
+    List<FlowId> outList = new ArrayList<FlowId>();
+    Pair<SessionId, List<FlowId>> args = new Pair<SessionId, List<FlowId>>(sessionId, outList);
+    synchronized (outList) {
+      mControlQueue.put(new ControlOp(ControlOp.Code.GetWatchList, args));
+      outList.wait();
+    }
+    return outList;
   }
 
   /**
