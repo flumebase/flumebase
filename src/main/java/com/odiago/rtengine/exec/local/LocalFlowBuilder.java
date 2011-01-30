@@ -42,6 +42,8 @@ import com.odiago.rtengine.plan.PlanNode;
 import com.odiago.rtengine.plan.ProjectionNode;
 import com.odiago.rtengine.plan.FilterNode;
 
+import com.odiago.rtengine.server.UserSession;
+
 import com.odiago.rtengine.util.DAG;
 import com.odiago.rtengine.util.DAGOperatorException;
 
@@ -65,14 +67,17 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
   private SymbolTable mRootSymbolTable;
   private EmbeddedFlumeConfig mFlumeConfig;
   private Map<String, MemoryOutputElement> mMemOutputMap;
+  private UserSession mSubmitterSession;
 
   public LocalFlowBuilder(FlowId flowId, SymbolTable rootSymTable,
-      EmbeddedFlumeConfig flumeConfig, Map<String, MemoryOutputElement> memOutputMap) {
+      EmbeddedFlumeConfig flumeConfig, Map<String, MemoryOutputElement> memOutputMap,
+      UserSession submitterSession) {
     mFlowId = flowId;
     mMemOutputMap = memOutputMap;
     mLocalFlow = new LocalFlow(flowId);
     mRootSymbolTable = rootSymTable;
     mFlumeConfig = flumeConfig;
+    mSubmitterSession = submitterSession;
   }
 
   /**
@@ -152,13 +157,13 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
         throw new DAGOperatorException("Object already exists at top level: " + streamName);
       } else {
         mRootSymbolTable.addSymbol(streamSym);
-        System.out.println("CREATE STREAM");
+        mSubmitterSession.sendInfo("CREATE STREAM");
       }
     } else if (node instanceof DescribeNode) {
       // Look up the referenced object in the symbol table and describe it immediately.
       DescribeNode describe = (DescribeNode) node;
       Symbol sym = mRootSymbolTable.resolve(describe.getIdentifier());
-      System.out.println(sym);
+      mSubmitterSession.sendInfo(sym.toString());
     } else if (node instanceof DropNode) {
       // Perform the operation here.
       // Remove the objet from our symbol table.
@@ -172,7 +177,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       EntityTarget targetType = dropNode.getType();
       // Perform the operation.
       mRootSymbolTable.remove(name);
-      System.out.println("DROP " + targetType.toString().toUpperCase());
+      mSubmitterSession.sendInfo("DROP " + targetType.toString().toUpperCase());
     } else if (node instanceof NamedSourceNode) {
       NamedSourceNode namedInput = (NamedSourceNode) node;
       String streamName = namedInput.getStreamName();

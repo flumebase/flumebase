@@ -4,6 +4,8 @@ package com.odiago.rtengine.exec;
 
 import java.io.IOException;
 
+import com.odiago.rtengine.server.UserSession;
+
 /**
  * A flow element is a worker in a flow; it has an input side
  * and an output side, and some function. 
@@ -66,4 +68,10 @@ public abstract class FlowElement {
    */
   public abstract FlowElementContext getContext();
   
+  /**
+   * Perform any action which needs to happen when a user subscribes to this flow.
+   * Note that this occurs just before the subscription; the session is not yet
+   * actually subscribed to the flow.
+   */
+  public abstract void onConnect(UserSession session);
 }

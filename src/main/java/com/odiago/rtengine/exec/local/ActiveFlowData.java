@@ -5,11 +5,16 @@ package com.odiago.rtengine.exec.local;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.odiago.rtengine.exec.FlowId;
 
 import com.odiago.rtengine.server.UserSession;
 
 import com.odiago.rtengine.util.CloseHandler;
+import com.odiago.rtengine.util.DAG;
+import com.odiago.rtengine.util.DAGOperatorException;
 import com.odiago.rtengine.util.Ref;
 
 /**
@@ -17,6 +22,9 @@ import com.odiago.rtengine.util.Ref;
  * regarding an active flow.
  */
 public class ActiveFlowData implements CloseHandler<UserSession> {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      ActiveFlowData.class.getName());
+
   /** The flow itself. */
   private final LocalFlow mLocalFlow;
 
@@ -59,9 +67,22 @@ public class ActiveFlowData implements CloseHandler<UserSession> {
   }
 
   /** This session now watches the output of the flow. */
-  public void addSession(UserSession session) {
+  public void addSession(final UserSession session) {
     if (!mWatchingSessions.contains(session)) {
       mWatchingSessions.add(session);
+      // Perform onSubscribe actions for any FEs that need them.
+      try {
+        mLocalFlow.bfs(new DAG.Operator<FlowElementNode>() {
+          public void process(FlowElementNode node) {
+            node.getFlowElement().onConnect(session);
+          }
+        });
+      } catch (DAGOperatorException doe) {
+        // None to be thrown here..?
+        LOG.error("Unexpected DAG operator exception: " + doe);
+      }
+      
+      // Actually subscribe to the flow.
       session.subscribeToClose(this);
     }
   }

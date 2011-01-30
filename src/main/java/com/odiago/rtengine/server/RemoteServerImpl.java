@@ -131,6 +131,17 @@ class RemoteServerImpl implements RemoteServer.Iface, CloseHandler<UserSession> 
   }
 
   @Override
+  public void closeSession(TSessionId tSessionId) throws TException {
+    SessionId sessionId = SessionId.fromThrift(tSessionId);
+    UserSession userSession = mActiveSessions.get(sessionId);
+    if (null == userSession) {
+      LOG.error("closeSession() for sessionId " + sessionId + ": no such session.");
+    } else {
+      userSession.close();
+    }
+  }
+
+  @Override
   public TQuerySubmitResponse submitQuery(String query, Map<String, String> options)
       throws TException {
     try {

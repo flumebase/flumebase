@@ -16,7 +16,7 @@ import com.odiago.rtengine.util.ClosePublisher;
 /**
  * State about a user's session, including the callback RPC connection, etc.
  */
-public class UserSession extends ClosePublisher {
+public class UserSession extends ClosePublisher implements ClientConsole.Iface {
   private static final Logger LOG = LoggerFactory.getLogger(
       UserSession.class.getName());
 
@@ -43,7 +43,7 @@ public class UserSession extends ClosePublisher {
    * with this client. Remove the client from the server's active sessions
    * table.
    */
-  public void close() {
+  public synchronized void close() {
     LOG.info("Closing user session: " + mSessionId);
 
     if (null != mRpcTransport) {
@@ -60,10 +60,6 @@ public class UserSession extends ClosePublisher {
 
   public SessionId getId() {
     return mSessionId;
-  }
-
-  public ClientConsole.Iface getConsole() {
-    return mClient;
   }
 
   @Override
@@ -84,9 +80,30 @@ public class UserSession extends ClosePublisher {
    * Sends output to the user's console. If this triggers an error, the session
    * is closed and removed from the list of active sessions.
    */
-  public void sendInfo(String output) {
+  public synchronized void sendInfo(String output) {
+    if (null == mClient) {
+      // We're already closed. Ignore.
+      return;
+    }
     try {
       mClient.sendInfo(output);
+    } catch (TException te) {
+      LOG.error("Could not send data to client: " + te);
+      close();
+    }
+  }
+
+  /**
+   * Sends err output to the user's console. If this triggers an error, the session
+   * is closed and removed from the list of active sessions.
+   */
+  public synchronized void sendErr(String output) {
+    if (null == mClient) {
+      // We're already closed. Ignore.
+      return;
+    }
+    try {
+      mClient.sendErr(output);
     } catch (TException te) {
       LOG.error("Could not send data to client: " + te);
       close();

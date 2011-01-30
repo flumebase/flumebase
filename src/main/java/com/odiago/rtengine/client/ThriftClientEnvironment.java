@@ -247,7 +247,14 @@ public class ThriftClientEnvironment extends ExecEnvironment {
   }
 
   @Override
-  public void disconnect() throws IOException {
+  public void disconnect(SessionId sessionId) throws IOException {
+    try {
+      mClient.closeSession(sessionId.toThrift());
+    } catch (TException te) {
+      LOG.error("Exception during disconnect calling closeSession(): " + te);
+      // Continue with disconnect process even in the face of an error.
+    }
+
     mTransport.close();
     mClient = null;
   }
@@ -256,9 +263,11 @@ public class ThriftClientEnvironment extends ExecEnvironment {
   public void shutdown() throws IOException {
     try {
       mClient.shutdown();
-      disconnect();
     } catch (TException te) {
       throw new IOException(te);
     }
+
+    mTransport.close();
+    mClient = null;
   }
 }

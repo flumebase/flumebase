@@ -96,7 +96,8 @@ public abstract class ExecEnvironment {
   /**
    * Disconnects this client from the environment.
    */
-  public abstract void disconnect() throws InterruptedException, IOException;
+  public abstract void disconnect(SessionId sessionId)
+      throws InterruptedException, IOException;
 
   /**
    * Shuts down the execution environment. Closes all flows and prevents new

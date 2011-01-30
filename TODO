@@ -1,11 +1,23 @@
 
 Remote environment stuff:
 
-  When we subscribe to a stream, we need to print the columns header out.
+  Problematic behavior
+    client connects, sets up a flow
+    data comes back
+    client ^C
+    send another message into the flow. it goes nowhere (expected)
+    -- but no err reported back to the server about the lost output.
+    connect another client
+    watch the same flow
+    send another message into the flow. 
+    -- server sees an error writing to the first client (expected) and closes
+    -- .... server does NOT send the message to the new client.
+    send a 3rd message itno the flow.
+    -- seen by the new client.
 
-  Need to make sure all random stdout from proxied LocalEnv makes it home
-  (e.g., "CREATE STREAM" notices.)
 
+    - The 2nd message should be delivered to the 2nd client.
+    - The 1st message should have caused the error on the server side.
 
 Joins:
   I don't know that the various calls to streamSymbol.getName() are actually

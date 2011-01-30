@@ -187,7 +187,7 @@ public class CmdLineClient {
 
     try {
       boolean isConnected = mExecEnv.isConnected();
-      mExecEnv.disconnect(); // Try anyway
+      mExecEnv.disconnect(mSessionId); // Try anyway
       if (isConnected) {
         // Only display this message if we know for sure we were connected previously.
         LOG.info("Disconnected from execution environment.");
@@ -243,9 +243,12 @@ public class CmdLineClient {
     }
   }
 
-  private void printProperties() {
+  /** print all properties that start with 'prefix'. */
+  private void printProperties(String prefix) {
     for (Map.Entry<String, String> entry : mConf) {
-      System.out.println(entry.getKey() + " = '" + entry.getValue() + "'");
+      if (null == prefix || entry.getKey().startsWith(prefix)) {
+        System.out.println(entry.getKey() + " = '" + entry.getValue() + "'");
+      }
     }
   }
 
@@ -261,17 +264,25 @@ public class CmdLineClient {
       key = propKeyVal.substring(0, equalIdx);
       String value = propKeyVal.substring(equalIdx + 1);
       mConf.set(key, value);
+      System.out.println(key + " = '" + value + "'");
     } else {
       // Just a key.
       key = propKeyVal;
+
+      if (key.endsWith(".")) {
+        // Actually it's a prefix. Print out everything that starts with this.
+        printProperties(key);
+      } else {
+        // Print out the value for this key.
+        String outVal = mConf.get(key);
+        if (null != outVal) {
+          System.out.println(key + " = '" + outVal + "'");
+        } else {
+          System.out.println("No such property: " + key);
+        }
+      }
     }
 
-    String outVal = mConf.get(key);
-    if (null != outVal) {
-      System.out.println(key + " = '" + outVal + "'");
-    } else {
-      System.out.println("No such property: " + key);
-    }
   }
 
   /**
@@ -319,7 +330,7 @@ public class CmdLineClient {
       }
     } else if (args[0].equals("\\set")) {
       if (args.length == 1) {
-        printProperties();
+        printProperties(null);
       } else if (args.length == 2) {
         setProperty(args[1]);
       } else {
@@ -360,6 +371,7 @@ public class CmdLineClient {
         throw new QuitException(0);
       default:
         System.err.println("Unknown control command: " + args[0]);
+        System.err.println("Try \\h for help.");
         break;
       }
     } else {
@@ -478,7 +490,7 @@ public class CmdLineClient {
       }
 
       try {
-        mExecEnv.disconnect();
+        mExecEnv.disconnect(mSessionId);
       } catch (InterruptedException ie) {
         LOG.warn("Interruption while disconnecting from service: " + ie);
       }

@@ -58,6 +58,11 @@ service RemoteServer {
     throws (1:CallbackConnectionError cce),
 
   /**
+   * Free all resources associated with the specified session.
+   */
+  void closeSession(1: required TSessionId id),
+
+  /**
    * Submit a query statement to the planner. Returns a human-readable message
    * about its status, as well as an optional flow id if the query was
    * successfully submitted.

@@ -4,6 +4,8 @@ package com.odiago.rtengine.exec;
 
 import java.io.IOException;
 
+import com.odiago.rtengine.server.UserSession;
+
 /**
  * Basic implementation of some key FlowElement methods.
  * FlowElement implementations should subclass this.
@@ -77,5 +79,10 @@ public abstract class FlowElementImpl extends FlowElement {
   @Override
   public FlowElementContext getContext() {
     return mContext;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void onConnect(UserSession session) {
   }
 }

@@ -59,7 +59,7 @@ public class RtsqlTestCase {
   @After
   public void tearDown() throws IOException, InterruptedException {
     if (null != mEnvironment && mEnvironment.isConnected()) {
-      mEnvironment.disconnect();
+      mEnvironment.disconnect(null);
     }
   }
 

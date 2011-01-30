@@ -31,19 +31,24 @@ public class ConsoleOutputElement extends FlowElementImpl {
     mFields = fields;
   }
 
-  private void printHeader() {
+  private StringBuilder formatHeader() {
     StringBuilder sb = new StringBuilder();
     sb.append("timestamp");
     for (TypedField field : mFields) {
       sb.append("\t");
       sb.append(field.getDisplayName());
     }
-    System.out.println(sb);
+    return sb;
+  }
+
+  @Override
+  public void onConnect(UserSession session) {
+    // When a user first connects, print the header for our output columns.
+    session.sendInfo(formatHeader().toString());
   }
 
   @Override
   public void open() {
-    printHeader();
   }
 
   @Override

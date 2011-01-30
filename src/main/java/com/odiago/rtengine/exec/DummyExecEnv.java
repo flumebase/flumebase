@@ -87,7 +87,7 @@ public class DummyExecEnv extends ExecEnvironment {
   }
 
   @Override
-  public void disconnect() {
+  public void disconnect(SessionId sessionId) {
     // Do nothing.
   }
   

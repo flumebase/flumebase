@@ -595,6 +595,15 @@ public class LocalEnvironment extends ExecEnvironment {
     mLocalThread = this.new LocalEnvThread();
   }
 
+  /** Given a Configuration that has SUBMITTER_SESSION_ID_KEY set, return the
+   * UserSession corresponding to this SessionId. This is used to resolve the
+   * submitter of a LocalFlow, FlowSpecification, etc.
+   */
+  private UserSession getSessionForConf(Configuration conf) {
+    SessionId id = new SessionId(conf.getLong(SUBMITTER_SESSION_ID_KEY, -1));
+    return getSession(id);
+  }
+
   @Override
   public SessionId connect() throws IOException {
     mLocalThread.start();
@@ -685,15 +694,16 @@ public class LocalEnvironment extends ExecEnvironment {
     if (null != spec) {
       // Turn the specification into a physical plan and run it.
       FlowId flowId = new FlowId(mNextFlowId++);
+      UserSession userSession = getSessionForConf(spec.getConf());
       LocalFlowBuilder flowBuilder = new LocalFlowBuilder(flowId, mRootSymbolTable,
-          mFlumeConfig, mMemoryOutputMap);
+          mFlumeConfig, mMemoryOutputMap, userSession);
       try {
         spec.reverseBfs(flowBuilder);
       } catch (DAGOperatorException doe) {
         // An exception occurred when creating the physical plan.
         // LocalFlowBuilder put a message for the user in here; print it
         // without a stack trace. The flow cannot be executed.
-        LOG.error(doe.getMessage());
+        userSession.sendErr(doe.getMessage());
         return null;
       }
       LocalFlow localFlow = flowBuilder.getLocalFlow();
@@ -773,7 +783,7 @@ public class LocalEnvironment extends ExecEnvironment {
    * Stop the local environment and shut down any flows operating therein.
    */
   @Override
-  public void disconnect() throws InterruptedException {
+  public void disconnect(SessionId sessionId) throws InterruptedException {
     shutdown();
   }
 
