@@ -11,16 +11,18 @@ import java.util.List;
  * is ready for a read operation. Objects registered with a Select must
  * implement Selectable. 
  *
- * <p>A Select object should be used in two phases. In the first phase, the
- * add() method should be repeatedly called to register one or more Selectable
+ * <p>The add() method should be repeatedly called to register one or more Selectable
  * objects with the Select. This will allow the Select to accept notifications
  * from the Selectables.</p>
  *
- * <p>In the second phase, the read() or join() methods should be used to poll
- * for new output values from the Selectables. The read()/join() methods are
- * thread-safe with respect to one another, but not with respect to add().
- * After the first call to read() or join(), no further calls to add() should
- * be made.</p>
+ * <p>add() and remove() are NOT thread-safe with respect to read() and join(),
+ * although they are thread-safe with respect to each other. read() and join()
+ * are also thread safe with respect to one another.</p>
+ *
+ * <p>Basically, this is designed for a multi-producer, single-consumer use
+ * case. While you may use a single Select instance for the multi-consumer case,
+ * you should not add() or remove() Selectables if another thread may call
+ * read() or join() simultaneously.</p>
  *
  */
 public class Select<T> implements Iterable<Selectable<T>> {
@@ -40,6 +42,18 @@ public class Select<T> implements Iterable<Selectable<T>> {
       synchronized (this) {
         mTargets.add(target);
         target.register(this);
+      }
+    }
+  }
+
+  /**
+   * Remove an object from the list of objects to watch.
+   */
+  public void remove(Selectable<T> target) {
+    synchronized (target) {
+      synchronized (this) {
+        mTargets.remove(target);
+        target.unregister(this);
       }
     }
   }

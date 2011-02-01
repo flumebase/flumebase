@@ -6,18 +6,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 
-import java.util.AbstractQueue;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 
 import org.antlr.runtime.RecognitionException;
 
@@ -62,6 +58,12 @@ import com.odiago.rtengine.util.DAG;
 import com.odiago.rtengine.util.DAGOperatorException;
 import com.odiago.rtengine.util.Ref;
 
+import com.odiago.rtengine.util.concurrent.ArrayBoundedSelectableQueue;
+import com.odiago.rtengine.util.concurrent.Select;
+import com.odiago.rtengine.util.concurrent.Selectable;
+import com.odiago.rtengine.util.concurrent.SelectableQueue;
+import com.odiago.rtengine.util.concurrent.SyncSelectableQueue;
+
 /**
  * Standalone local execution environment for flows.
  */
@@ -69,9 +71,6 @@ public class LocalEnvironment extends ExecEnvironment {
 
   private static final Logger LOG = LoggerFactory.getLogger(
       LocalEnvironment.class.getName());
-
-  /** The max number of events that will be processed in between polling for a control op. */
-  private static final int MAX_STEPS = 250;
 
   /** Config key specifying whether we automatically watch a flow when we create it or not. */
   public static final String AUTO_WATCH_FLOW_KEY = "rtengine.flow.autowatch";
@@ -135,19 +134,34 @@ public class LocalEnvironment extends ExecEnvironment {
    * The thread where the active flows in the local environment actually operate.
    */
   private class LocalEnvThread extends Thread {
-    /** The set of queues used to hold output from individual FlowElements. */
-    private Collection<AbstractQueue<PendingEvent>> mAllFlowQueues;
 
     /** The set of running flows. */
     private Map<FlowId, ActiveFlowData> mActiveFlows;
 
+    /** Mapping from an input queue to the FlowElement it is feeding values to. */
+    private Map<SelectableQueue<Object>, FlowElement> mInputQueues;
+
     private boolean mFlumeStarted;
+
+    /** The selector that lets us read from multiple producers */
+    private Select<Object> mSelect;
+
+    /** Unbounded queue used in-thread to post completion events back to the main loop. */
+    private SelectableQueue<Object> mCompletionEventQueue;
+
+    /**
+     * Set of queues which should be watched for emptiness; when they transition
+     * to empty, notify the associated downstream element of the upstream element's
+     * closure.
+     */
+    private Set<SelectableQueue<Object>> mCloseQueues;
 
     public LocalEnvThread() {
       mActiveFlows = new HashMap<FlowId, ActiveFlowData>();
-      // TODO(aaron): This should be something like a heap, that keeps
-      // the "most full" queues near the front of the line.
-      mAllFlowQueues = new ArrayList<AbstractQueue<PendingEvent>>();
+      mSelect = new Select<Object>();
+      mCompletionEventQueue = new SyncSelectableQueue<Object>();
+      mInputQueues = new HashMap<SelectableQueue<Object>, FlowElement>();
+      mCloseQueues = new HashSet<SelectableQueue<Object>>();
       mFlumeStarted = false;
     }
 
@@ -187,9 +201,22 @@ public class LocalEnvironment extends ExecEnvironment {
             // All FlowElements that we see will have LocalContext subclass contexts.
             // Get the output queue from this.
             LocalContext elemContext = (LocalContext) flowElem.getContext();
-            elemContext.initControlQueue(mControlQueue);
+            elemContext.initControlQueue(mCompletionEventQueue);
             elemContext.setFlowData(activeFlowData);
-            mAllFlowQueues.add(elemContext.getPendingEventQueue());
+
+            if (elemContext instanceof MTGeneratorElemContext) {
+              // This FlowElement is driving another FE via a buffer.
+              // Actually create the buffer, and register it in our live set of queues
+              // to monitor.
+              SelectableQueue<Object> elemBuffer =
+                  new ArrayBoundedSelectableQueue<Object>(MAX_QUEUE_LEN);
+              ((MTGeneratorElemContext) elemContext).setDownstreamQueue(elemBuffer);
+              // Bind queue to input...
+              FlowElement downstream = ((MTGeneratorElemContext) elemContext).getDownstream();
+              // And to its output...
+              mInputQueues.put(elemBuffer, downstream);
+              mSelect.add(elemBuffer); // And watch this queue for updates.
+            }
 
             try {
               flowElem.open();
@@ -239,7 +266,14 @@ public class LocalEnvironment extends ExecEnvironment {
             // All FlowElements that we see will have LocalContext subclass contexts.
             // Get the output queue from this, and remove it from the tracking set.
             LocalContext elemContext = (LocalContext) flowElem.getContext();
-            mAllFlowQueues.remove(elemContext.getPendingEventQueue());
+
+            if (elemContext instanceof MTGeneratorElemContext) {
+              SelectableQueue<Object> outQueue =
+                  ((MTGeneratorElemContext) elemContext).getDownstreamQueue();
+              mSelect.remove(outQueue);
+              mInputQueues.remove(outQueue);
+              mCloseQueues.remove(outQueue);
+            }
           }
         });
       } catch (DAGOperatorException doe) {
@@ -348,21 +382,55 @@ public class LocalEnvironment extends ExecEnvironment {
       }
     }
 
+    /**
+     * The specified queue is empty and its upstream element is closed. Notify
+     * the downstream element of this closure, and remove the queue from the
+     * set of things we track.
+     */
+    private void closeQueue(SelectableQueue<Object> queue, FlowElement flowElem)
+        throws IOException, InterruptedException {
+      flowElem.completeWindow();
+      flowElem.closeUpstream();
+      mSelect.remove(queue);
+      mInputQueues.remove(queue);
+      mCloseQueues.remove(queue);
+    }
+
     @Override
     public void run() {
+      mSelect.add(mControlQueue); // Listen to events on the control queue.
+      mSelect.add(mCompletionEventQueue);
       try {
         boolean isFinished = false;
 
         while (true) {
-          ControlOp nextOp = null;
+          Selectable<Object> nextQueue = null;
           try {
-            // Read the next operation from mControlQueue.
-            nextOp = mControlQueue.take();
+            nextQueue = mSelect.join();
           } catch (InterruptedException ie) {
-            // Expected; interruption here is used to notify us that we're done, etc.
+            // This can happen to notify us we're done processing, etc.
           }
 
-          if (null != nextOp) {
+          if (null == nextQueue) {
+            continue;
+          }
+
+          Object nextAction = null;
+          synchronized (nextQueue) {
+            if (nextQueue.canRead()) {
+              try {
+                nextAction = nextQueue.read();
+              } catch (InterruptedException ie) {
+                // This can happen if we're closing shop fast. We'll just loop around.
+              }
+            }
+          }
+
+          if (null == nextAction) {
+            continue;
+          } else if (nextAction instanceof ControlOp) {
+            ControlOp nextOp = (ControlOp) nextAction;
+
             switch (nextOp.getOpCode()) {
             case AddFlow:
               LocalFlow newFlow = (LocalFlow) nextOp.getDatum();
@@ -404,9 +472,6 @@ public class LocalEnvironment extends ExecEnvironment {
               FlowElement downstream = null;
               try {
                 LocalContext context = completionEvent.getContext();
-                // TODO(aaron): If this queue still has elements in it, we might lose
-                // some output messages. This is an OUTPUT queue, not an INPUT queue.
-                mAllFlowQueues.remove(context.getPendingEventQueue());
 
                 if (context instanceof DirectCoupledFlowElemContext) {
                   // Notify the downstream FlowElement that it too should close.
@@ -416,6 +481,20 @@ public class LocalEnvironment extends ExecEnvironment {
                   // TODO(aaron): Is this call correctly placed? Or even relevant?
                   downstream.completeWindow();
                   downstream.closeUpstream();
+                } else if (context instanceof MTGeneratorElemContext) {
+                  // This FE is connected to its downstream element by a queue.
+                  // When that queue is empty, notify the downstream element of
+                  // its upstream closure.
+                  MTGeneratorElemContext mtContext =
+                      (MTGeneratorElemContext) context;
+                  SelectableQueue<Object> downstreamQueue = mtContext.getDownstreamQueue();
+                  downstream = mtContext.getDownstream();
+                  if (downstreamQueue.size() == 0) {
+                    // This is already dry. Close it immediately.
+                    closeQueue(downstreamQueue, downstream);
+                  } else {
+                    mCloseQueues.add(downstreamQueue);
+                  }
                 } else if (context instanceof SinkFlowElemContext) {
                   // We have received close() notification from the last element in a flow.
                   // Remove the entire flow from service.
@@ -457,58 +536,43 @@ public class LocalEnvironment extends ExecEnvironment {
               listFlows(resultMap);
               break;
             }
-          }
 
-          if (isFinished) {
-            // Stop immediately; ignore any further event processing or control work.
-            break;
-          }
-
-          // Check to see if there is work to be done inside the existing flows.
-          // If we have more events to process, continue to do so. Every MAX_STEPS
-          // events, check to see if we have additional control operations to perform.
-          // If so, loop back around and give them an opportunity to process. If we
-          // definitely have more event processing to do, but no control ops to
-          // process, run for another MAX_STEPS.
-          boolean continueEvents = true;
-          while (continueEvents) {
-            int processedEvents = 0;
-            boolean processedEventThisIteration = false;
-            for (AbstractQueue<PendingEvent> queue : mAllFlowQueues) {
-              if (LOG.isDebugEnabled() && queue.size() > 0) {
-                LOG.debug("Dequeuing from queue: " + queue + " with size=" + queue.size());
-              }
-              while (!queue.isEmpty()) {
-                PendingEvent pe = queue.remove();
-                FlowElement fe = pe.getFlowElement();
-                EventWrapper e = pe.getEvent();
-                try {
-                  fe.takeEvent(e);
-                } catch (IOException ioe) {
-                  // TODO(aaron): Encountering an exception mid-flow should cancel the flow.
-                  LOG.error("Flow element encountered IOException: " + ioe);
-                } catch (InterruptedException ie) {
-                  LOG.error("Flow element encountered InterruptedException: " + ie);
-                }
-                processedEvents++;
-                processedEventThisIteration = true;
-                if (processedEvents > MAX_STEPS) {
-                  if (mControlQueue.size() > 0) {
-                    // There are control operations to perform. Drain these.
-                    continueEvents = false;
-                  } else {
-                    // Run for another MAX_STEPS before checking again.
-                    processedEvents = 0;
-                  }
-                }
-              }
-            }
-
-            if (!processedEventThisIteration) {
-              // If we didn't process any events after scanning all queues,
-              // then don't loop back around.
+            if (isFinished) {
+              // Stop immediately; ignore any further event processing or control work.
               break;
             }
+          } else if (nextAction instanceof EventWrapper) {
+            // Process this event with its associated FlowElement.
+            // Look up the correct FlowElement based on the queue->FE map.
+            FlowElement processor = mInputQueues.get(nextQueue);
+            if (null == processor) {
+              LOG.error("No FlowElement for input queue " + nextQueue);
+            } else {
+              try {
+                processor.takeEvent((EventWrapper) nextAction);
+              } catch (IOException ioe) {
+                // TODO(aaron): Encountering an exception mid-flow should cancel the flow.
+                LOG.error("Flow element encountered IOException: " + ioe);
+              } catch (InterruptedException ie) {
+                LOG.error("Flow element encountered InterruptedException: " + ie);
+              }
+            }
+
+            if (((SelectableQueue<Object>) nextQueue).size() == 0
+                && mCloseQueues.contains(nextQueue)) {
+              // We just transitioned this FE's input queue to empty, and it was closed
+              // upstream. Notify the downstream element of this closure.
+              try {
+                closeQueue((SelectableQueue<Object>) nextQueue, processor);
+              } catch (IOException ioe) {
+                LOG.error("IOException closing flow element: " + ioe);
+              } catch (InterruptedException ie) {
+                LOG.error("InterruptedException closing flow element: " + ie);
+              }
+            }
+          } else {
+            LOG.error("Do not know what to do with queue element " + nextAction
+                + " of class " + nextAction.getClass().getName());
           }
         }
       } finally {
@@ -560,7 +624,7 @@ public class LocalEnvironment extends ExecEnvironment {
    * Queue of control events passed from the console thread to the worker thread
    * (e.g., "deploy stream", "cancel stream", etc.)
    */
-  private BlockingQueue<ControlOp> mControlQueue;
+  private SelectableQueue<Object> mControlQueue; // Actually full of ControlOp instances
 
   /** Max len for mControlQueue. */
   private static final int MAX_QUEUE_LEN = 100;
@@ -592,7 +656,7 @@ public class LocalEnvironment extends ExecEnvironment {
 
     mGenerator = new ASTGenerator();
     mNextFlowId = 0;
-    mControlQueue = new ArrayBlockingQueue<ControlOp>(MAX_QUEUE_LEN);
+    mControlQueue = new ArrayBoundedSelectableQueue<Object>(MAX_QUEUE_LEN);
     mFlumeConfig = new EmbeddedFlumeConfig(mConf);
     mLocalThread = this.new LocalEnvThread();
   }

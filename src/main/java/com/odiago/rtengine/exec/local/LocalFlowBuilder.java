@@ -95,18 +95,38 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
   }
 
   /**
+   * @return true if the specified PlanNode will result in a multithreaded
+   * FlowElement.
+   */
+  private boolean isMultiThreaded(PlanNode node, SymbolTable rootTable) {
+    if (node instanceof NamedSourceNode) {
+      return true;
+    } else {
+      // Non-source nodes are all single-threaded.
+      return false;
+    }
+  }
+
+  /**
    * Given a PlanNode, produce the FlowElementContext that is appropriate
    * for connecting to all of its downstream components.
    */
-  private FlowElementContext makeContextForNode(PlanNode node) {
+  private FlowElementContext makeContextForNode(PlanNode node, SymbolTable rootTable) {
     List<PlanNode> children = node.getChildren();
     List<FlowElementNode> childElements = getNodeElements(children);
+    boolean isMultiThreaded = isMultiThreaded(node, rootTable);
     if (childElements.size() == 0) {
       return new SinkFlowElemContext(mFlowId);
-    } else if (childElements.size() == 1) {
+    } else if (childElements.size() == 1 && !isMultiThreaded) {
+      // Normal direct connection from node to node.
       FlowElement childElem = childElements.get(0).getFlowElement();
       childElem.registerUpstream();
       return new DirectCoupledFlowElemContext(childElem);
+    } else if (childElements.size() == 1 && isMultiThreaded) {
+      // We should put a buffer between ourselves and the child node.
+      FlowElement childElem = childElements.get(0).getFlowElement();
+      childElem.registerUpstream();
+      return new MTGeneratorElemContext(childElem);
     } else {
       // TODO(aaron): Create a multi-output context and use here.
       LOG.error("No local context available for fan-out");
@@ -129,7 +149,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
 
   public void process(PlanNode node) throws DAGOperatorException {
     FlowElement newElem = null; // The newly-constructed FlowElement.
-    FlowElementContext newContext = makeContextForNode(node);
+    FlowElementContext newContext = makeContextForNode(node, mRootSymbolTable);
 
     if (null == node) {
       LOG.warn("Null node in plan graph");

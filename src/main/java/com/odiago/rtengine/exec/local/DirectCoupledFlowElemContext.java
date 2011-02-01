@@ -26,7 +26,7 @@ public class DirectCoupledFlowElemContext extends LocalContext {
    */
   @Override
   public void emit(EventWrapper e) throws IOException, InterruptedException {
-    post(mDownstream, e);
+    mDownstream.takeEvent(e);
   }
 
   /**

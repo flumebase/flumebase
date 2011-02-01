@@ -32,7 +32,7 @@ public class QueueTestCase {
     }
 
     public void run() {
-      // There is a 1% chance that we sleep after each put, to randomize the
+      // There is a small random chance that we sleep after each put, to randomize the
       // thread collisions a bit.
 
       Random r = new Random(System.currentTimeMillis() + hashCode());
@@ -43,7 +43,7 @@ public class QueueTestCase {
           LOG.info("Interrupted in producer!");
         }
 
-        if (r.nextInt(100) < 2) {
+        if (r.nextInt(1000) < 2) {
           try {
             Thread.sleep(1);
           } catch (InterruptedException ie) {

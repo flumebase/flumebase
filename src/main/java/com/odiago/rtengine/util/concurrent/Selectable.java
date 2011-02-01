@@ -12,19 +12,29 @@ import java.util.List;
 public abstract class Selectable<T> {
 
   /** Select instances to notify when we're ready for read. */
-  private List<Select> mSelects;
+  private List<Select<T>> mSelects;
 
   public Selectable() {
-    mSelects = new ArrayList<Select>();
+    mSelects = new ArrayList<Select<T>>();
   }
 
   /**
    * Specifies which Select instance(s) should be notified when the object
    * is ready. Called by the Select instance, not by users.
    */
-  void register(Select sel) {
+  void register(Select<T> sel) {
     synchronized (mSelects) {
       mSelects.add(sel);
+    }
+  }
+
+  /**
+   * Specifies a Select instance that should no longer be notified when
+   * the object is ready for read. Called by the Select instance, not by users.
+   */
+  void unregister(Select<T> sel) {
+    synchronized (mSelects) {
+      mSelects.remove(sel);
     }
   }
 
@@ -35,7 +45,7 @@ public abstract class Selectable<T> {
    */
   protected void notifyReaders() throws InterruptedException {
     synchronized (mSelects) {
-      for (Select select : mSelects) {
+      for (Select<T> select : mSelects) {
         synchronized (select) {
           select.enqueueSelectable(this);
         }
@@ -51,7 +61,6 @@ public abstract class Selectable<T> {
    * read operation.
    */
   public abstract boolean canRead();
-
 
   /**
    * Reads from the object. Blocks until canRead() would return true,
