@@ -1,6 +1,19 @@
 
 Remote environment stuff:
 
+  Need ability to send data to a Flume stream.
+  -- Need to add a FlumeOutputElement.
+  -- SELECT stmt should attach this wherever it attaches ConsoleOutputElement.
+  -- Need to be able to specify name of Flume logicalNode that is its output.
+
+  ... maybe this is all handled by a 'CREATE STREAM streamname AS SELECT ..
+  ... this adds a 'name' attribute to an ActiveFlowData / FlowInfo of 'streamname'.
+      The flowId is still numeric.
+      Operations like \w <streamName> should call a method that resolves a name to
+      a flowId, and then calls watch() on the flowId.
+  ..... Also need ability to switch on/off Flume for anonymous queries; to assign
+        a name to them, or to revoke an existing name.
+
   Problematic behavior
     client connects, sets up a flow
     data comes back
@@ -12,7 +25,7 @@ Remote environment stuff:
     send another message into the flow. 
     -- server sees an error writing to the first client (expected) and closes
     -- .... server does NOT send the message to the new client.
-    send a 3rd message itno the flow.
+    send a 3rd message into the flow.
     -- seen by the new client.
 
 

@@ -53,6 +53,14 @@ public class ConsoleOutputElement extends FlowElementImpl {
 
   @Override
   public void takeEvent(EventWrapper e) throws IOException {
+    LocalContext context = (LocalContext) getContext();
+    List<UserSession> subscribers = context.getFlowData().getSubscribers();
+
+    if (subscribers.size() == 0) {
+      // Nobody is listening; don't waste time formatting it.
+      return;
+    }
+
     StringBuilder sb = new StringBuilder();
     long ts = e.getEvent().getTimestamp();
     sb.append(ts);
@@ -69,9 +77,8 @@ public class ConsoleOutputElement extends FlowElementImpl {
     }
 
     // Notify all subscribers of our output.
-    LocalContext context = (LocalContext) getContext();
     String output = sb.toString();
-    for (UserSession session : context.getFlowData().getSubscribers()) {
+    for (UserSession session : subscribers) {
       session.sendInfo(output);
     }
   }

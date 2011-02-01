@@ -404,6 +404,8 @@ public class LocalEnvironment extends ExecEnvironment {
               FlowElement downstream = null;
               try {
                 LocalContext context = completionEvent.getContext();
+                // TODO(aaron): If this queue still has elements in it, we might lose
+                // some output messages. This is an OUTPUT queue, not an INPUT queue.
                 mAllFlowQueues.remove(context.getPendingEventQueue());
 
                 if (context instanceof DirectCoupledFlowElemContext) {

@@ -10,4 +10,5 @@ public enum StreamSourceType {
   Source, // Data pulled from a Flume source.
   Memory, // Events already cached in local memory (used only for internal tests).
   Node, // Data pulled from a Flume logical node.
+  Select, // The output of a persistent SELECT statement.
 }

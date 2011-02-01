@@ -37,6 +37,12 @@ stmt_create_stream returns [CreateStreamStmt val]:
               $st.val, $src.val, srcIsLocal, $fields.val);
         }
       sfmt=optional_format_spec { $val.setFormatSpec($sfmt.val); }
+/*  | CREATE STREAM nm=stream_sel AS sel=stmt_select
+       {
+         $val = new CreateStreamStmt($nm.val,
+             StreamSourceType.Select, $sel.val, false, null);
+       }
+*/       
   ;
 
 stmt_describe returns [DescribeStmt val]:
