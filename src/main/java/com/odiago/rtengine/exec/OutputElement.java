@@ -5,6 +5,7 @@ package com.odiago.rtengine.exec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -33,7 +34,14 @@ import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 import com.odiago.rtengine.flume.SourceContext;
 import com.odiago.rtengine.flume.SourceContextBindings;
 
+import com.odiago.rtengine.io.AvroEventParser;
+
+import com.odiago.rtengine.lang.StreamType;
+import com.odiago.rtengine.lang.Type;
+
+import com.odiago.rtengine.parser.FormatSpec;
 import com.odiago.rtengine.parser.SQLStatement;
+import com.odiago.rtengine.parser.StreamSourceType;
 import com.odiago.rtengine.parser.TypedField;
 
 import com.odiago.rtengine.server.UserSession;
@@ -64,6 +72,12 @@ public class OutputElement extends FlowElementImpl {
   /** Name of Flume logical node that broadcasts the results of this query. */
   private String mFlumeNodeName;
 
+  /**
+   * Set to true if this OutputNode manages the symbol associated with
+   * mFlumeNodeName.
+   */
+  private boolean mOwnsSymbol;
+
   /** Queue of events that are delivered to Flume by this OutputElement. */
   private BlockingQueue<Event> mOutputQueue;
 
@@ -76,6 +90,9 @@ public class OutputElement extends FlowElementImpl {
   /** Output schema emitted to Flume. */
   private Schema mOutputSchema;
 
+  /** Symbol table where stream definitions are introduced. */
+  private SymbolTable mRootSymbolTable;
+
   // Objects used for Avro serialization.
   private Encoder mEncoder;
   private GenericDatumWriter<GenericRecord> mDatumWriter;
@@ -83,7 +100,7 @@ public class OutputElement extends FlowElementImpl {
 
   public OutputElement(FlowElementContext context, Schema inputSchema,
       List<TypedField> fields, EmbeddedFlumeConfig flumeConfig, String flumeNodeName,
-      Schema outputSchema, List<TypedField> outputFields) {
+      Schema outputSchema, List<TypedField> outputFields, SymbolTable rootSymbolTable) {
     super(context);
 
     mInputFields = fields;
@@ -92,6 +109,8 @@ public class OutputElement extends FlowElementImpl {
     mOutputQueue = null;
     mOutputSchema = outputSchema;
     mOutputFields = outputFields;
+    mRootSymbolTable = rootSymbolTable;
+    mOwnsSymbol = false;
 
     mFlumeInputFields = SQLStatement.distinctFields(mInputFields);
     assert mFlumeInputFields.size() == mOutputFields.size();
@@ -129,6 +148,31 @@ public class OutputElement extends FlowElementImpl {
         mFlumeConfig.spawnLogicalNode(mFlumeNodeName,
             "rtsqlsource(\"" + mFlumeNodeName + "\")",
             "null");
+
+        if (mRootSymbolTable.resolve(mFlumeNodeName) != null) {
+          // TODO(aaron): This should make it back to the UserSession who submitted
+          // the job, if this is the first call to open(), or to the UserSession who
+          // bound the query to the current output name.
+          // Also, should we fail the job? etc etc... check preconditions?
+          LOG.error("Cannot create stream for flow; object already exists at top level: "
+              + mFlumeNodeName);
+          mOwnsSymbol = false;
+        } else {
+          FormatSpec formatSpec = new FormatSpec(FormatSpec.FORMAT_AVRO);
+          formatSpec.setParam(AvroEventParser.SCHEMA_PARAM, mOutputSchema.toString());
+
+          List<Type> outputTypes = new ArrayList<Type>();
+          for (TypedField field : mFlumeInputFields) {
+            outputTypes.add(field.getType());
+          }
+  
+          Type streamType = new StreamType(outputTypes);
+          StreamSymbol streamSym = new StreamSymbol(mFlumeNodeName, StreamSourceType.Node,
+              streamType, mFlumeNodeName, true, mOutputFields, formatSpec);
+          mRootSymbolTable.addSymbol(streamSym);
+          mOwnsSymbol = true;
+          LOG.info("CREATE STREAM (" + mFlumeNodeName + ")");
+        }
       } catch (TException te) {
         throw new IOException(te);
       }
@@ -165,6 +209,11 @@ public class OutputElement extends FlowElementImpl {
    */
   private void stopFlumeNode() throws IOException {
     if (mFlumeNodeName != null) {
+      if (mOwnsSymbol) {
+        // TODO: Broadcast this DROP STREAM event back to the user who ordered the config change.
+        mRootSymbolTable.remove(mFlumeNodeName);
+        mOwnsSymbol = false;
+      }
       try {
         mFlumeConfig.decommissionLogicalNode(mFlumeNodeName);
       } catch (TException te) {

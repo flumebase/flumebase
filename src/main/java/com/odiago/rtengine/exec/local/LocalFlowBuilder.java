@@ -162,7 +162,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
           (Schema) outputNode.getAttr(PlanNode.INPUT_SCHEMA_ATTR),
           outputNode.getInputFields(), mFlumeConfig, logicalFlumeNode,
           (Schema) outputNode.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
-          outputNode.getOutputFields());
+          outputNode.getOutputFields(), mRootSymbolTable);
       if (null != logicalFlumeNode) {
         mLocalFlow.setFlumeRequired(true);
       }

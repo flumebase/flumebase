@@ -7,11 +7,10 @@ Remote environment stuff:
        in FlowInfo.java
   -- ExecEnv & friends need ability to set Flume node name for an anonymous flow,
      revoke name, assign new name, etc.
-  -- When we bind a name to a flow, we should do the metadata ops to list that as a stream
-  -- unbinding a name from a flow should drop the stream of the same name.
   -- Operations like \w <streamName> should call a method that resolves a name to
      a flowId, and then calls watch() on the flowId.
   -- need unit tests on AvroEventParser
+  -- need unit tests that operate on derived streams.
 
   ===============================================
   weird happenings with AvroEventParser reading flows we generate in avro:
