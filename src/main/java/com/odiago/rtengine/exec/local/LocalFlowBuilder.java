@@ -19,6 +19,7 @@ import com.odiago.rtengine.exec.FlowId;
 import com.odiago.rtengine.exec.FlumeNodeElement;
 import com.odiago.rtengine.exec.HashJoinElement;
 import com.odiago.rtengine.exec.InMemStreamSymbol;
+import com.odiago.rtengine.exec.OutputElement;
 import com.odiago.rtengine.exec.ProjectionElement;
 import com.odiago.rtengine.exec.FilterElement;
 import com.odiago.rtengine.exec.StreamSymbol;
@@ -30,7 +31,7 @@ import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 import com.odiago.rtengine.parser.EntityTarget;
 import com.odiago.rtengine.parser.Expr;
 
-import com.odiago.rtengine.plan.ConsoleOutputNode;
+import com.odiago.rtengine.plan.OutputNode;
 import com.odiago.rtengine.plan.CreateStreamNode;
 import com.odiago.rtengine.plan.DescribeNode;
 import com.odiago.rtengine.plan.DropNode;
@@ -154,11 +155,18 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     if (null == node) {
       LOG.warn("Null node in plan graph");
       return;
-    } else if (node instanceof ConsoleOutputNode) {
-      ConsoleOutputNode consoleNode = (ConsoleOutputNode) node;
-      newElem = new ConsoleOutputElement(newContext,
-          (Schema) consoleNode.getAttr(PlanNode.INPUT_SCHEMA_ATTR),
-          consoleNode.getFields());
+    } else if (node instanceof OutputNode) {
+      OutputNode outputNode = (OutputNode) node;
+      String logicalFlumeNode = outputNode.getFlumeNodeName();
+      newElem = new OutputElement(newContext,
+          (Schema) outputNode.getAttr(PlanNode.INPUT_SCHEMA_ATTR),
+          outputNode.getInputFields(), mFlumeConfig, logicalFlumeNode,
+          (Schema) outputNode.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
+          outputNode.getOutputFields());
+      if (null != logicalFlumeNode) {
+        mLocalFlow.setFlumeRequired(true);
+      }
+
     } else if (node instanceof MemoryOutputNode) {
       MemoryOutputNode memoryNode = (MemoryOutputNode) node;
       newElem = new MemoryOutputElement(newContext, memoryNode.getFields());

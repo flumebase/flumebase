@@ -29,20 +29,19 @@ stmt returns [SQLStatement val]:
   | drop=stmt_drop {$val = $drop.val;}
   ;
 
-stmt_create_stream returns [CreateStreamStmt val]:
+stmt_create_stream returns [SQLStatement val]:
     CREATE STREAM sid=stream_sel fields=typed_field_list FROM lcl=LOCAL? st=src_type src=src_spec
         {
           boolean srcIsLocal = lcl != null;
           $val = new CreateStreamStmt($sid.val,
               $st.val, $src.val, srcIsLocal, $fields.val);
         }
-      sfmt=optional_format_spec { $val.setFormatSpec($sfmt.val); }
-/*  | CREATE STREAM nm=stream_sel AS sel=stmt_select
-       {
-         $val = new CreateStreamStmt($nm.val,
-             StreamSourceType.Select, $sel.val, false, null);
-       }
-*/       
+      sfmt=optional_format_spec { ((CreateStreamStmt) $val).setFormatSpec($sfmt.val); }
+  | CREATE STREAM nm=stream_sel AS sel=stmt_select
+        {
+          $sel.val.setOutputName($nm.val);
+          $val = $sel.val;
+        }
   ;
 
 stmt_describe returns [DescribeStmt val]:

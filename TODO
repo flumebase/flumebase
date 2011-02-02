@@ -2,17 +2,23 @@
 Remote environment stuff:
 
   Need ability to send data to a Flume stream.
-  -- Need to add a FlumeOutputElement.
-  -- SELECT stmt should attach this wherever it attaches ConsoleOutputElement.
-  -- Need to be able to specify name of Flume logicalNode that is its output.
+  -- FlowInfo should include the output name for a flow
+    -- CmdLineClient's formatting of the header line for FlowInfo lists should be
+       in FlowInfo.java
+  -- ExecEnv & friends need ability to set Flume node name for an anonymous flow,
+     revoke name, assign new name, etc.
+  -- When we bind a name to a flow, we should do the metadata ops to list that as a stream
+  -- unbinding a name from a flow should drop the stream of the same name.
+  -- Add ability to pull from these into further statements.
+    -- Need ability to specify a stream is full of avro formatted data
+    -- Need EventParser that handles Avro.
+  -- Operations like \w <streamName> should call a method that resolves a name to
+     a flowId, and then calls watch() on the flowId.
 
-  ... maybe this is all handled by a 'CREATE STREAM streamname AS SELECT ..
-  ... this adds a 'name' attribute to an ActiveFlowData / FlowInfo of 'streamname'.
-      The flowId is still numeric.
-      Operations like \w <streamName> should call a method that resolves a name to
-      a flowId, and then calls watch() on the flowId.
-  ..... Also need ability to switch on/off Flume for anonymous queries; to assign
-        a name to them, or to revoke an existing name.
+  ===============================================
+
+  ... test what happens with multiple clients listening to the same flow
+  and what happens when one ^C's, etc.
 
   Problematic behavior
     client connects, sets up a flow

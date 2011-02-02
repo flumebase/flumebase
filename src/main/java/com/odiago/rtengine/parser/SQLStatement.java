@@ -77,7 +77,7 @@ public abstract class SQLStatement {
    * the order of inFields (the second, third, etc. instances of a given field
    * are the omitted ones).
    */
-  protected static List<TypedField> distinctFields(List<TypedField> inFields) {
+  public static List<TypedField> distinctFields(List<TypedField> inFields) {
     List<TypedField> out = new ArrayList<TypedField>();
     Set<String> fieldNames = new HashSet<String>();
 
@@ -101,8 +101,14 @@ public abstract class SQLStatement {
    * @param requiredFields the field names and types to be included in this schema.
    */
   protected static Schema createFieldSchema(Collection<TypedField> requiredFields) {
+    return createFieldSchema(requiredFields, AVRO_RECORD_NAME);
+  }
+
+  protected static Schema createFieldSchema(Collection<TypedField> requiredFields,
+      String recordName) {
+   
     List<Schema.Field> avroFields = new ArrayList<Schema.Field>();
-    Schema record = Schema.createRecord(AVRO_RECORD_NAME, null, null, false);
+    Schema record = Schema.createRecord(recordName, null, null, false);
     for (TypedField field : requiredFields) {
       String fieldName = field.getAvroName();
       Type t = field.getType();
@@ -112,6 +118,39 @@ public abstract class SQLStatement {
     }
     record.setFields(avroFields);
     return record;
+  }
+
+  /**
+   * Given the name of a field, return a field name that is safe to use as an Avro
+   * field name that is as close to the original name as possible.
+   */
+  protected static String avroSafeName(String name) {
+    boolean isFirst = true;
+    StringBuilder sb = new StringBuilder();
+    for (char c : name.toCharArray()) {
+      if (isFirst) {
+        // First can only be [A-Za-z_]
+        if (Character.isLetter(c) || c == '_') {
+          sb.append(c);
+        } else if (Character.isDigit(c)) {
+          // Fields like '3xx' turn into '_3xx'.
+          sb.append('_');
+          sb.append(c);
+        }
+        
+        isFirst = false;
+      } else {
+        if (Character.isLetter(c) || c == '_' || Character.isDigit(c)) {
+          sb.append(c);
+        } else {
+          // Unsure what to do with a special character (e.g., punctuation).
+          // Turn it into an underscore.
+          sb.append('_');
+        }
+      }
+    }
+
+    return sb.toString();
   }
 }
 

@@ -14,7 +14,6 @@ public class FlowInfo {
   /** The query that is being executed. */
   public final String query;
 
-
   public FlowInfo(FlowId id, String q) {
     flowId = id;
     query = q;

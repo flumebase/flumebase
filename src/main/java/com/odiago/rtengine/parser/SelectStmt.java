@@ -16,7 +16,7 @@ import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.lang.Type;
 
-import com.odiago.rtengine.plan.ConsoleOutputNode;
+import com.odiago.rtengine.plan.OutputNode;
 import com.odiago.rtengine.plan.EvaluateExprsNode;
 import com.odiago.rtengine.plan.FilterNode;
 import com.odiago.rtengine.plan.FlowSpecification;
@@ -66,6 +66,12 @@ public class SelectStmt extends RecordSource {
   private String mAlias;
 
   /**
+   * Name associated with an output logical node emitting the select's results
+   * into Flume. (May be null.)
+   */
+  private String mOutputName;
+
+  /**
    * All symbols representing fields available as output of this select stmt.
    */
   private SymbolTable mFieldSymbols;
@@ -100,6 +106,14 @@ public class SelectStmt extends RecordSource {
 
   public void setAlias(String alias) {
     mAlias = alias;
+  }
+
+  public String getOutputName() {
+    return mOutputName;
+  }
+
+  public void setOutputName(String outputName) {
+    mOutputName = outputName;
   }
 
   /** {@inheritDoc} */
@@ -163,6 +177,13 @@ public class SelectStmt extends RecordSource {
       pad(sb, depth + 1);
       sb.append("AS: alias=");
       sb.append(mAlias);
+      sb.append("\n");
+    }
+
+    if (null != mOutputName) {
+      pad(sb, depth + 1);
+      sb.append("OUTPUT AS: outputName=");
+      sb.append(mOutputName);
       sb.append("\n");
     }
   }
@@ -335,8 +356,23 @@ public class SelectStmt extends RecordSource {
       String selectTarget = planContext.getConf().get(CLIENT_SELECT_TARGET_KEY,
           DEFAULT_CLIENT_SELECT_TARGET);
       if (CONSOLE_SELECT_TARGET.equals(selectTarget)) {
-        // SELECT statements that are root queries go to the console.
-        flowSpec.attachToLastLayer(new ConsoleOutputNode(outputFields));
+        // SELECT statements that are root queries go to the output node.
+
+        // This output node may emit Avro records to a Flume node. These records
+        // should use more user-friendly names for the fields than the anonymized
+        // field names we use internally. Create a final schema for the output
+        // plan node.
+        String outputName = getOutputName();
+        List<TypedField> outSchemaFields = new ArrayList<TypedField>();
+        List<TypedField> distinctOutFields = distinctFields(outputFields);
+        for (TypedField outField : distinctOutFields) {
+          String safeName = avroSafeName(outField.getDisplayName());
+          outSchemaFields.add(new TypedField(safeName, outField.getType()));
+        }
+        Schema finalSchema = createFieldSchema(outSchemaFields, outputName);
+        OutputNode outputNode = new OutputNode(outputFields, outSchemaFields, outputName);
+        outputNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, finalSchema);
+        flowSpec.attachToLastLayer(outputNode);
       } else {
         // Client has specified that outputs of this root query go to a named memory buffer.
         flowSpec.attachToLastLayer(new MemoryOutputNode(selectTarget,
