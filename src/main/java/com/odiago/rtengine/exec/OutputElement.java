@@ -152,7 +152,12 @@ public class OutputElement extends FlowElementImpl {
     }
 
     mFlumeNodeName = logicalNodeName;
-    open();
+    // Create a new output record schema, with records taking the new stream name.
+    if (null != mFlumeNodeName) {
+      mOutputSchema = SQLStatement.createFieldSchema(mOutputFields, mFlumeNodeName);
+      mDatumWriter = new GenericDatumWriter<GenericRecord>(mOutputSchema);
+      open();
+    }
   }
 
   /**

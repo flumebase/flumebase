@@ -7,6 +7,7 @@ import java.util.List;
 import org.apache.avro.Schema;
 
 import com.odiago.rtengine.exec.FlowElementContext;
+import com.odiago.rtengine.exec.StreamSymbol;
 
 import com.odiago.rtengine.parser.TypedField;
 
@@ -15,14 +16,14 @@ public class SinkContext {
   private final FlowElementContext mFlowContext;
   private final Schema mOutputSchema;
   private final List<TypedField> mFieldTypes;
-  private final String mStreamName;
+  private final StreamSymbol mStreamSymbol;
 
   public SinkContext(FlowElementContext flowContext, Schema outputSchema,
-      List<TypedField> fieldTypes, String streamName) {
+      List<TypedField> fieldTypes, StreamSymbol streamSymbol) {
     mFlowContext = flowContext;
     mOutputSchema = outputSchema;
     mFieldTypes = fieldTypes;
-    mStreamName = streamName;
+    mStreamSymbol = streamSymbol;
   }
 
   public FlowElementContext getFlowElementContext() {
@@ -37,7 +38,7 @@ public class SinkContext {
     return mFieldTypes;
   }
 
-  public String getStreamName() {
-    return mStreamName;
+  public StreamSymbol getStreamSymbol() {
+    return mStreamSymbol;
   }
 }

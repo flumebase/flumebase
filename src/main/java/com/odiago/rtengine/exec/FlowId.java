@@ -7,7 +7,7 @@ import com.odiago.rtengine.thrift.TFlowId;
 /**
  * Identifier for a deployed flow within the environment.
  */
-public class FlowId {
+public class FlowId implements Comparable<FlowId> {
 
   private final long mId;
 
@@ -44,6 +44,15 @@ public class FlowId {
 
   public static FlowId fromThrift(TFlowId other) {
     return new FlowId(other.id);
+  }
+
+  @Override
+  public int compareTo(FlowId other) {
+    if (null == other) {
+      return 1;
+    } else {
+      return Long.valueOf(mId).compareTo(other.mId);
+    }
   }
 }
 

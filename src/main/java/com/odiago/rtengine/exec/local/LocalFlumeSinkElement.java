@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowElementImpl;
+import com.odiago.rtengine.exec.StreamSymbol;
 
 import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 import com.odiago.rtengine.flume.EmbeddedNode;
@@ -45,8 +46,8 @@ public class LocalFlumeSinkElement extends FlowElementImpl {
   /** The fields of each record emitted by this node, and their types. */ 
   private List<TypedField> mFieldTypes;
 
-  /** Name of the stream we are reading from. */
-  private String mStreamName;
+  /** Symbol for the stream we are reading from. */
+  private StreamSymbol mStreamSym;
 
   /**
    * The EventSource that we couple to our internal sink for
@@ -56,7 +57,7 @@ public class LocalFlumeSinkElement extends FlowElementImpl {
 
   public LocalFlumeSinkElement(FlowElementContext context, String flowSourceId,
       EmbeddedFlumeConfig flumeConfig, String dataSource, Schema outputSchema,
-      List<TypedField> fieldTypes, String streamName) {
+      List<TypedField> fieldTypes, StreamSymbol streamSym) {
     super(context);
 
     mFlowSourceId = flowSourceId;
@@ -64,13 +65,13 @@ public class LocalFlumeSinkElement extends FlowElementImpl {
     mDataSource = dataSource;
     mOutputSchema = outputSchema;
     mFieldTypes = fieldTypes;
-    mStreamName = streamName;
+    mStreamSym = streamSym;
   }
 
   @Override
   public void open() throws IOException {
     mEmbeddedFlumeNode = new EmbeddedNode(mFlowSourceId, getContext(), mFlumeConfig,
-        mDataSource, mOutputSchema, mFieldTypes, mStreamName);
+        mDataSource, mOutputSchema, mFieldTypes, mStreamSym);
     mEmbeddedFlumeNode.open();
   }
 

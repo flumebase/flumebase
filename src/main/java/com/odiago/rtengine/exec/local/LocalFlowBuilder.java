@@ -236,7 +236,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
         String flowSourceId = "rtengine-flow-" + flowIdNum + "-" + streamSymbol.getName();
         newElem = new LocalFlumeSinkElement(newContext, flowSourceId,
             mFlumeConfig, flumeSource, (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
-            namedInput.getFields(), streamSymbol.getName());
+            namedInput.getFields(), streamSymbol);
         if (!streamSymbol.isLocal()) {
           LOG.info("Created local Flume logical node: " + flowSourceId);
           LOG.info("You may need to connect upstream Flume elements to this source.");
@@ -254,7 +254,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
         newElem = new FlumeNodeElement(newContext, nodeSourceId,
             mFlumeConfig, streamSymbol.getSource(),
             (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
-            namedInput.getFields(), streamSymbol.getName());
+            namedInput.getFields(), streamSymbol);
 
         LOG.info("Created local Flume receiver context: " + nodeSourceId);
         LOG.info("This will be connected to upstream Flume node: " + streamSymbol.getSource());

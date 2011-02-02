@@ -2,6 +2,8 @@
 
 package com.odiago.rtengine.io;
 
+import java.io.IOException;
+
 import com.cloudera.flume.core.Event;
 
 import com.odiago.rtengine.lang.Type;
@@ -55,6 +57,6 @@ public abstract class EventParser {
    * for a missing column that is nullable.
    */
   public abstract Object getColumn(int colIdx, Type expectedType)
-      throws ColumnParseException;
+      throws ColumnParseException, IOException;
 
 }

@@ -9,17 +9,50 @@ Remote environment stuff:
      revoke name, assign new name, etc.
   -- When we bind a name to a flow, we should do the metadata ops to list that as a stream
   -- unbinding a name from a flow should drop the stream of the same name.
-  -- Add ability to pull from these into further statements.
-    -- Need ability to specify a stream is full of avro formatted data
-    -- Need EventParser that handles Avro.
   -- Operations like \w <streamName> should call a method that resolves a name to
      a flowId, and then calls watch() on the flowId.
+  -- need unit tests on AvroEventParser
 
   ===============================================
+  weird happenings with AvroEventParser reading flows we generate in avro:
 
+  # Create a bona fide source.
+  create stream x (a string) from local source 'tail("/tmp/meep")';
+
+  # Create a flow that reads all of this and emits it to a node 'foo'.
+  create stream foo as select a from x;
+
+  # Check its output schema syntax with an 'explain,' then create a stream named foo:
+  create stream foo (a string) from node 'foo' event format 'avro' properties ('schema' =
+  '{"type":"record","name":"foo","fields":[{"name":"a","type":["string","null"]}]}' );
+
+  # Then finally, read from that:
+  select * from foo;
+
+  A bug:
+  The first record that gets pushed through after the node is reconfigured to send
+  its output to a new ephemeral logical node causes a big cascade of exceptions:
+
+85342 [logicalNode foo-28] ERROR com.cloudera.flume.agent.LogicalNode  - Driver on foo closed LazyOpenSource | LazyOpenDecorator because of EventSink LazyOpenDecorator not open
+java.lang.IllegalStateException: EventSink LazyOpenDecorator not open
+  at com.google.common.base.Preconditions.checkState(Preconditions.java:145)
+  at com.cloudera.flume.core.EventSinkDecorator.append(EventSinkDecorator.java:56)
+  at com.cloudera.flume.handlers.debug.LazyOpenDecorator.append(LazyOpenDecorator.java:71)
+  at com.cloudera.flume.core.connector.DirectDriver$PumperThread.run(DirectDriver.java:93)
+85344 [logicalNode foo-54] ERROR com.cloudera.flume.core.connector.DirectDriver  - Driving src/sink failed! LazyOpenSource | LazyOpenDecorator because next() called before open()
+java.io.IOException: next() called before open()
+  at com.odiago.rtengine.flume.RtsqlSource.next(RtsqlSource.java:57)
+  at com.cloudera.flume.handlers.debug.LazyOpenSource.next(LazyOpenSource.java:53)
+  at com.cloudera.flume.core.connector.DirectDriver$PumperThread.run(DirectDriver.java:89)
+
+  so, there's an open() call maybe missing in flume after a reconfigure?
+  The first record is lost. The second record works.
+
+  ===============================================
   ... test what happens with multiple clients listening to the same flow
   and what happens when one ^C's, etc.
 
+  ===============================================
   Problematic behavior
     client connects, sets up a flow
     data comes back

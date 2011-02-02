@@ -100,11 +100,11 @@ public abstract class SQLStatement {
    * Avro types for the fields based on the symbol table entry for each field.
    * @param requiredFields the field names and types to be included in this schema.
    */
-  protected static Schema createFieldSchema(Collection<TypedField> requiredFields) {
+  public static Schema createFieldSchema(Collection<TypedField> requiredFields) {
     return createFieldSchema(requiredFields, AVRO_RECORD_NAME);
   }
 
-  protected static Schema createFieldSchema(Collection<TypedField> requiredFields,
+  public static Schema createFieldSchema(Collection<TypedField> requiredFields,
       String recordName) {
    
     List<Schema.Field> avroFields = new ArrayList<Schema.Field>();
@@ -136,12 +136,18 @@ public abstract class SQLStatement {
           // Fields like '3xx' turn into '_3xx'.
           sb.append('_');
           sb.append(c);
+        } else {
+          // Turn anything else into a '_'.
+          sb.append('_');
         }
         
         isFirst = false;
       } else {
         if (Character.isLetter(c) || c == '_' || Character.isDigit(c)) {
           sb.append(c);
+        } else if (c == ' ' || c == '\t' || c == '(' || c == ')') {
+          // Ignore whitespace characters or parentheses (e.g., because this
+          // is the result of an expression).
         } else {
           // Unsure what to do with a special character (e.g., punctuation).
           // Turn it into an underscore.

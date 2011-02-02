@@ -47,8 +47,8 @@ public class FlumeNodeElement extends FlowElementImpl {
   /** The fields of each record emitted by this node, and their types. */ 
   private List<TypedField> mFieldTypes;
 
-  /** Name of the stream we are reading from. */
-  private String mStreamName;
+  /** Symbol of the stream we are reading from. */
+  private StreamSymbol mStreamSym;
 
   /**
    * The name of the upstream node we are reading from.
@@ -57,7 +57,7 @@ public class FlumeNodeElement extends FlowElementImpl {
 
   public FlumeNodeElement(FlowElementContext context, String flowSourceId,
       EmbeddedFlumeConfig flumeConfig, String upstreamSource, Schema outputSchema,
-      List<TypedField> fieldTypes, String streamName) {
+      List<TypedField> fieldTypes, StreamSymbol streamSym) {
     super(context);
 
     mFlowSourceId = flowSourceId;
@@ -65,13 +65,13 @@ public class FlumeNodeElement extends FlowElementImpl {
     mUpstreamNode = upstreamSource;
     mOutputSchema = outputSchema;
     mFieldTypes = fieldTypes;
-    mStreamName = streamName;
+    mStreamSym = streamSym;
   }
 
   @Override
   public void open() throws IOException {
     SinkContextBindings.get().bindContext(mFlowSourceId,
-        new SinkContext(getContext(), mOutputSchema, mFieldTypes, mStreamName));
+        new SinkContext(getContext(), mOutputSchema, mFieldTypes, mStreamSym));
     mFlumeConfig.addFlowToForeignNode(mUpstreamNode, mFlowSourceId);
   }
 

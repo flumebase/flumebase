@@ -8,6 +8,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.odiago.rtengine.io.AvroEventParser;
 import com.odiago.rtengine.io.DelimitedEventParser;
 import com.odiago.rtengine.io.EventParser;
 
@@ -23,6 +24,9 @@ public class FormatSpec extends SQLStatement {
 
   /** Specifies that the regular delimited format should be used. */
   public static final String DEFAULT_FORMAT_NAME = FORMAT_DELIMITED;
+
+  /** Binary Avro encoding format. Requires an input schema. */
+  public static final String FORMAT_AVRO = "avro";
 
   /** The name of the event format, which dictates the EventParser implementation to use. */
   private String mFormat;
@@ -65,6 +69,8 @@ public class FormatSpec extends SQLStatement {
   public EventParser getEventParser() {
     if (FORMAT_DELIMITED.equals(mFormat)) {
       return new DelimitedEventParser(mParams);
+    } else if (FORMAT_AVRO.equals(mFormat)) {
+      return new AvroEventParser(mParams);
     }
 
     LOG.error("No EventParser with format name: " + mFormat);

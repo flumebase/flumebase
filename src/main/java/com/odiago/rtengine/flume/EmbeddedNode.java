@@ -11,6 +11,7 @@ import org.apache.avro.Schema;
 import org.apache.thrift.TException;
 
 import com.odiago.rtengine.exec.FlowElementContext;
+import com.odiago.rtengine.exec.StreamSymbol;
 
 import com.odiago.rtengine.parser.TypedField;
 
@@ -42,8 +43,8 @@ public class EmbeddedNode {
   /** List of fields and types emitted by this node. */
   private List<TypedField> mFieldTypes;
 
-  /** Name of the stream we represent. */
-  private String mStreamName;
+  /** Symbol of the stream we represent. */
+  private StreamSymbol mStreamSym;
 
   /**
    * Create a single embedded node instance.
@@ -55,14 +56,14 @@ public class EmbeddedNode {
    */
   public EmbeddedNode(String flowSourceId, FlowElementContext flowContext,
       EmbeddedFlumeConfig flumeConfig, String dataSource, Schema outputSchema,
-      List<TypedField> fieldTypes, String streamName) {
+      List<TypedField> fieldTypes, StreamSymbol streamSymbol) {
     mFlowSourceId = flowSourceId;
     mFlowElemContext = flowContext;
     mFlumeConfig = flumeConfig;
     mDataSource = dataSource;
     mOutputSchema = outputSchema;
     mFieldTypes = fieldTypes;
-    mStreamName = streamName;
+    mStreamSym = streamSymbol;
   }
 
   /**
@@ -70,7 +71,7 @@ public class EmbeddedNode {
    */
   public void open() throws IOException {
     SinkContextBindings.get().bindContext(mFlowSourceId,
-        new SinkContext(mFlowElemContext, mOutputSchema, mFieldTypes, mStreamName));
+        new SinkContext(mFlowElemContext, mOutputSchema, mFieldTypes, mStreamSym));
     try {
       mFlumeConfig.createFlowSink(mFlowSourceId, mDataSource);
     } catch (TException te) {

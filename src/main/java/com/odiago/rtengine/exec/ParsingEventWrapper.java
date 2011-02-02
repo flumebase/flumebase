@@ -58,7 +58,7 @@ public class ParsingEventWrapper extends EventWrapperImpl {
    * Perform the field lookup without translating a field name into an index;
    * reference the field by index directly, as the EventParser does.
    */
-  public Object getField(int fieldIdx, Type fieldType) {
+  public Object getField(int fieldIdx, Type fieldType) throws IOException {
     try {
       return mParser.getColumn(fieldIdx, fieldType);
     } catch (ColumnParseException cpe) {

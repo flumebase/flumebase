@@ -17,6 +17,7 @@ import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.ParsingEventWrapper;
+import com.odiago.rtengine.exec.StreamSymbol;
 
 import com.odiago.rtengine.io.DelimitedEventParser;
 
@@ -53,6 +54,9 @@ public class RtsqlSink extends EventSink.Base {
    */
   private List<String> mFieldNames;
 
+  /** Symbol associated with the stream we are the source for. */
+  private StreamSymbol mStreamSymbol;
+
   public RtsqlSink(String contextSourceName) {
     mContextSourceName = contextSourceName;
   }
@@ -68,6 +72,7 @@ public class RtsqlSink extends EventSink.Base {
     }
     mFieldNames = new ArrayList<String>();
     mWriteContext = mSinkContext.getFlowElementContext();
+    mStreamSymbol = mSinkContext.getStreamSymbol();
     for (TypedField field : mSinkContext.getFieldTypes()) {
       mFieldNames.add(field.getAvroName());
     }
@@ -81,16 +86,11 @@ public class RtsqlSink extends EventSink.Base {
     }
 
     try {
-      // TODO - Support other input types, delimiters, etc.
-      
-      e.set(FlowElement.STREAM_NAME_ATTR, mSinkContext.getStreamName().getBytes());
-      EventWrapper wrapper = new ParsingEventWrapper(new DelimitedEventParser(),
+      e.set(FlowElement.STREAM_NAME_ATTR, mStreamSymbol.getName().getBytes());
+      EventWrapper wrapper = new ParsingEventWrapper(mStreamSymbol.getEventParser(),
           mFieldNames);
       wrapper.reset(e);
       mWriteContext.emit(wrapper);
-      // TODO(aaron): In local mode, this appends to an unbounded queue. We should
-      // ensure that we can apply some sort of backpressure by blocking if this
-      // is actually getting out of hand.
     } catch (InterruptedException ie) {
       // TODO(aaron): When Flume's api lets us throw InterruptedException, do so directly.
       throw new IOException(ie);
