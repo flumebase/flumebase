@@ -37,10 +37,14 @@ public class ActiveFlowData implements CloseHandler<UserSession> {
 
   private final List<UserSession> mWatchingSessions;
 
+  /** Stream name associated with the output of this flow. */
+  private String mStreamName;
+
   public ActiveFlowData(LocalFlow flow) {
     mLocalFlow = flow;
     mJoinTargets = new ArrayList<Ref<Boolean>>();
     mWatchingSessions = new ArrayList<UserSession>();
+    mStreamName = null;
   }
 
   public LocalFlow getFlow() {
@@ -49,6 +53,14 @@ public class ActiveFlowData implements CloseHandler<UserSession> {
 
   public FlowId getFlowId() {
     return mLocalFlow.getId();
+  }
+
+  public void setStreamName(String streamName) {
+    mStreamName = streamName;
+  }
+
+  public String getStreamName() {
+    return mStreamName;
   }
 
   /** Notifies everyone waiting on this flow that it is canceled. */

@@ -2,9 +2,6 @@
 Remote environment stuff:
 
   Need ability to send data to a Flume stream.
-  -- FlowInfo should include the output name for a flow
-    -- CmdLineClient's formatting of the header line for FlowInfo lists should be
-       in FlowInfo.java
   -- ExecEnv & friends need ability to set Flume node name for an anonymous flow,
      revoke name, assign new name, etc.
   -- Operations like \w <streamName> should call a method that resolves a name to
@@ -129,6 +126,10 @@ Bugs:
     hygeine's sake.
 
 Features:
+
+  - Windowing should operate on 'previous n rows' too.
+    Associate a rowid tamp with every event on input.
+    Start each stream at 0 for each query, join operates like a "zipper"
 
   - Need ability to run remote physical plan on a set of configured nodes.
 

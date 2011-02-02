@@ -325,7 +325,8 @@ public class LocalEnvironment extends ExecEnvironment {
         for (Map.Entry<FlowId, ActiveFlowData> entry : mActiveFlows.entrySet()) {
           FlowId id = entry.getKey();
           ActiveFlowData activeData = entry.getValue();
-          outMap.put(id, new FlowInfo(id, activeData.getFlow().getQuery()));
+          outMap.put(id, new FlowInfo(id, activeData.getFlow().getQuery(),
+              activeData.getStreamName()));
         }
 
         // Notify the calling thread when we're done.

@@ -157,6 +157,7 @@ public class OutputElement extends FlowElementImpl {
           LOG.error("Cannot create stream for flow; object already exists at top level: "
               + mFlumeNodeName);
           mOwnsSymbol = false;
+          ((LocalContext) getContext()).getFlowData().setStreamName(null);
         } else {
           FormatSpec formatSpec = new FormatSpec(FormatSpec.FORMAT_AVRO);
           formatSpec.setParam(AvroEventParser.SCHEMA_PARAM, mOutputSchema.toString());
@@ -171,6 +172,7 @@ public class OutputElement extends FlowElementImpl {
               streamType, mFlumeNodeName, true, mOutputFields, formatSpec);
           mRootSymbolTable.addSymbol(streamSym);
           mOwnsSymbol = true;
+          ((LocalContext) getContext()).getFlowData().setStreamName(mFlumeNodeName);
           LOG.info("CREATE STREAM (" + mFlumeNodeName + ")");
         }
       } catch (TException te) {
@@ -212,6 +214,7 @@ public class OutputElement extends FlowElementImpl {
       if (mOwnsSymbol) {
         // TODO: Broadcast this DROP STREAM event back to the user who ordered the config change.
         mRootSymbolTable.remove(mFlumeNodeName);
+        ((LocalContext) getContext()).getFlowData().setStreamName(null);
         mOwnsSymbol = false;
       }
       try {

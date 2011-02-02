@@ -85,7 +85,7 @@ public class CmdLineClient {
     try {
       Map<FlowId, FlowInfo> flows = mExecEnv.listFlows();
       List<FlowId> watchList = mExecEnv.listWatchedFlows(mSessionId);
-      System.out.println("Watch?\tFlowId\tQuery");
+      System.out.println("Watch?\t" + FlowInfo.getHeader());
       for (Map.Entry<FlowId, FlowInfo> entry : flows.entrySet()) {
         if (watchList.contains(entry.getKey())) {
           System.out.print("  *\t"); // Put an asterisk in the front to signify watching.

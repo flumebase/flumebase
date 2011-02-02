@@ -23,7 +23,8 @@ struct TQuerySubmitResponse {
 /** Thrift version of exec.FlowInfo. */
 struct TFlowInfo {
   1: required TFlowId flowId,
-  2: required string query
+  2: required string query,
+  3: optional string streamName
 }
 
 /* Thrift version of server.SessionId */
