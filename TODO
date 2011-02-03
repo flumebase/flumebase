@@ -3,7 +3,6 @@ Remote environment stuff:
   Need ability to send data to a Flume stream.
   -- Operations like \w <streamName> should call a method that resolves a name to
      a flowId, and then calls watch() on the flowId.
-  -- need unit tests on AvroEventParser
   -- need unit tests that operate on derived streams.
 
 
