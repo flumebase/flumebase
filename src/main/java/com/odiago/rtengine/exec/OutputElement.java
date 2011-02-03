@@ -174,6 +174,9 @@ public class OutputElement extends FlowElementImpl {
           Type streamType = new StreamType(outputTypes);
           StreamSymbol streamSym = new StreamSymbol(mFlumeNodeName, StreamSourceType.Node,
               streamType, mFlumeNodeName, true, mOutputFields, formatSpec);
+          if (!streamSym.getEventParser().validate(streamSym)) {
+            throw new IOException("Could not create valid stream for schema");
+          }
           mRootSymbolTable.addSymbol(streamSym);
           mOwnsSymbol = true;
           ((LocalContext) getContext()).getFlowData().setStreamName(mFlumeNodeName);

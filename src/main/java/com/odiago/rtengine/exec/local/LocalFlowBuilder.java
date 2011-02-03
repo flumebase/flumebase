@@ -180,7 +180,13 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       CreateStreamNode createStream = (CreateStreamNode) node;
       String streamName = createStream.getName();
       StreamSymbol streamSym = new StreamSymbol(createStream);
-      if (mRootSymbolTable.resolve(streamName) != null) {
+      if (!streamSym.getEventParser().validate(streamSym)) {
+        // Fails final check of parameters
+        // TODO: The EventParser is giving better info in its LOG; but this
+        // should really be communicated back to the user.
+        throw new DAGOperatorException(
+            "Stream cannot be created with the specified parameters.");
+      } else if (mRootSymbolTable.resolve(streamName) != null) {
         // TODO: Allow CREATE OR REPLACE STREAM to override this.
         throw new DAGOperatorException("Object already exists at top level: " + streamName);
       } else {

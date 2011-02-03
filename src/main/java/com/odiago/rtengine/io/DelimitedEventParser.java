@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.core.Event;
 
+import com.odiago.rtengine.exec.StreamSymbol;
+
 import com.odiago.rtengine.lang.Type;
 
 /**
@@ -289,6 +291,14 @@ public class DelimitedEventParser extends EventParser {
   @Override
   public String toString() {
     return "DelimitedEventParser(delimiter=" + mDelimiter + ")";
+  }
+
+  @Override
+  public boolean validate(StreamSymbol streamSym) {
+    // The delimited event parser can handle virtually anything; it also has
+    // default values for delimiters, etc. so there's no need for a user config
+    // to be matched against the stream.
+    return true;
   }
 
 }

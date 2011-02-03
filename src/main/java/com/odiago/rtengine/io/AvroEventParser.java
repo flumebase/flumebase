@@ -4,8 +4,10 @@ package com.odiago.rtengine.io;
 
 import java.io.IOException;
 
+import java.util.List;
 import java.util.Map;
 
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 
 import org.apache.avro.generic.GenericData;
@@ -19,7 +21,11 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.core.Event;
 
+import com.odiago.rtengine.exec.StreamSymbol;
+
 import com.odiago.rtengine.lang.Type;
+
+import com.odiago.rtengine.parser.TypedField;
 
 public class AvroEventParser extends EventParser {
   private static final Logger LOG = LoggerFactory.getLogger(
@@ -53,6 +59,21 @@ public class AvroEventParser extends EventParser {
    */
   public AvroEventParser(Map<String, String> params) {
     mParams = params;
+
+    // Initialize avro decoder.
+    String schemaStr = mParams.get(SCHEMA_PARAM);
+    if (null != schemaStr) {
+      // If schemaStr is null, validate() will fail, so we won't
+      // need these things that we can't initialize.
+      try {
+        mSchema = Schema.parse(schemaStr);
+        mDecoderFactory = new DecoderFactory();
+        mRecord = new GenericData.Record(mSchema);
+        mDatumReader = new GenericDatumReader<GenericData.Record>(mSchema);
+      } catch (RuntimeException re) {
+        // Couldn't parse schema. Ok, we'll get this in the validate() method.
+      }
+    }
   }
 
   /** {@inheritDoc} */
@@ -67,39 +88,75 @@ public class AvroEventParser extends EventParser {
   public Object getColumn(int colIdx, Type expectedType)
       throws IOException {
 
-    if (mDecoderFactory == null) {
-      // Avro is not yet initialized. Do so here.
-
-      // TODO (aaron): This is technical debt. This is a weird place to do
-      // this sort of initialization -- but that's because we don't want to
-      // throw an exception in the c'tor. We should create a proper 'init(Map
-      // params) throws IOE' method that we call in a place where we expect an
-      // ioexception, and can immediately stop the stream's processing based
-      // on this.
-      String schemaStr = mParams.get(SCHEMA_PARAM);
-      if (null == schemaStr) {
-        throw new IOException("The EventParser for this stream requires the '"
-            + SCHEMA_PARAM + "' property to be set. Try recreating the stream as: "
-            + "CREATE STREAM .. EVENT FORMAT 'avro' PROPERTIES ('" + SCHEMA_PARAM
-            + "' = ...)");
-      }
-      mSchema = Schema.parse(schemaStr);
-      mDecoderFactory = new DecoderFactory();
-      mRecord = new GenericData.Record(mSchema);
-      mDatumReader = new GenericDatumReader<GenericData.Record>(mSchema);
-    }
-
     if (!mIsDecoded) {
       // Now that we actually want a record value, decode the input bytes.
       mDecoder = mDecoderFactory.createBinaryDecoder(mEvent.getBody(), mDecoder);
       mRecord = mDatumReader.read(mRecord, mDecoder);
       mIsDecoded = true;
     }
-
-    // TODO(aaron): This is more a user assert than a code assert. We need a way to
-    // enable "strict mode" for input and "lazy mode."
-    assert mSchema.getFields().get(colIdx).schema().equals(expectedType.getAvroSchema());
     return mRecord.get(colIdx);
+  }
+
+  @Override
+  public boolean validate(StreamSymbol streamSym) {
+    // Check that we have an incoming schema.
+    String schemaStr = mParams.get(SCHEMA_PARAM);
+    if (null == schemaStr) {
+      LOG.error("The EventParser for this stream requires the '"
+          + SCHEMA_PARAM + "' property to be set. Try recreating the stream as: "
+          + "CREATE STREAM .. EVENT FORMAT 'avro' PROPERTIES ('" + SCHEMA_PARAM
+          + "' = ...)");
+      return false;
+    } else {
+      try {
+        Schema.parse(schemaStr);
+      } catch (RuntimeException re) {
+        LOG.error("Couldn't parse specified schema for the stream: " + re);
+        return false;
+      }
+
+      // Given a schema -- does it match the expected column types?
+      // TODO -- note that we can induce the field defs from the schema..
+      // we should be able to say something like: CREATE STREAM foo (auto) FROM SCHEMA '....'
+      List<Schema.Field> schemaFields = null;
+      try {
+        schemaFields = mSchema.getFields();
+      } catch (AvroRuntimeException are) {
+        // This wasn't a record schema, it was a single field or something.
+        LOG.error("Schemas for events must be of record type.");
+        return false;
+      }
+      List<TypedField> columnFields = streamSym.getFields();
+
+      if (schemaFields.size() != columnFields.size()) {
+        LOG.error("The schema specified for this stream has a different number "
+            + "of fields than are specified in the stream definition.");
+        return false;
+      }
+
+      for (int i = 0; i < schemaFields.size(); i++) {
+        TypedField col = columnFields.get(i);
+        Type colType = col.getType();
+        Schema.Field schemaField = schemaFields.get(i);
+
+        if (!schemaField.name().equals(col.getUserAlias())) {
+          // TODO -- does this matter? We address these fields by index anyway, not by name..
+          // Just warn them.
+          LOG.warn("Column " + col.getUserAlias() + " is aligned with an Avro field "
+              + "with the name: " + schemaField.name());
+        }
+        
+        // More important: are the schemas compatible?
+        if (!schemaField.schema().equals(colType.getAvroSchema())) {
+          LOG.error("Column " + col.getUserAlias() + " has type " + colType + " but has "
+              + " an incompatible Avro schema: " + schemaField.schema());
+          return false;
+        }
+      }
+    }
+
+    // Looks good!
+    return true;
   }
 
 

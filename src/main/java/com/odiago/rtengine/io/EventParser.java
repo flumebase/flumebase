@@ -6,6 +6,8 @@ import java.io.IOException;
 
 import com.cloudera.flume.core.Event;
 
+import com.odiago.rtengine.exec.StreamSymbol;
+
 import com.odiago.rtengine.lang.Type;
 
 /**
@@ -59,4 +61,11 @@ public abstract class EventParser {
   public abstract Object getColumn(int colIdx, Type expectedType)
       throws ColumnParseException, IOException;
 
+  /**
+   * Validate that the configuration information associated with an event
+   * parser is capable of parsing records from the associated stream.
+   * @return true if this EventParser has a valid configuration, false if
+   * it does not.
+   */
+  public abstract boolean validate(StreamSymbol streamSym);
 }

@@ -6,6 +6,10 @@ Remote environment stuff:
   -- need unit tests on AvroEventParser
   -- need unit tests that operate on derived streams.
 
+
+  -- think about whether operations like ExecEnv.setFlowName() should be
+     synchronous or async. They're currently the latter -- would users expect
+     the former?
   ===============================================
   weird happenings with AvroEventParser reading flows we generate in avro:
 
