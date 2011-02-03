@@ -128,9 +128,11 @@ public class CmdLineClient {
     System.out.println("  \\c                    Cancel the current input statement.");
     System.out.println("  \\d flowId             Drop the specified flow.");
     System.out.println("  \\D flowId             Drop a flow and wait for it to stop.");
+    System.out.println("  \\dname flowId         Drop the stream name associated with flowId.");
     System.out.println("  \\disconnect           Disconnects from the server.");
     System.out.println("  \\f                    List flows.");
     System.out.println("  \\h                    Print help message.");
+    System.out.println("  \\name flowId [str]    Set 'str' as the output stream name for flowId.");
     System.out.println("  \\open server [port]   Connects to the specified server.");
     System.out.println("  \\set property[=val]   Sets or retrieves configuration properties.");
     System.out.println("  \\shutdown!            Shuts down the server.");
@@ -314,6 +316,43 @@ public class CmdLineClient {
   }
 
   /**
+   * Set the stream name associated with a flow Id.
+   */
+  private void setFlowName(String flowIdStr, String streamName) {
+    try {
+      long idNum = Long.valueOf(flowIdStr);
+      FlowId flowId = new FlowId(idNum);
+      mExecEnv.setFlowName(flowId, streamName);
+      if (null == streamName) {
+        System.out.println("Removed stream name from flow " + flowIdStr);
+      } else {
+        System.out.println("Created stream '" + streamName + "' on flow " + flowIdStr);
+      }
+    } catch (Exception e) {
+      LOG.error("Exception setting flow name: " + StringUtils.stringifyException(e));
+    }
+  }
+
+  private void getFlowName(String flowIdStr) {
+    try {
+      long idNum = Long.valueOf(flowIdStr);
+      FlowId flowId = new FlowId(idNum);
+
+      Map<FlowId, FlowInfo> infoMap = mExecEnv.listFlows();
+      FlowInfo info = infoMap.get(flowId);
+      if (null == info) {
+        System.out.println("No such flow: " + flowIdStr);
+      } else if (null != info.streamName) {
+        System.out.println(info.streamName);
+      } else {
+        System.out.println("(none)");
+      }
+    } catch (Exception e) {
+      LOG.error("Exception retrieving flow name: " + StringUtils.stringifyException(e));
+    }
+  }
+
+  /**
    * Handle a '\x' event for various values of the escape character 'x'.
    * @param escapeChar the first character following the '\\'.
    * @param args All whitespace-delimited substrings of the command; args[0] is "\\x".
@@ -343,6 +382,16 @@ public class CmdLineClient {
     } else if (args[0].equals("\\unwatch") || args[0].equals("\\u")) {
       if (requireArgs(args, 2)) {
         unwatch(args[1]);
+      }
+    } else if (args[0].equals("\\name")) {
+      if (args.length >= 3) {
+        setFlowName(args[1], args[2]);
+      } else if (requireArgs(args, 2)) {
+        getFlowName(args[1]);
+      }
+    } else if (args[0].equals("\\dname")) {
+      if (requireArgs(args, 2)) {
+        setFlowName(args[1], null);
       }
     } else if (args[0].length() == 2) {
       // Handle the one-character escapes here:

@@ -226,6 +226,15 @@ class RemoteServerImpl implements RemoteServer.Iface, CloseHandler<UserSession> 
   }
 
   @Override
+  public void setFlowName(TFlowId flowId, String name) throws TException {
+    try {
+      mExecEnv.setFlowName(FlowId.fromThrift(flowId), name);
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
   public void shutdown() throws TException {
     try {
       mExecEnv.shutdown(); // Shuts down the local environment.

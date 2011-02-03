@@ -247,6 +247,15 @@ public class ThriftClientEnvironment extends ExecEnvironment {
   }
 
   @Override
+  public void setFlowName(FlowId flowId, String name) throws IOException {
+    try {
+      mClient.setFlowName(flowId.toThrift(), name);
+    } catch (TException te) {
+      throw new IOException(te);
+    }
+  }
+
+  @Override
   public void disconnect(SessionId sessionId) throws IOException {
     try {
       mClient.closeSession(sessionId.toThrift());

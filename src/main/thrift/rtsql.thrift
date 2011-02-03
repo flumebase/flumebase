@@ -1,5 +1,5 @@
 #!/usr/bin/env thrift
-## (c) Copyright 2011 Odiago, Inc.
+# (c) Copyright 2011 Odiago, Inc.
 
 namespace java com.odiago.rtengine.thrift
 
@@ -99,6 +99,12 @@ service RemoteServer {
    * Gather a list of all FlowIds being watched by the specified session.
    */
   list<TFlowId> listWatchedFlows(1: required TSessionId sessionId),
+
+  /**
+   * Sets the name of the output stream associated with a flow. If name
+   * is null, cancels any stream association with the flow.
+   */
+  void setFlowName(1: required TFlowId flowId, 2: optional string name),
 
   /** Shut down the remote server. */
   oneway void shutdown()

@@ -139,6 +139,10 @@ public class OutputElement extends FlowElementImpl {
   @Override
   public void open() throws IOException {
     if (null != mFlumeNodeName) {
+      if (!mFlumeConfig.isRunning()) {
+        mFlumeConfig.start();
+      }
+
       // Open a Flume logical node to host the results of this query.
       // TODO(aaron): What happens if this flume node already exists? This should error...
       mOutputQueue = new ArrayBlockingQueue<Event>(MAX_QUEUE_LEN);

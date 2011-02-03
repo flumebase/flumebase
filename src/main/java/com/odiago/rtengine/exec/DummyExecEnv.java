@@ -87,6 +87,11 @@ public class DummyExecEnv extends ExecEnvironment {
   }
 
   @Override
+  public void setFlowName(FlowId flowId, String name) {
+    LOG.error("Not connected");
+  }
+
+  @Override
   public void disconnect(SessionId sessionId) {
     // Do nothing.
   }

@@ -33,6 +33,7 @@ import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowId;
 import com.odiago.rtengine.exec.FlowInfo;
 import com.odiago.rtengine.exec.HashSymbolTable;
+import com.odiago.rtengine.exec.OutputElement;
 import com.odiago.rtengine.exec.QuerySubmitResponse;
 import com.odiago.rtengine.exec.SymbolTable;
 
@@ -93,6 +94,7 @@ public class LocalEnvironment extends ExecEnvironment {
       WatchFlow,       // Subscribe to a flow's output.
       UnwatchFlow,     // Unsubscribe from a flow's output.
       GetWatchList,    // Get a list of flows being watched by a session.
+      SetFlowName,     // Set the name of the output stream for a flow.
     };
 
     /** What operation should be performed by the worker thread? */
@@ -141,8 +143,6 @@ public class LocalEnvironment extends ExecEnvironment {
     /** Mapping from an input queue to the FlowElement it is feeding values to. */
     private Map<SelectableQueue<Object>, FlowElement> mInputQueues;
 
-    private boolean mFlumeStarted;
-
     /** The selector that lets us read from multiple producers */
     private Select<Object> mSelect;
 
@@ -162,7 +162,6 @@ public class LocalEnvironment extends ExecEnvironment {
       mCompletionEventQueue = new SyncSelectableQueue<Object>();
       mInputQueues = new HashMap<SelectableQueue<Object>, FlowElement>();
       mCloseQueues = new HashSet<SelectableQueue<Object>>();
-      mFlumeStarted = false;
     }
 
     private void deployFlow(LocalFlow newFlow) throws IOException, InterruptedException {
@@ -184,9 +183,8 @@ public class LocalEnvironment extends ExecEnvironment {
 
       // If we haven't yet started Flume, and the flow requires Flume-based sources,
       // start Flume.
-      if (newFlow.requiresFlume() && !mFlumeStarted) {
+      if (newFlow.requiresFlume() && !mFlumeConfig.isRunning()) {
         mFlumeConfig.start();
-        mFlumeStarted = true;
       }
 
       // Open all FlowElements in the flow, in reverse bfs order
@@ -397,6 +395,40 @@ public class LocalEnvironment extends ExecEnvironment {
       mCloseQueues.remove(queue);
     }
 
+    /**
+     * Update the OutputElement of a flow to use a different output stream
+     * name for the output.
+     */
+    private void setFlowName(final FlowId flowId, final String name) {
+      ActiveFlowData flowData = mActiveFlows.get(flowId);
+      if (null == flowData) {
+        LOG.error("Cannot set flow name for flow id " + flowId + ": no such flow.");
+        return;
+      }
+
+      try {
+        // NOTE - This assumes a single OutputElement per flow; we find it by
+        // reverseBfs because we assume it's at the end. If there are multiple
+        // OutputElements in the flow, we'll get them all trying to open the
+        // same node...
+
+        flowData.getFlow().reverseBfs(new DAG.Operator<FlowElementNode>() {
+          public void process(FlowElementNode node) throws DAGOperatorException {
+            FlowElement flowElem = node.getFlowElement();
+            if (flowElem instanceof OutputElement) {
+              try {
+                ((OutputElement) flowElem).setFlumeTarget(name);
+              } catch (IOException ioe) {
+                throw new DAGOperatorException(ioe);
+              }
+            }
+          }
+        });
+      } catch (DAGOperatorException doe) {
+        LOG.error("Error setting output stream name: " + doe);
+      }
+    }
+
     @Override
     public void run() {
       mSelect.add(mControlQueue); // Listen to events on the control queue.
@@ -464,6 +496,10 @@ public class LocalEnvironment extends ExecEnvironment {
                   (Pair<SessionId, List<FlowId>>) nextOp.getDatum();
               getWatchList(getReq.getLeft(), getReq.getRight());
               break;
+            case SetFlowName:
+              Pair<FlowId, String> flowNameData =
+                  (Pair<FlowId, String>) nextOp.getDatum();
+              setFlowName(flowNameData.getLeft(), flowNameData.getRight());
             case Noop:
               // Don't do any control operation; skip ahead to event processing.
               break;
@@ -578,7 +614,7 @@ public class LocalEnvironment extends ExecEnvironment {
         }
       } finally {
         // Shut down the embedded Flume instance before we exit the thread.
-        if (mFlumeStarted) {
+        if (mFlumeConfig.isRunning()) {
           mFlumeConfig.stop();
         }
       }
@@ -844,6 +880,12 @@ public class LocalEnvironment extends ExecEnvironment {
       outList.wait();
     }
     return outList;
+  }
+
+  @Override
+  public void setFlowName(FlowId flowId, String name) throws InterruptedException {
+    Pair<FlowId, String> nameReq = new Pair<FlowId, String>(flowId, name);
+    mControlQueue.put(new ControlOp(ControlOp.Code.SetFlowName, nameReq));
   }
 
   /**

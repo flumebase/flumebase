@@ -94,6 +94,13 @@ public abstract class ExecEnvironment {
       throws InterruptedException, IOException;
 
   /**
+   * Sets the stream name associated with the output of a flow. If name is null,
+   * removes any stream association from the flow.
+   */
+  public abstract void setFlowName(FlowId flowId, String name)
+      throws InterruptedException, IOException;
+
+  /**
    * Disconnects this client from the environment.
    */
   public abstract void disconnect(SessionId sessionId)
