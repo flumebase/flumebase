@@ -22,6 +22,9 @@ import com.odiago.rtengine.parser.TypedField;
 
 import com.odiago.rtengine.util.StringUtils;
 
+import com.odiago.rtengine.util.concurrent.SelectableList;
+import com.odiago.rtengine.util.concurrent.SyncSelectableList;
+
 /**
  * FlowElement that stores input events in a list that can be retrieved later.
  * Returns a generic record based on the <i>display name</i> of each output
@@ -33,7 +36,7 @@ public class MemoryOutputElement extends FlowElementImpl {
   private static final Logger LOG = LoggerFactory.getLogger(
       MemoryOutputElement.class.getName());
   private List<TypedField> mFields;
-  private List<GenericData.Record> mOutputRecords;
+  private SelectableList<GenericData.Record> mOutputRecords;
 
   // Members used to decode Avro into fields.
   private Schema mOutputSchema;
@@ -42,7 +45,7 @@ public class MemoryOutputElement extends FlowElementImpl {
     super(context);
 
     mFields = fields;
-    mOutputRecords = new ArrayList<GenericData.Record>();
+    mOutputRecords = new SyncSelectableList<GenericData.Record>();
     mOutputSchema = getOutputSchema(fields);
   }
 
@@ -68,7 +71,7 @@ public class MemoryOutputElement extends FlowElementImpl {
   }
 
   /** @return the collected output records. */
-  public List<GenericData.Record> getRecords() {
+  public SelectableList<GenericData.Record> getRecords() {
     return mOutputRecords;
   }
 

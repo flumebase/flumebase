@@ -2,6 +2,7 @@
 
 package com.odiago.rtengine.flume;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,7 +23,7 @@ public final class SourceContextBindings {
   private Map<String, SourceContext> mContextMap;
 
   private SourceContextBindings() {
-    mContextMap = new HashMap<String, SourceContext>();
+    mContextMap = Collections.synchronizedMap(new HashMap<String, SourceContext>());
   }
 
   public static SourceContextBindings get() {

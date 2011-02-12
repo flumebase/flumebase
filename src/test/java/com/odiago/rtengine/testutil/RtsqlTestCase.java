@@ -17,9 +17,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.odiago.rtengine.exec.BuiltInSymbolTable;
 import com.odiago.rtengine.exec.FlowId;
 import com.odiago.rtengine.exec.HashSymbolTable;
@@ -27,13 +24,6 @@ import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.exec.local.LocalEnvironment;
 import com.odiago.rtengine.exec.local.MemoryOutputElement;
-
-import com.odiago.rtengine.lang.Type;
-
-import com.odiago.rtengine.parser.SelectStmt;
-import com.odiago.rtengine.parser.TypedField;
-
-import com.odiago.rtengine.testutil.MemStreamBuilder;
 
 import static org.junit.Assert.*;
 
@@ -59,7 +49,7 @@ public class RtsqlTestCase {
   @After
   public void tearDown() throws IOException, InterruptedException {
     if (null != mEnvironment && mEnvironment.isConnected()) {
-      mEnvironment.disconnect(null);
+      mEnvironment.shutdown();
     }
   }
 
@@ -101,6 +91,8 @@ public class RtsqlTestCase {
 
   /**
    * Asserts that within a set of records, there is no record such that record[fieldName] == val.
+   * Note that if multiple such asserts are to be made, it may be necessary to synchronize
+   * on the list to ensure it is consistent throughout multiple asserts.
    */
   protected void assertNoSuchRecord(List<GenericData.Record> records, String fieldName,
       Object val) {

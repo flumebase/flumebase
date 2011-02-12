@@ -11,39 +11,23 @@ import com.cloudera.flume.core.Event.Priority;
 import com.cloudera.flume.core.EventImpl;
 
 import com.odiago.rtengine.exec.InMemStreamSymbol;
+import com.odiago.rtengine.exec.StreamSymbol;
 
-import com.odiago.rtengine.lang.StreamType;
-import com.odiago.rtengine.lang.Type;
-
-import com.odiago.rtengine.parser.FormatSpec;
 import com.odiago.rtengine.parser.TypedField;
 
 /**
  * Builder that creates a StreamSymbol that holds a replayable in-memory stream.
  */
-public class MemStreamBuilder {
+public class MemStreamBuilder extends StreamBuilder {
   private List<Event> mEvents;
-  private List<TypedField> mFields;
-  private String mStreamName;
-  private FormatSpec mFormatSpec;
 
   public MemStreamBuilder() {
     this(null);
   }
 
   public MemStreamBuilder(String name) {
-    mStreamName = name;
+    super(name);
     mEvents = new ArrayList<Event>();
-    mFields = new ArrayList<TypedField>();
-    mFormatSpec = new FormatSpec();
-  }
-
-  public void setName(String name) {
-    mStreamName = name;
-  }
-
-  public void setFormat(FormatSpec fmt) {
-    mFormatSpec = fmt;
   }
 
   public void addEvent(Event e) {
@@ -62,39 +46,21 @@ public class MemStreamBuilder {
     mEvents.add(new EventImpl(eventBodyText.getBytes(), eventTime, Priority.INFO, 0, null));
   }
 
-  public void addField(TypedField tf) {
-    mFields.add(tf);
-  }
-
-  public void addField(String fieldName, Type fieldType) {
-    addField(new TypedField(fieldName, fieldType));
-  }
-
-  /**
-   * @return a StreamType instance specifying the type of this stream.
-   */
-  private StreamType makeStreamType() {
-    List<Type> colTypes = new ArrayList<Type>();
-    for (TypedField field : mFields) {
-      colTypes.add(field.getType());
-    }
-
-    return new StreamType(colTypes);
-  }
-
   /**
    * @return the InMemStreamSymbol representing this stream.
    */
-  public InMemStreamSymbol build() {
-    if (null == mStreamName) {
+  @Override
+  public StreamSymbol build() {
+    if (null == getName()) {
       throw new RuntimeException("Must call setName() to name the stream before building");
     }
 
-    if (0 == mFields.size()) {
+    if (0 == getFields().size()) {
       throw new RuntimeException("Must define at least one field with addField()");
     }
 
-    return new InMemStreamSymbol(mStreamName, makeStreamType(), new ArrayList<Event>(mEvents),
-        new ArrayList<TypedField>(mFields), mFormatSpec);
+    return new InMemStreamSymbol(getName(), makeStreamType(),
+        new ArrayList<Event>(mEvents),
+        new ArrayList<TypedField>(getFields()), getFormat());
   }
 }

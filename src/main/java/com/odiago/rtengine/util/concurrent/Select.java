@@ -130,7 +130,7 @@ public class Select<T> implements Iterable<Selectable<T>> {
   }
 
   /** Called by Selectable when an object is readable. */
-  void enqueueSelectable(Selectable<T> sel) throws InterruptedException {
+  void enqueueSelectable(Selectable<T> sel) {
     synchronized (this) {
       this.notify();
     }

@@ -15,7 +15,7 @@ public abstract class SelectableQueue<T> extends Selectable<T> {
    * Returns the next object in the queue without waiting.  If the queue does
    * not contain any items, throws EmptyException.
    */
-  public abstract T poll() throws EmptyException, InterruptedException;
+  public abstract T poll() throws EmptyException;
 
   /**
    * Adds an item to the back of the queue. Implementations of
@@ -28,7 +28,7 @@ public abstract class SelectableQueue<T> extends Selectable<T> {
    * Adds an item to the back of the queue, if it can be inserted
    * without waiting.
    */
-  public abstract boolean offer(T t) throws InterruptedException;
+  public abstract boolean offer(T t);
 
   /** @return true if the queue contains an element x such that x.equals(t). */
   public abstract boolean contains(T t);

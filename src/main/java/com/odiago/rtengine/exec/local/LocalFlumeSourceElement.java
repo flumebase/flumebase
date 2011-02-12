@@ -22,11 +22,11 @@ import com.odiago.rtengine.flume.EmbeddedNode;
 import com.odiago.rtengine.parser.TypedField;
 
 /**
- * FlowElement providing source data from a local Flume sink.
+ * FlowElement providing source data from a local Flume source.
  */
-public class LocalFlumeSinkElement extends FlowElementImpl {
+public class LocalFlumeSourceElement extends FlowElementImpl {
   private static final Logger LOG = LoggerFactory.getLogger(
-      LocalFlumeSinkElement.class.getName());
+      LocalFlumeSourceElement.class.getName());
 
   /** Flume's name for this logical node. */
   private String mFlowSourceId;
@@ -55,7 +55,7 @@ public class LocalFlumeSinkElement extends FlowElementImpl {
    */
   private String mDataSource;
 
-  public LocalFlumeSinkElement(FlowElementContext context, String flowSourceId,
+  public LocalFlumeSourceElement(FlowElementContext context, String flowSourceId,
       EmbeddedFlumeConfig flumeConfig, String dataSource, Schema outputSchema,
       List<TypedField> fieldTypes, StreamSymbol streamSym) {
     super(context);
@@ -89,7 +89,7 @@ public class LocalFlumeSinkElement extends FlowElementImpl {
 
   @Override
   public String toString() {
-    return "FlumeSink[mFlowSourceId=\"" + mFlowSourceId + "\", "
+    return "FlumeSource[mFlowSourceId=\"" + mFlowSourceId + "\", "
         + "mDataSource=\"" + mDataSource + "\"]";
   }
 }

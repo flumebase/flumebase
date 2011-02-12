@@ -89,17 +89,19 @@ public class TestJoin extends RtsqlTestCase {
 
     // We should have three output results.
     assertNotNull(results);
-    assertEquals(3, results.size());
+    synchronized (results) {
+      assertEquals(3, results.size());
 
-    // Assert that b == d for all records.
-    assertRecordFields(results, "a", Integer.valueOf(0), "c", Integer.valueOf(0));
-    assertRecordFields(results, "a", Integer.valueOf(1), "c", Integer.valueOf(1));
-    assertRecordFields(results, "a", Integer.valueOf(2), "c", Integer.valueOf(2));
+      // Assert that b == d for all records.
+      assertRecordFields(results, "a", Integer.valueOf(0), "c", Integer.valueOf(0));
+      assertRecordFields(results, "a", Integer.valueOf(1), "c", Integer.valueOf(1));
+      assertRecordFields(results, "a", Integer.valueOf(2), "c", Integer.valueOf(2));
 
-    // Assert the join fields are present.
-    assertRecordFields(results, "a", Integer.valueOf(0), "d", Integer.valueOf(20));
-    assertRecordFields(results, "a", Integer.valueOf(1), "d", Integer.valueOf(21));
-    assertRecordFields(results, "a", Integer.valueOf(2), "d", Integer.valueOf(22));
+      // Assert the join fields are present.
+      assertRecordFields(results, "a", Integer.valueOf(0), "d", Integer.valueOf(20));
+      assertRecordFields(results, "a", Integer.valueOf(1), "d", Integer.valueOf(21));
+      assertRecordFields(results, "a", Integer.valueOf(2), "d", Integer.valueOf(22));
+    }
   }
 
   @Test
@@ -118,17 +120,19 @@ public class TestJoin extends RtsqlTestCase {
 
     // We should have three output results.
     assertNotNull(results);
-    assertEquals(3, results.size());
+    synchronized (results) {
+      assertEquals(3, results.size());
 
-    // Assert that a == c for all records.
-    assertRecordFields(results, "b", Integer.valueOf(0), "d", Integer.valueOf(0));
-    assertRecordFields(results, "b", Integer.valueOf(1), "d", Integer.valueOf(1));
-    assertRecordFields(results, "b", Integer.valueOf(2), "d", Integer.valueOf(2));
+      // Assert that a == c for all records.
+      assertRecordFields(results, "b", Integer.valueOf(0), "d", Integer.valueOf(0));
+      assertRecordFields(results, "b", Integer.valueOf(1), "d", Integer.valueOf(1));
+      assertRecordFields(results, "b", Integer.valueOf(2), "d", Integer.valueOf(2));
 
-    // Assert the join fields are present.
-    assertRecordFields(results, "b", Integer.valueOf(0), "c", Integer.valueOf(20));
-    assertRecordFields(results, "b", Integer.valueOf(1), "c", Integer.valueOf(21));
-    assertRecordFields(results, "b", Integer.valueOf(2), "c", Integer.valueOf(22));
+      // Assert the join fields are present.
+      assertRecordFields(results, "b", Integer.valueOf(0), "c", Integer.valueOf(20));
+      assertRecordFields(results, "b", Integer.valueOf(1), "c", Integer.valueOf(21));
+      assertRecordFields(results, "b", Integer.valueOf(2), "c", Integer.valueOf(22));
+    }
   }
 
   @Test
@@ -147,15 +151,17 @@ public class TestJoin extends RtsqlTestCase {
 
     // We should have two output results.
     assertNotNull(results);
-    assertEquals(2, results.size());
+    synchronized (results) {
+      assertEquals(2, results.size());
 
-    // Assert that b == d for all records.
-    assertRecordFields(results, "b", Integer.valueOf(0), "d", Integer.valueOf(0));
-    assertRecordFields(results, "b", Integer.valueOf(2), "d", Integer.valueOf(2));
+      // Assert that b == d for all records.
+      assertRecordFields(results, "b", Integer.valueOf(0), "d", Integer.valueOf(0));
+      assertRecordFields(results, "b", Integer.valueOf(2), "d", Integer.valueOf(2));
 
-    // Assert the join fields are present.
-    assertRecordFields(results, "b", Integer.valueOf(0), "c", Integer.valueOf(20));
-    assertRecordFields(results, "b", Integer.valueOf(2), "c", Integer.valueOf(22));
+      // Assert the join fields are present.
+      assertRecordFields(results, "b", Integer.valueOf(0), "c", Integer.valueOf(20));
+      assertRecordFields(results, "b", Integer.valueOf(2), "c", Integer.valueOf(22));
+    }
   }
 
   @Test
@@ -174,15 +180,17 @@ public class TestJoin extends RtsqlTestCase {
 
     // We should have two output results.
     assertNotNull(results);
-    assertEquals(2, results.size());
+    synchronized (results) {
+      assertEquals(2, results.size());
 
-    // Assert that b == d for all records.
-    assertRecordFields(results, "b", Integer.valueOf(0), "d", Integer.valueOf(0));
-    assertRecordFields(results, "b", Integer.valueOf(2), "d", Integer.valueOf(2));
+      // Assert that b == d for all records.
+      assertRecordFields(results, "b", Integer.valueOf(0), "d", Integer.valueOf(0));
+      assertRecordFields(results, "b", Integer.valueOf(2), "d", Integer.valueOf(2));
 
-    // Assert the join fields are present.
-    assertRecordFields(results, "b", Integer.valueOf(0), "c", Integer.valueOf(20));
-    assertRecordFields(results, "b", Integer.valueOf(2), "c", Integer.valueOf(22));
+      // Assert the join fields are present.
+      assertRecordFields(results, "b", Integer.valueOf(0), "c", Integer.valueOf(20));
+      assertRecordFields(results, "b", Integer.valueOf(2), "c", Integer.valueOf(22));
+    }
   }
 
   @Test
@@ -201,14 +209,16 @@ public class TestJoin extends RtsqlTestCase {
 
     // We should have three output results.
     assertNotNull(results);
-    assertEquals(2, results.size());
+    synchronized (results) {
+      assertEquals(2, results.size());
 
-    assertRecordFields(results, "a", Integer.valueOf(1), "c", Integer.valueOf(1));
-    assertRecordFields(results, "a", Integer.valueOf(2), "c", Integer.valueOf(2));
+      assertRecordFields(results, "a", Integer.valueOf(1), "c", Integer.valueOf(1));
+      assertRecordFields(results, "a", Integer.valueOf(2), "c", Integer.valueOf(2));
 
-    // Assert the join fields are present.
-    assertRecordFields(results, "a", Integer.valueOf(1), "d", Integer.valueOf(21));
-    assertRecordFields(results, "a", Integer.valueOf(2), "d", Integer.valueOf(22));
+      // Assert the join fields are present.
+      assertRecordFields(results, "a", Integer.valueOf(1), "d", Integer.valueOf(21));
+      assertRecordFields(results, "a", Integer.valueOf(2), "d", Integer.valueOf(22));
+    }
   }
 
   @Test
@@ -227,13 +237,15 @@ public class TestJoin extends RtsqlTestCase {
 
     // We should have three output results.
     assertNotNull(results);
-    assertEquals(2, results.size());
+    synchronized (results) {
+      assertEquals(2, results.size());
 
-    assertRecordFields(results, "a", Integer.valueOf(2), "c", Integer.valueOf(0));
-    assertRecordFields(results, "a", Integer.valueOf(1), "c", Integer.valueOf(1));
+      assertRecordFields(results, "a", Integer.valueOf(2), "c", Integer.valueOf(0));
+      assertRecordFields(results, "a", Integer.valueOf(1), "c", Integer.valueOf(1));
 
-    // Assert the join fields are present.
-    assertRecordFields(results, "a", Integer.valueOf(0), "d", Integer.valueOf(20));
-    assertRecordFields(results, "a", Integer.valueOf(1), "d", Integer.valueOf(21));
+      // Assert the join fields are present.
+      assertRecordFields(results, "a", Integer.valueOf(0), "d", Integer.valueOf(20));
+      assertRecordFields(results, "a", Integer.valueOf(1), "d", Integer.valueOf(21));
+    }
   }
 }

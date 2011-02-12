@@ -58,6 +58,7 @@ import com.odiago.rtengine.server.UserSession;
 import com.odiago.rtengine.util.DAG;
 import com.odiago.rtengine.util.DAGOperatorException;
 import com.odiago.rtengine.util.Ref;
+import com.odiago.rtengine.util.StringUtils;
 
 import com.odiago.rtengine.util.concurrent.ArrayBoundedSelectableQueue;
 import com.odiago.rtengine.util.concurrent.Select;
@@ -162,6 +163,8 @@ public class LocalEnvironment extends ExecEnvironment {
       mCompletionEventQueue = new SyncSelectableQueue<Object>();
       mInputQueues = new HashMap<SelectableQueue<Object>, FlowElement>();
       mCloseQueues = new HashSet<SelectableQueue<Object>>();
+
+      setName("LocalEnvWorker");
     }
 
     private void deployFlow(LocalFlow newFlow) throws IOException, InterruptedException {
@@ -470,7 +473,13 @@ public class LocalEnvironment extends ExecEnvironment {
               try {
                 deployFlow(newFlow);
               } catch (Exception e) {
-                LOG.error("Exception deploying flow: " + e);
+                LOG.error("Exception deploying flow: " + StringUtils.stringifyException(e));
+              } finally {
+                // Client waited on this object to know when deployment is done.
+                synchronized (newFlow) {
+                  newFlow.setDeployed(true);
+                  newFlow.notify();
+                }
               }
               break;
             case CancelFlow:
@@ -816,7 +825,12 @@ public class LocalEnvironment extends ExecEnvironment {
         // No nodes created (empty flow, or DDL-only flow, etc.)
         return null;
       } else {
-        mControlQueue.put(new ControlOp(ControlOp.Code.AddFlow, localFlow));
+        synchronized (localFlow) {
+          mControlQueue.put(new ControlOp(ControlOp.Code.AddFlow, localFlow));
+          while (!localFlow.isDeployed()) {
+            localFlow.wait();
+          }
+        }
         return flowId;
       }
     } else {

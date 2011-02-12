@@ -41,7 +41,7 @@ public class ArrayBoundedSelectableQueue<T> extends SelectableQueue<T> {
   /**
    * Given that our internal state allows for a dequeue, perform the operation.
    */
-  private T doDequeue() throws InterruptedException {
+  private T doDequeue() {
     synchronized (this) {
       mSize.decrementAndGet();
       T val = (T) mArray[mDequeueOff++];
@@ -49,10 +49,8 @@ public class ArrayBoundedSelectableQueue<T> extends SelectableQueue<T> {
         mDequeueOff = 0;
       }
 
-      synchronized (this) {
-        // Notify a writer that they may operate if need be.
-        this.notify();
-      }
+      // Notify a writer that they may operate if need be.
+      this.notify();
 
       return val;
     }
@@ -72,7 +70,7 @@ public class ArrayBoundedSelectableQueue<T> extends SelectableQueue<T> {
 
   /** {@inheritDoc} */
   @Override
-  public T poll() throws EmptyException, InterruptedException {
+  public T poll() throws EmptyException {
     synchronized (this) {
       if (mSize.get() == 0) {
         throw new EmptyException();
@@ -87,7 +85,7 @@ public class ArrayBoundedSelectableQueue<T> extends SelectableQueue<T> {
    * Does not perform the requisite reader notification, since that must be
    * done under separate monitors to avoid lock inversion.
    */
-  private void doEnqueue(T t) throws InterruptedException {
+  private void doEnqueue(T t) {
     synchronized (this) {
       mSize.incrementAndGet();
       mArray[mEnqueueOff++] = t;
@@ -115,7 +113,7 @@ public class ArrayBoundedSelectableQueue<T> extends SelectableQueue<T> {
 
   /** {@inheritDoc} */
   @Override
-  public boolean offer(T t) throws InterruptedException {
+  public boolean offer(T t) {
     synchronized (this) {
       if (mSize.get() >= mMaxLen) {
         return false; // Wouldn't fit.

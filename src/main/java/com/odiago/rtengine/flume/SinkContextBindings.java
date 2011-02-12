@@ -2,10 +2,9 @@
 
 package com.odiago.rtengine.flume;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.odiago.rtengine.exec.FlowElementContext;
 
 /**
  * Mapping from names associated with flows and their sources, to FlowElementContexts
@@ -23,7 +22,7 @@ public final class SinkContextBindings {
   private Map<String, SinkContext> mContextMap;
 
   private SinkContextBindings() {
-    mContextMap = new HashMap<String, SinkContext>();
+    mContextMap = Collections.synchronizedMap(new HashMap<String, SinkContext>());
   }
 
   public static SinkContextBindings get() {

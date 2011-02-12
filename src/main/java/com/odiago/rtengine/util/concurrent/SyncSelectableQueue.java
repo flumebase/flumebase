@@ -94,7 +94,7 @@ public class SyncSelectableQueue<T> extends SelectableQueue<T> {
    * not block.
    */
   @Override
-  public void put(T t) throws InterruptedException {
+  public void put(T t) {
     synchronized (this) {
       Item<T> newItem = new Item<T>(t, null);
       if (null == mHead) {
@@ -111,7 +111,7 @@ public class SyncSelectableQueue<T> extends SelectableQueue<T> {
   }
 
   @Override
-  public boolean offer(T t) throws InterruptedException {
+  public boolean offer(T t) {
     put(t);
     return true;
   }

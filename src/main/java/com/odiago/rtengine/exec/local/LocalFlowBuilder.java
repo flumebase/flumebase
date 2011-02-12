@@ -240,7 +240,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
         String flumeSource = streamSymbol.getSource();
         long flowIdNum = mFlowId.getId();
         String flowSourceId = "rtengine-flow-" + flowIdNum + "-" + streamSymbol.getName();
-        newElem = new LocalFlumeSinkElement(newContext, flowSourceId,
+        newElem = new LocalFlumeSourceElement(newContext, flowSourceId,
             mFlumeConfig, flumeSource, (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
             namedInput.getFields(), streamSymbol);
         if (!streamSymbol.isLocal()) {

@@ -16,16 +16,29 @@ public class LocalFlow extends DAG<FlowElementNode> {
   private boolean mRequiresFlume; 
   private String mQuery;
   private Configuration mConf;
+  private boolean mIsDeployed;
 
   public LocalFlow(FlowId id) {
     mFlowId = id;
     mRequiresFlume = false;
     mQuery = null;
     mConf = null;
+    mIsDeployed = false;
   }
 
   public FlowId getId() {
     return mFlowId;
+  }
+
+  /**
+   * @return true if deployment of the flow is complete.
+   */
+  public boolean isDeployed() {
+    return mIsDeployed;
+  }
+
+  void setDeployed(boolean deployed) {
+    mIsDeployed = deployed;
   }
 
   /**

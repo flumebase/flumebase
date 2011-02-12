@@ -70,10 +70,12 @@ public class TestSelect extends RtsqlTestCase {
     assertNotNull(output);
 
     List<GenericData.Record> outRecords = output.getRecords();
-    for (int i = 0; i < 3; i++) {
-      Integer expected = Integer.valueOf(i + 1);
-      GenericData.Record record = outRecords.get(i);
-      assertEquals(expected, record.get("fieldname"));
+    synchronized (outRecords) {
+      for (int i = 0; i < 3; i++) {
+        Integer expected = Integer.valueOf(i + 1);
+        GenericData.Record record = outRecords.get(i);
+        assertEquals(expected, record.get("fieldname"));
+      }
     }
   }
 
@@ -151,16 +153,18 @@ public class TestSelect extends RtsqlTestCase {
     assertNotNull(output);
 
     List<GenericData.Record> outRecords = output.getRecords();
-    for (int i = 0; i < 3; i++) {
-      Integer expected = Integer.valueOf(i + 1);
-      Integer negative = Integer.valueOf(-i - 1);
-      GenericData.Record record = outRecords.get(i);
-      if (checkLeft) {
-        assertEquals(expected, record.get(leftFieldName));
-      }
+    synchronized (outRecords) {
+      for (int i = 0; i < 3; i++) {
+        Integer expected = Integer.valueOf(i + 1);
+        Integer negative = Integer.valueOf(-i - 1);
+        GenericData.Record record = outRecords.get(i);
+        if (checkLeft) {
+          assertEquals(expected, record.get(leftFieldName));
+        }
 
-      if (checkRight) {
-        assertEquals(negative, record.get(rightFieldName));
+        if (checkRight) {
+          assertEquals(negative, record.get(rightFieldName));
+        }
       }
     }
   }

@@ -1,14 +1,11 @@
 
 Remote environment stuff:
-  Need ability to send data to a Flume stream.
-  -- Operations like \w <streamName> should call a method that resolves a name to
-     a flowId, and then calls watch() on the flowId.
-  -- need unit tests that operate on derived streams.
-
-
-  -- think about whether operations like ExecEnv.setFlowName() should be
+  -- Design question: think about whether operations like ExecEnv.setFlowName() should be
      synchronous or async. They're currently the latter -- would users expect
      the former?
+  -- Icing: Operations like \w <streamName> should call a method that resolves a name to
+     a flowId, and then calls watch() on the flowId.
+
   ===============================================
   weird happenings with AvroEventParser reading flows we generate in avro:
 

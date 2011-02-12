@@ -43,7 +43,7 @@ public abstract class Selectable<T> {
    * complete, to indicate to any affiliated Select instances that
    * they can try to read now.
    */
-  protected void notifyReaders() throws InterruptedException {
+  protected void notifyReaders() {
     synchronized (mSelects) {
       for (Select<T> select : mSelects) {
         synchronized (select) {

@@ -19,11 +19,11 @@ public class length extends ScalarFunc {
 
   @Override
   public Object eval(Object... args) {
-    String arg0 = (String) args[0];
+    Object arg0 = args[0];
     if (null == arg0) {
       return null;
     } else {
-      return Integer.valueOf(arg0.length());
+      return Integer.valueOf(arg0.toString().length());
     }
   }
 
