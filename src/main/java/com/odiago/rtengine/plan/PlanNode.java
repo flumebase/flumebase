@@ -31,6 +31,15 @@ public class PlanNode extends DAGNode<PlanNode> {
    */
   public static final String MULTI_INPUT_SCHEMA_ATTR = "input.field.multi.schemas";
 
+
+  /**
+   * Attribute referencing a Boolean indicating whether typical FlowElement
+   * implementations of this node will require an eviction timer node. The
+   * default value is false. See AggregateNode / BucketedAggregationElement for
+   * an example use.
+   */
+  public static final String USES_TIMER_ATTR = "uses.timer";
+
   /** Free-form attribute map which can be used by operators when working on
    * transforming the graph, etc.
    */
@@ -56,7 +65,21 @@ public class PlanNode extends DAGNode<PlanNode> {
    * implementations while working over the graph.
    */
   public Object getAttr(String attrName) {
-    return mAttributes.get(attrName);
+    return getAttr(attrName, null);
+  }
+
+  /**
+   * Get an attribute from the map. If the value retrieved for attrName is null,
+   * returns defaultVal. Typically used by FlowSpecification.Operator
+   * implementations while working over the graph.
+   */
+  public Object getAttr(String attrName, Object defaultVal) {
+    Object ret = mAttributes.get(attrName);
+    if (null == ret) {
+      return defaultVal;
+    }
+
+    return ret;
   }
 
   /** Format all free-form attributes of the node into the specified StringBuilder. */

@@ -11,6 +11,7 @@ import org.apache.avro.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.odiago.rtengine.exec.BucketedAggregationElement;
 import com.odiago.rtengine.exec.EvaluationElement;
 import com.odiago.rtengine.exec.FileSourceElement;
 import com.odiago.rtengine.exec.FlowElement;
@@ -31,6 +32,7 @@ import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 import com.odiago.rtengine.parser.EntityTarget;
 import com.odiago.rtengine.parser.Expr;
 
+import com.odiago.rtengine.plan.AggregateNode;
 import com.odiago.rtengine.plan.OutputNode;
 import com.odiago.rtengine.plan.CreateStreamNode;
 import com.odiago.rtengine.plan.DescribeNode;
@@ -89,6 +91,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     List<FlowElementNode> out = new ArrayList<FlowElementNode>(nodes.size());
     for (PlanNode node : nodes) {
       FlowElementNode fen = (FlowElementNode) node.getAttr(LOCAL_FLOW_ELEM_KEY);
+      assert null != fen;
       out.add(fen);
     }
 
@@ -118,6 +121,15 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     boolean isMultiThreaded = isMultiThreaded(node, rootTable);
     if (childElements.size() == 0) {
       return new SinkFlowElemContext(mFlowId);
+    } else if (childElements.size() == 1 &&
+        (Boolean) node.getAttr(PlanNode.USES_TIMER_ATTR, Boolean.FALSE) == true) {
+      // This node has only one 'official' output, but will instantiate a separate
+      // FlowElement servicing interrupts from a timer thread. Use a normal connection
+      // to the official output, but use this context to manage a queue into the timer
+      // FlowElement as well.
+      FlowElement childElem = childElements.get(0).getFlowElement();
+      childElem.registerUpstream();
+      return new TimerFlowElemContext(childElem);
     } else if (childElements.size() == 1 && !isMultiThreaded) {
       // Normal direct connection from node to node.
       FlowElement childElem = childElements.get(0).getFlowElement();
@@ -281,6 +293,9 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       Schema outSchema = (Schema) projNode.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
       newElem = new ProjectionElement(newContext, outSchema, projNode.getInputFields(),
           projNode.getOutputFields());
+    } else if (node instanceof AggregateNode) {
+      AggregateNode aggNode = (AggregateNode) node;
+      newElem = new BucketedAggregationElement(newContext, aggNode);
     } else if (node instanceof EvaluateExprsNode) {
       EvaluateExprsNode evalNode = (EvaluateExprsNode) node;
       Schema outSchema = (Schema) evalNode.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR);
@@ -305,6 +320,37 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       if (node.isRoot()) {
         // Roots of the plan node => this is a root node in the flow.
         mLocalFlow.addRoot(elemHolder);
+      }
+
+      // If we created a BucketedAggregationElement, create its timeout coprocessor.
+      if (newElem instanceof BucketedAggregationElement) {
+        BucketedAggregationElement bucketElem = (BucketedAggregationElement) newElem;
+
+        FlowElement downstream = getNodeElements(node.getChildren()).get(0).getFlowElement();
+
+        FlowElementContext timeoutContext = new DirectCoupledFlowElemContext(downstream);
+        BucketedAggregationElement.TimeoutEvictionElement timeoutElem =
+            bucketElem.getTimeoutElement(timeoutContext);
+        // The timeout element is now upstream to the primary downstream element of the
+        // BucketedAggregationElement.
+        downstream.registerUpstream();
+        timeoutElem.registerUpstream(); // BucketedAggEl't is upstream of the timeout elem.
+
+        // Add the timeout element to the BucketedAggregationElement's output list.
+        // Specify it as the timerElement, since this is a special designation in the
+        // TimerFlowElemContext.
+        ((TimerFlowElemContext) newContext).setTimerElement(timeoutElem);
+
+        // Set up the control graph dependencies: the downstream (child) element(s) of the
+        // bucketed aggregation element are also downstream of the timeout element.  The
+        // timeout element itself is virtually downstream from the bucketed aggregation
+        // element too.
+        FlowElementNode timeoutHolder = new FlowElementNode(timeoutElem);
+        for (FlowElementNode childNode : elemHolder.getChildren()) {
+          timeoutHolder.addChild(childNode);
+        }
+
+        timeoutHolder.addParent(elemHolder);
       }
     }
   }

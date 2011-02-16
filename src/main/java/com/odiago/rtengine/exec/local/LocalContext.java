@@ -4,8 +4,10 @@ package com.odiago.rtengine.exec.local;
 
 import java.io.IOException;
 
-import java.util.concurrent.BlockingQueue;
+import java.util.Collections;
+import java.util.List;
 
+import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowElementContext;
 
 import com.odiago.rtengine.util.concurrent.SelectableQueue;
@@ -61,4 +63,21 @@ public abstract class LocalContext extends FlowElementContext {
     return mFlowData;
   }
 
+  /**
+   * Create any necessary downstream communication queues. Default: don't create any queues.
+   */
+  public void createDownstreamQueues() {
+  }
+
+  /**
+   * @return a list of all downstream communication queues. If this list is non-empty,
+   * then order matters.  The elements in this list correspond to entries in
+   * getDownstream(). The output list may contain null values.
+   */
+  public List<SelectableQueue<Object>> getDownstreamQueues() {
+    return Collections.emptyList();
+  }
+
+  /** @return a list of all downstream FlowElements. */
+  abstract List<FlowElement> getDownstream();
 }

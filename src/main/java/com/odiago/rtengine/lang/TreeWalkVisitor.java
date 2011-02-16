@@ -10,6 +10,7 @@ import com.odiago.rtengine.parser.CreateStreamStmt;
 import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.Expr;
 import com.odiago.rtengine.parser.FnCallExpr;
+import com.odiago.rtengine.parser.GroupBy;
 import com.odiago.rtengine.parser.JoinedSource;
 import com.odiago.rtengine.parser.RangeSpec;
 import com.odiago.rtengine.parser.SelectStmt;
@@ -39,6 +40,16 @@ public abstract class TreeWalkVisitor extends Visitor {
     Expr where = s.getWhereConditions();
     if (null != where) {
       where.accept(this);
+    }
+
+    GroupBy groupBy = s.getGroupBy();
+    if (null != groupBy) {
+      groupBy.accept(this);
+    }
+
+    Expr aggregateOver = s.getWindowOver();
+    if (null != aggregateOver) {
+      aggregateOver.accept(this);
     }
 
     List<WindowDef> windowDefs = s.getWindowDefs();

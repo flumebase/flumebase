@@ -4,6 +4,8 @@ package com.odiago.rtengine.plan;
 
 import org.apache.avro.Schema;
 
+import org.apache.hadoop.conf.Configuration;
+
 import org.junit.Test;
 
 import com.odiago.rtengine.util.DAGOperatorException;
@@ -17,7 +19,7 @@ public class TestPropagateSchemas {
   public void testOneNode() throws Exception {
     // Test that a single node propagates its input schema to its output schema.
     Schema input = Schema.create(Schema.Type.INT);
-    FlowSpecification spec = new FlowSpecification();
+    FlowSpecification spec = new FlowSpecification(new Configuration());
     PlanNode node = new PlanNode();
     node.setAttr(PlanNode.INPUT_SCHEMA_ATTR, input);
     spec.addRoot(node);
@@ -29,7 +31,7 @@ public class TestPropagateSchemas {
   public void testCarryOneForward() throws Exception {
     // Given A->B, test that A's input schema is set as B's output schema.
     Schema input = Schema.create(Schema.Type.INT);
-    FlowSpecification spec = new FlowSpecification();
+    FlowSpecification spec = new FlowSpecification(new Configuration());
     PlanNode nodeA = new PlanNode();
     nodeA.setAttr(PlanNode.INPUT_SCHEMA_ATTR, input);
     PlanNode nodeB = new PlanNode();
@@ -45,7 +47,7 @@ public class TestPropagateSchemas {
     // exception in the bfs.
     Schema leftOutput = Schema.create(Schema.Type.INT);
     Schema rightOutput = Schema.create(Schema.Type.STRING);
-    FlowSpecification spec = new FlowSpecification();
+    FlowSpecification spec = new FlowSpecification(new Configuration());
     PlanNode leftNode = new PlanNode();
     PlanNode rightNode = new PlanNode();
     leftNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, leftOutput);
@@ -64,7 +66,7 @@ public class TestPropagateSchemas {
     // test that we signal error.
     Schema output = Schema.create(Schema.Type.INT);
     Schema input = Schema.create(Schema.Type.STRING);
-    FlowSpecification spec = new FlowSpecification();
+    FlowSpecification spec = new FlowSpecification(new Configuration());
     PlanNode parent = new PlanNode();
     parent.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, output);
     PlanNode child = new PlanNode();
@@ -80,7 +82,7 @@ public class TestPropagateSchemas {
     // different), test that everything propagates correctly.
     Schema inputA = Schema.create(Schema.Type.INT);
     Schema outputB = Schema.create(Schema.Type.STRING);
-    FlowSpecification spec = new FlowSpecification();
+    FlowSpecification spec = new FlowSpecification(new Configuration());
     PlanNode nodeA = new PlanNode();
     nodeA.setAttr(PlanNode.INPUT_SCHEMA_ATTR, inputA);
     PlanNode nodeB = new PlanNode();
@@ -106,7 +108,7 @@ public class TestPropagateSchemas {
     // change anything.
     Schema inputB = Schema.create(Schema.Type.INT);
     Schema outputB = Schema.create(Schema.Type.STRING);
-    FlowSpecification spec = new FlowSpecification();
+    FlowSpecification spec = new FlowSpecification(new Configuration());
     PlanNode nodeA = new PlanNode();
     nodeA.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, inputB);
     PlanNode nodeB = new PlanNode();
@@ -133,7 +135,7 @@ public class TestPropagateSchemas {
     // change anything, even if the predecessor node has a (matching) input set.
     Schema inputB = Schema.create(Schema.Type.INT);
     Schema outputB = Schema.create(Schema.Type.STRING);
-    FlowSpecification spec = new FlowSpecification();
+    FlowSpecification spec = new FlowSpecification(new Configuration());
     PlanNode nodeA = new PlanNode();
     nodeA.setAttr(PlanNode.INPUT_SCHEMA_ATTR, inputB);
     PlanNode nodeB = new PlanNode();

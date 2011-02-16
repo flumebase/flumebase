@@ -47,7 +47,7 @@ public abstract class RecordSource extends SQLStatement {
     // we use another SELECT statement as a source) inside a new context.
     PlanContext sourceInCtxt = new PlanContext(planContext);
     sourceInCtxt.setRoot(false);
-    sourceInCtxt.setFlowSpec(new FlowSpecification());
+    sourceInCtxt.setFlowSpec(new FlowSpecification(planContext.getConf()));
     return subStmt.createExecPlan(sourceInCtxt);
   }
 }

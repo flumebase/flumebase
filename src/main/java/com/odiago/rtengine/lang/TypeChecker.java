@@ -2,6 +2,7 @@
 
 package com.odiago.rtengine.lang;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -29,6 +30,7 @@ import com.odiago.rtengine.parser.ExplainStmt;
 import com.odiago.rtengine.parser.Expr;
 import com.odiago.rtengine.parser.FnCallExpr;
 import com.odiago.rtengine.parser.FormatSpec;
+import com.odiago.rtengine.parser.GroupBy;
 import com.odiago.rtengine.parser.IdentifierExpr;
 import com.odiago.rtengine.parser.JoinedSource;
 import com.odiago.rtengine.parser.LiteralSource;
@@ -37,6 +39,7 @@ import com.odiago.rtengine.parser.RecordSource;
 import com.odiago.rtengine.parser.SQLStatement;
 import com.odiago.rtengine.parser.SelectStmt;
 import com.odiago.rtengine.parser.ShowStmt;
+import com.odiago.rtengine.parser.TypedField;
 import com.odiago.rtengine.parser.UnaryExpr;
 import com.odiago.rtengine.parser.WindowDef;
 import com.odiago.rtengine.parser.WindowSpec;
@@ -279,6 +282,23 @@ public class TypeChecker extends Visitor {
         }
       }
 
+      // Check the GROUP BY clause for validity if it's non-null.
+      GroupBy groupBy = s.getGroupBy();
+      if (null != groupBy) {
+        groupBy.accept(this);
+      }
+
+      // Check the OVER clause for validity if it's non-null.
+      // This must evaluate to a value of type WINDOW.
+      Expr windowOver = s.getWindowOver();
+      if (null != windowOver) {
+        windowOver.accept(this);
+        Type winType = windowOver.getType(exprTable);
+        if (!winType.equals(Type.getPrimitive(Type.TypeName.WINDOW))) {
+          throw new TypeCheckException("SELECT ... OVER clause requires a window, not an "
+              + "identifier of type " + winType);
+        }
+      }
     } finally {
       // Pop the source symbol tables from the stack.
       mSymTableContext.reset(symbolStackHeight);
@@ -492,10 +512,17 @@ public class TypeChecker extends Visitor {
     return false;
   }
 
-  protected void visit(IdentifierExpr e) throws VisitException {
-    SymbolTable fieldsSymTab = mSymTableContext.top();
+  /**
+   * Look up a field name identifier and resolve it to a Symbol and a Type.
+   * These values are returned via Ref arguments.
+   * @param fieldsSymTab the symbol table defining fields of the stream.
+   * @param fieldName The field name to resolve.
+   * @param outSym (output) The final resolved output symbol for the entity.
+   * @param outType (output) The type for values of this field.
+   */
+  private void resolveIdentifier(SymbolTable fieldsSymTab, String fieldName,
+      Ref<AssignedSymbol> outSym, Ref<Type> outType) throws TypeCheckException {
 
-    String fieldName = e.getIdentifier();
     // Check that this field is defined by one of the input sources.
     // Since the source pushed a symbol table on the stack, just check
     // that we have a symbol table, and that this is a primitive value.
@@ -522,10 +549,7 @@ public class TypeChecker extends Visitor {
           + fieldName + "\"");
     }
 
-    // Let the AST node memoize its typing information from the symbol table;
-    // it will need to reference this at run time to look up values from the
-    // EventWrapper.
-    e.setType(fieldType);
+    outType.item = fieldType;
 
     // The field symbol should also be an AssignedSymbol that has a unique
     // reference name throughout the query. Bind to the reference name here;
@@ -534,7 +558,25 @@ public class TypeChecker extends Visitor {
     fieldSym = fieldSym.resolveAliases();
     assert fieldSym instanceof AssignedSymbol;
 
-    e.setAssignedName(((AssignedSymbol) fieldSym).getAssignedName());
+    outSym.item = (AssignedSymbol) fieldSym;
+  }
+
+  protected void visit(IdentifierExpr e) throws VisitException {
+    SymbolTable fieldsSymTab = mSymTableContext.top();
+    String fieldName = e.getIdentifier();
+
+    Ref<AssignedSymbol> symRef = new Ref<AssignedSymbol>();
+    Ref<Type> typeRef = new Ref<Type>();
+    resolveIdentifier(fieldsSymTab, fieldName, symRef, typeRef);
+
+    Type fieldType = typeRef.item;
+    AssignedSymbol fieldSym = symRef.item;
+
+    // Let the AST node memoize its typing information from the symbol table;
+    // it will need to reference this at run time to look up values from the
+    // EventWrapper.
+    e.setType(fieldType);
+    e.setAssignedName(fieldSym.getAssignedName());
   }
 
   protected void visit(UnaryExpr e) throws VisitException {
@@ -622,5 +664,24 @@ public class TypeChecker extends Visitor {
     } else if (!after.isConstant()) {
       throw new TypeCheckException("Expression " + after.toStringOneLine() + " is not constant");
     }
+  }
+
+  protected void visit(GroupBy g) throws VisitException {
+    SymbolTable fieldsSymTab = mSymTableContext.top();
+
+    // Check that the fields are real fields; resolve them to TypedField instances,
+    // like we do for an IdentifierExpr.
+    List<TypedField> typedFields = new ArrayList<TypedField>();
+    Ref<AssignedSymbol> symRef = new Ref<AssignedSymbol>();
+    Ref<Type> typeRef = new Ref<Type>();
+
+    for (String fieldName : g.getFieldNames()) {
+      resolveIdentifier(fieldsSymTab, fieldName, symRef, typeRef);
+      Type fieldType = typeRef.item;
+      AssignedSymbol fieldSym = symRef.item;
+      typedFields.add(new TypedField(fieldSym.getAssignedName(), fieldType));
+    }
+
+    g.setFieldTypes(typedFields);
   }
 }

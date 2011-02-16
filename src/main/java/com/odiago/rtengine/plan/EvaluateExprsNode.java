@@ -35,7 +35,7 @@ public class EvaluateExprsNode extends PlanNode {
     StringUtils.formatList(sb, mExprs);
     sb.append("), propagate=(");
     StringUtils.formatList(sb, mPropagateFields);
-    sb.append(")");
+    sb.append(")\n");
     formatAttributes(sb);
   }
 }

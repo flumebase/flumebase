@@ -63,7 +63,7 @@ public class PlanContext {
   public PlanContext() {
     mConf = new Configuration();
     mMsgBuilder = new StringBuilder();
-    mFlowSpec = new FlowSpecification();
+    mFlowSpec = new FlowSpecification(mConf);
     mSymTable = new HashSymbolTable();
     mIsRoot = true;
     mSchema = null;
@@ -88,6 +88,7 @@ public class PlanContext {
 
   public void setConf(Configuration conf) {
     mConf = conf;
+    mFlowSpec.setConf(mConf);
   }
 
   public List<TypedField> getOutFields() {

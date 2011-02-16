@@ -4,7 +4,11 @@ package com.odiago.rtengine.exec.local;
 
 import java.io.IOException;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.odiago.rtengine.exec.EventWrapper;
+import com.odiago.rtengine.exec.FlowElement;
 import com.odiago.rtengine.exec.FlowId;
 
 /**
@@ -27,5 +31,10 @@ public class SinkFlowElemContext extends LocalContext {
 
   FlowId getFlowId() {
     return mFlow;
+  }
+
+  @Override
+  List<FlowElement> getDownstream() {
+    return Collections.emptyList();
   }
 }

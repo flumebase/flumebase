@@ -4,6 +4,9 @@ package com.odiago.rtengine.exec.local;
 
 import java.io.IOException;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElement;
 
@@ -32,7 +35,8 @@ public class DirectCoupledFlowElemContext extends LocalContext {
   /**
    * Return the downstream FlowElement. Used by the LocalEnvironment.
    */
-  FlowElement getDownstream() {
-    return mDownstream;
+  @Override
+  List<FlowElement> getDownstream() {
+    return Collections.singletonList(mDownstream);
   }
 }

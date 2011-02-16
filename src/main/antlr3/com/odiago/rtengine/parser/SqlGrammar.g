@@ -52,8 +52,9 @@ stmt_explain returns [ExplainStmt val]:
 
 stmt_select returns [SelectStmt val]:
   SELECT e=aliased_expr_list FROM s=source_definition w=optional_where_conditions
+  g=optional_group_by over=optional_window_over
   wins=optional_window_defs
-  {$val = new SelectStmt($e.val, $s.val, $w.val, $wins.val);};
+  { $val = new SelectStmt($e.val, $s.val, $w.val, $g.val, $over.val, $wins.val); };
 
 stmt_show returns [ShowStmt val]:
     SHOW FLOWS {$val = new ShowStmt(EntityTarget.Flow);}
@@ -185,6 +186,13 @@ atom_expr returns [Expr val]:
 // Selecting individual fields is done via user-specified symbol selectors.
 field_sel returns [String val] : s=maybe_qualified_user_sel {$val=$s.val;};
 
+// For specifying a list of fields (e.g., in a GROUP BY x, y, z...)
+field_sel_list returns [List<String> val] :
+    { $val = new ArrayList<String>(); }
+    ( f=field_sel { $val.add($f.val); }
+      ( COMMA f2=field_sel { $val.add($f2.val); } )*
+    )?;
+
 // Specifying a list of fields is done with comma-separated field specs inside parens.
 // e.g., '(foo INT, bar STRING , baz STRING ...)'
 // At least one field must be specified in this list.
@@ -266,7 +274,21 @@ src_type returns [StreamSourceType val]:
 // Returns an expression to be evaluated, or null if it is omitted.
 optional_where_conditions returns [Expr val] :
     { $val=null; }
-  | WHERE e=expr { $val=$e.val; };
+  | WHERE e=expr { $val=$e.val; }
+  ;
+
+// GROUP BY clause for a SELECT statement. May be omitted.
+// Returns a group by condition, or null if it is omitted.
+optional_group_by returns [GroupBy val] :
+    { $val=null; }
+  | GROUP BY f=field_sel_list { $val = new GroupBy($f.val); }
+  ;
+
+// OVER clause for a SELECT statement. May be omitted.
+// Returns a WindowSpec over which we aggregate, or null if it is omitted.
+optional_window_over returns [Expr val]:
+    { $val=null; }
+  | OVER w=inline_window_spec { $val = $w.val; };
 
 // Set of WINDOW x AS ... definitions for a SELECT statement.
 optional_window_defs returns [List<WindowDef> val] :

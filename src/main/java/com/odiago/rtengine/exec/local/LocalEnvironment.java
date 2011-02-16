@@ -40,6 +40,7 @@ import com.odiago.rtengine.exec.SymbolTable;
 import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 
 import com.odiago.rtengine.lang.AssignFieldLabelsVisitor;
+import com.odiago.rtengine.lang.IdentifyAggregates;
 import com.odiago.rtengine.lang.JoinKeyVisitor;
 import com.odiago.rtengine.lang.JoinNameVisitor;
 import com.odiago.rtengine.lang.TypeChecker;
@@ -205,18 +206,19 @@ public class LocalEnvironment extends ExecEnvironment {
             elemContext.initControlQueue(mCompletionEventQueue);
             elemContext.setFlowData(activeFlowData);
 
-            if (elemContext instanceof MTGeneratorElemContext) {
-              // This FlowElement is driving another FE via a buffer.
-              // Actually create the buffer, and register it in our live set of queues
-              // to monitor.
-              SelectableQueue<Object> elemBuffer =
-                  new ArrayBoundedSelectableQueue<Object>(MAX_QUEUE_LEN);
-              ((MTGeneratorElemContext) elemContext).setDownstreamQueue(elemBuffer);
-              // Bind queue to input...
-              FlowElement downstream = ((MTGeneratorElemContext) elemContext).getDownstream();
-              // And to its output...
-              mInputQueues.put(elemBuffer, downstream);
-              mSelect.add(elemBuffer); // And watch this queue for updates.
+            elemContext.createDownstreamQueues();
+            List<SelectableQueue<Object>> elemBuffers = elemContext.getDownstreamQueues();
+            if (null != elemBuffers) {
+              List<FlowElement> downstreams = elemContext.getDownstream();
+              // Bind each queue to its downstream element.
+              for (int i = 0; i < elemBuffers.size(); i++) {
+                SelectableQueue<Object> elemBuffer = elemBuffers.get(i);
+                if (null != elemBuffer) {
+                  FlowElement downstream = downstreams.get(i);
+                  mInputQueues.put(elemBuffer, downstream);
+                  mSelect.add(elemBuffer); // And watch this queue for updates.
+                }
+              }
             }
 
             try {
@@ -267,13 +269,15 @@ public class LocalEnvironment extends ExecEnvironment {
             // All FlowElements that we see will have LocalContext subclass contexts.
             // Get the output queue from this, and remove it from the tracking set.
             LocalContext elemContext = (LocalContext) flowElem.getContext();
-
-            if (elemContext instanceof MTGeneratorElemContext) {
-              SelectableQueue<Object> outQueue =
-                  ((MTGeneratorElemContext) elemContext).getDownstreamQueue();
-              mSelect.remove(outQueue);
-              mInputQueues.remove(outQueue);
-              mCloseQueues.remove(outQueue);
+            List<SelectableQueue<Object>> outQueues = elemContext.getDownstreamQueues();
+            if (null != outQueues) {
+              for (SelectableQueue<Object> outQueue : outQueues) {
+                if (null != outQueue) {
+                  mSelect.remove(outQueue);
+                  mInputQueues.remove(outQueue);
+                  mCloseQueues.remove(outQueue);
+                }
+              }
             }
           }
         });
@@ -303,6 +307,10 @@ public class LocalEnvironment extends ExecEnvironment {
     }
 
     private void cancelAllFlows() {
+      if (mActiveFlows.size() == 0) {
+        return;
+      }
+
       LOG.info("Closing all flows");
       Set<Map.Entry<FlowId, ActiveFlowData>> flowSet = mActiveFlows.entrySet();
       Iterator<Map.Entry<FlowId, ActiveFlowData>> flowIter = flowSet.iterator();
@@ -391,7 +399,6 @@ public class LocalEnvironment extends ExecEnvironment {
      */
     private void closeQueue(SelectableQueue<Object> queue, FlowElement flowElem)
         throws IOException, InterruptedException {
-      flowElem.completeWindow();
       flowElem.closeUpstream();
       mSelect.remove(queue);
       mInputQueues.remove(queue);
@@ -515,33 +522,13 @@ public class LocalEnvironment extends ExecEnvironment {
             case ElementComplete:
               // Remove a specific FlowElement from service; it's done.
               LocalCompletionEvent completionEvent = (LocalCompletionEvent) nextOp.getDatum();
-              FlowElement downstream = null;
               try {
                 LocalContext context = completionEvent.getContext();
 
-                if (context instanceof DirectCoupledFlowElemContext) {
-                  // Notify the downstream FlowElement that it too should close.
-                  DirectCoupledFlowElemContext directContext =
-                      (DirectCoupledFlowElemContext) context;
-                  downstream = directContext.getDownstream();
-                  // TODO(aaron): Is this call correctly placed? Or even relevant?
-                  downstream.completeWindow();
-                  downstream.closeUpstream();
-                } else if (context instanceof MTGeneratorElemContext) {
-                  // This FE is connected to its downstream element by a queue.
-                  // When that queue is empty, notify the downstream element of
-                  // its upstream closure.
-                  MTGeneratorElemContext mtContext =
-                      (MTGeneratorElemContext) context;
-                  SelectableQueue<Object> downstreamQueue = mtContext.getDownstreamQueue();
-                  downstream = mtContext.getDownstream();
-                  if (downstreamQueue.size() == 0) {
-                    // This is already dry. Close it immediately.
-                    closeQueue(downstreamQueue, downstream);
-                  } else {
-                    mCloseQueues.add(downstreamQueue);
-                  }
-                } else if (context instanceof SinkFlowElemContext) {
+                List<SelectableQueue<Object>> downstreamQueues =
+                    context.getDownstreamQueues();
+                List<FlowElement> downstreamElements = context.getDownstream();
+                if (null == downstreamElements || downstreamElements.size() == 0) {
                   // We have received close() notification from the last element in a flow.
                   // Remove the entire flow from service.
                   // TODO(aaron): Are multiple SinkFlowElemContexts possible per flow?
@@ -554,9 +541,35 @@ public class LocalEnvironment extends ExecEnvironment {
                     // already canceled (inactive), don't do this twice.
                     cancelFlow(id);
                   }
+                } else if (null == downstreamQueues || downstreamQueues.size() == 0) {
+                  // Has elements, but no queues. Notify the downstream
+                  // FlowElement(s) to close too.
+                  for (FlowElement downstream : downstreamElements) {
+                    downstream.closeUpstream();
+                  }
+                } else {
+                  // May have downstream queues. For each downstream element, close it
+                  // immediately if it has no queue, or an empty queue. Otherwise,
+                  // watch these queues for emptiness.
+                  assert downstreamQueues.size() == downstreamElements.size();
+                  for (int i = 0; i < downstreamElements.size(); i++) {
+                    SelectableQueue<Object> downstreamQueue = downstreamQueues.get(i);
+                    FlowElement downstreamElement = downstreamElements.get(i);
+                    if (downstreamQueue == null) {
+                      // Close directly.
+                      downstreamElement.closeUpstream();
+                    } else if (downstreamQueue.size() == 0) {
+                      // Queue's dry, close it down.
+                      closeQueue(downstreamQueue, downstreamElement);
+                    } else {
+                      // Watch this queue for completion.
+                      mCloseQueues.add(downstreamQueue);
+                    }
+
+                  }
                 }
               } catch (IOException ioe) {
-                LOG.error("IOException closing flow element (" + downstream + "): " + ioe);
+                LOG.error("IOException closing flow element: " + ioe);
               } catch (InterruptedException ie) {
                 LOG.error("Interruption closing downstream element: " + ie);
               }
@@ -672,8 +685,8 @@ public class LocalEnvironment extends ExecEnvironment {
    */
   private SelectableQueue<Object> mControlQueue; // Actually full of ControlOp instances
 
-  /** Max len for mControlQueue. */
-  private static final int MAX_QUEUE_LEN = 100;
+  /** Max len for mControlQueue, or any FlowElement's input queue. */
+  static final int MAX_QUEUE_LEN = 100;
 
   /**
    * The root symbol table where streams, etc are defined. Used in the
@@ -769,6 +782,7 @@ public class LocalEnvironment extends ExecEnvironment {
       stmt.accept(new TypeChecker(mRootSymbolTable));
       stmt.accept(new JoinKeyVisitor()); // Must be after TC.
       stmt.accept(new JoinNameVisitor());
+      stmt.accept(new IdentifyAggregates()); // Must be after TC.
       PlanContext planContext = new PlanContext();
       planContext.setConf(planConf);
       planContext.setSymbolTable(mRootSymbolTable);

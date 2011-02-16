@@ -5,7 +5,7 @@ package com.odiago.rtengine.exec;
 import java.util.List;
 
 import com.odiago.rtengine.lang.FnType;
-import com.odiago.rtengine.lang.ScalarFunc;
+import com.odiago.rtengine.lang.Function;
 import com.odiago.rtengine.lang.Type;
 
 /**
@@ -20,9 +20,9 @@ public class FnSymbol extends Symbol {
   private final Type mRetType;
 
   /** The function instance itself. */
-  private final ScalarFunc mFunc;
+  private final Function mFunc;
 
-  public FnSymbol(String name, ScalarFunc func, Type retType, List<Type> argTypes) {
+  public FnSymbol(String name, Function func, Type retType, List<Type> argTypes) {
     super(name, new FnType(retType, argTypes));
     mFunc = func;
     mRetType = retType;
@@ -37,7 +37,7 @@ public class FnSymbol extends Symbol {
     return mRetType;
   }
 
-  public ScalarFunc getFuncInstance() {
+  public Function getFuncInstance() {
     return mFunc;
   }
 

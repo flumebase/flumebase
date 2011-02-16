@@ -56,14 +56,6 @@ public abstract class FlowElement {
   public abstract void takeEvent(EventWrapper e) throws IOException, InterruptedException;
 
   /**
-   * Finish any aggregation associated with this window, and emit any output
-   * events that are associated with the entire window.
-   */
-  public void completeWindow() throws IOException, InterruptedException {
-    // Default operation: ignore windowing.
-  }
-
-  /**
    * @return the FlowElementContext that the element is bound to.
    */
   public abstract FlowElementContext getContext();

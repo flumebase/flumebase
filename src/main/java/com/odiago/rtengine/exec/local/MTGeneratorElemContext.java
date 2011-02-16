@@ -4,9 +4,13 @@ package com.odiago.rtengine.exec.local;
 
 import java.io.IOException;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FlowElement;
 
+import com.odiago.rtengine.util.concurrent.ArrayBoundedSelectableQueue;
 import com.odiago.rtengine.util.concurrent.SelectableQueue;
 
 /**
@@ -26,13 +30,18 @@ public class MTGeneratorElemContext extends LocalContext {
     mDownstream = downstream;
   }
 
-  /** Specify which queue to populate with values for the downstream FlowElement. */
-  public void setDownstreamQueue(SelectableQueue<Object> queue) {
-    mDownstreamQueue = queue;
+  /**
+   * Create the downstream queue to communicate with our downstream FlowElement.
+   */
+  @Override
+  public void createDownstreamQueues() {
+    mDownstreamQueue = 
+        new ArrayBoundedSelectableQueue<Object>(LocalEnvironment.MAX_QUEUE_LEN);
   }
 
-  public SelectableQueue<Object> getDownstreamQueue() {
-    return mDownstreamQueue;
+  @Override
+  public List<SelectableQueue<Object>> getDownstreamQueues() {
+    return Collections.singletonList(mDownstreamQueue);
   }
 
   /**
@@ -46,7 +55,8 @@ public class MTGeneratorElemContext extends LocalContext {
   /**
    * Return the downstream FlowElement. Used by the LocalEnvironment.
    */
-  FlowElement getDownstream() {
-    return mDownstream;
+  @Override
+  List<FlowElement> getDownstream() {
+    return Collections.singletonList(mDownstream);
   }
 }

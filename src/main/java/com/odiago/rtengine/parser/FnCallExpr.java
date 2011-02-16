@@ -12,12 +12,15 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.odiago.rtengine.exec.Bucket;
 import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.FnSymbol;
 import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
 
+import com.odiago.rtengine.lang.AggregateFunc;
 import com.odiago.rtengine.lang.EvalException;
+import com.odiago.rtengine.lang.Function;
 import com.odiago.rtengine.lang.ScalarFunc;
 import com.odiago.rtengine.lang.Type;
 import com.odiago.rtengine.lang.TypeCheckException;
@@ -41,7 +44,7 @@ public class FnCallExpr extends Expr {
 
   /** The symbol as resolved from a symbol table defining the executable function. */
   private FnSymbol mFnSymbol;
-  private ScalarFunc mExecFunc; // The function instance to execute.
+  private Function mExecFunc; // The function instance to execute.
   private boolean mAutoPromote; // true if we auto-promote argument return types.
   private Object[] mPartialResults; // reusable array where argument results are stored.
 
@@ -235,6 +238,16 @@ public class FnCallExpr extends Expr {
     mPartialResults = new Object[mExprTypes.size()];
   }
 
+  /** @return true if this fn call is an aggregate function. */
+  public boolean isAggregate() {
+    return mExecFunc instanceof AggregateFunc;
+  }
+
+  /** @return true if this fn call is a scalar function. */
+  public boolean isScalar() {
+    return mExecFunc instanceof ScalarFunc;
+  }
+
   @Override
   public List<TypedField> getRequiredFields(SymbolTable symTab) {
     List<TypedField> out = new ArrayList<TypedField>();
@@ -245,10 +258,14 @@ public class FnCallExpr extends Expr {
     return out;
   }
 
-  @Override
-  public Object eval(EventWrapper e) throws IOException {
-    assert(mArgExprs.size() == mArgTypes.length);
-    assert(mExprTypes.size() == mArgTypes.length);
+  /**
+   * Evaluate all the arguments to the function in preparation for
+   * calling the function on them. Stores its output in the
+   * mPartialResults array.
+   */
+  private void evaluateArguments(EventWrapper e) throws IOException {
+    assert mArgExprs.size() == mArgTypes.length;
+    assert mExprTypes.size() == mArgTypes.length;
 
     // Evaluate arguments left-to-right.
     for (int i = 0; i < mArgExprs.size(); i++) {
@@ -259,9 +276,47 @@ public class FnCallExpr extends Expr {
         mPartialResults[i] = result;
       }
     }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Object eval(EventWrapper e) throws IOException {
+    assert mExecFunc instanceof ScalarFunc;
+    evaluateArguments(e);
 
     try {
-      return mExecFunc.eval(mPartialResults);
+      return ((ScalarFunc) mExecFunc).eval(mPartialResults);
+    } catch (EvalException ee) {
+      throw new IOException(ee);
+    }
+  }
+
+  /**
+   * For a function call representing an aggregation function, call the
+   * bucket-insertion method of the AggregationFunc on the (already
+   * evaluated) arguments of this function.
+   */
+  public <T> void insertAggregate(EventWrapper e, Bucket<T> bucket) throws IOException {
+    assert mExecFunc instanceof AggregateFunc;
+    evaluateArguments(e);
+    
+    try {
+      ((AggregateFunc<T>) mExecFunc).addToBucket(mPartialResults[0], bucket, mReturnType);
+    } catch (EvalException ee) {
+      throw new IOException(ee);
+    }
+  }
+
+  /**
+   * For a function call representing an aggregation function, call the
+   * finishWindow method of the AggregationFunc on the set of buckets
+   * comprising the time window we are aggregating over.
+   */
+  public <T> Object finishWindow(Iterable<Bucket<T>> buckets) throws IOException {
+    assert mExecFunc instanceof AggregateFunc;
+
+    try {
+      return ((AggregateFunc<T>) mExecFunc).finishWindow(buckets, mReturnType);
     } catch (EvalException ee) {
       throw new IOException(ee);
     }

@@ -125,6 +125,23 @@ public class RtsqlTestCase {
     }
   }
 
+  /**
+   * Asserts that there exists a record in records such that testField = testValue.
+   */
+  protected void assertRecordExists(List<GenericData.Record> records,
+      String testField, Object testValue) {
+    for (GenericData.Record record : records) {
+      Object result = record.get(testField);
+      if (null == testValue && null == result) {
+        return;
+      } else if (null != testValue && testValue.equals(result)) {
+        return;
+      }
+    }
+
+    fail("Could not find record such that " + testField + " equals " + testValue);
+  }
+
   private void checkField(GenericData.Record record, String testField, Object testValue) {
     if (null == testValue) {
       if (record.get(testField) != null) {

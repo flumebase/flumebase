@@ -130,7 +130,36 @@ public class TestType {
     // STREAM does not promote to STRING.
     assertFalse(StreamType.getEmptyStreamType().promotesTo(
         Type.getPrimitive(Type.TypeName.STRING)));
+  }
 
+  // Tests for the TYPECLASS_COMPARABLE typeclass.
+  @Test
+  public void testComparable() {
+    // test STRING NOT NULL.
+    assertTrue(Type.getPrimitive(Type.TypeName.STRING).promotesTo(
+        Type.getPrimitive(Type.TypeName.TYPECLASS_COMPARABLE)));
+    assertTrue(Type.getPrimitive(Type.TypeName.STRING).promotesTo(
+        Type.getNullable(Type.TypeName.TYPECLASS_COMPARABLE)));
+
+    // nullable Strings...
+    assertTrue(Type.getNullable(Type.TypeName.STRING).promotesTo(
+        Type.getNullable(Type.TypeName.TYPECLASS_COMPARABLE)));
+    assertFalse(Type.getNullable(Type.TypeName.STRING).promotesTo(
+        Type.getPrimitive(Type.TypeName.TYPECLASS_COMPARABLE)));
+
+    // Check typeclass promotion.
+    assertTrue(Type.getNullable(Type.TypeName.TYPECLASS_COMPARABLE).promotesTo(
+        Type.getNullable(Type.TypeName.TYPECLASS_ANY)));
+    assertTrue(Type.getNullable(Type.TypeName.TYPECLASS_NUMERIC).promotesTo(
+        Type.getNullable(Type.TypeName.TYPECLASS_COMPARABLE)));
+    assertFalse(Type.getNullable(Type.TypeName.TYPECLASS_COMPARABLE).promotesTo(
+        Type.getNullable(Type.TypeName.TYPECLASS_NUMERIC)));
+
+    // Integers
+    assertTrue(Type.getPrimitive(Type.TypeName.INT).promotesTo(
+        Type.getNullable(Type.TypeName.TYPECLASS_COMPARABLE)));
+    assertTrue(Type.getPrimitive(Type.TypeName.INT).promotesTo(
+        Type.getPrimitive(Type.TypeName.TYPECLASS_COMPARABLE)));
 
   }
 

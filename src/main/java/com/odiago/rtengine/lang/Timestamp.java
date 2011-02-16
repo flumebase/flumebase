@@ -23,4 +23,27 @@ public class Timestamp extends TimestampBase {
     this.nanos = sqlTimestamp.getNanos();
   }
 
+  @Override
+  public int hashCode() {
+    return ((int) (this.milliseconds & 0xFFFFFFFF)) ^ (this.nanos * 37);
+  }
+
+  @Override
+  public boolean equals(Object otherObj) {
+    if (otherObj == this) {
+      return true;
+    } else if (null == otherObj) {
+      return false;
+    } else if (!otherObj.getClass().equals(getClass())) {
+      return false;
+    }
+
+    Timestamp other = (Timestamp) otherObj;
+    return other.milliseconds == milliseconds && other.nanos == nanos;
+  }
+
+  @Override
+  public String toString() {
+    return "" + milliseconds + "." + nanos;
+  }
 }

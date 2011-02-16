@@ -1,4 +1,32 @@
 
+Aggregation:
+
+  -- Enable 'COUNT(*)' syntax; do a syntactic replacement to COUNT(1) under the hood.
+
+  -- unit test, unit test, unit test, baby.
+
+  ... for a bit later:
+
+  -- Agg funcs cannot be used in broader expressions (Cannot select 1 + COUNT(x)).
+     In cases where they are used like this, assign the function's output a new
+     anonymous name, promote the aggfunc to the aggregate functions list,
+     and replace the call to the agg func in the expression with an IdentExpr to
+     look up the value of this function's output.
+
+  -- Allow use of WINDOW clauses inside AliasedExprs, rather than having a single
+     global GROUP BY?
+
+  -- Implement SQL:2003 windowing functions like LEAD, LAG, RANK. See slides at
+     http://wwwlgis.informatik.uni-kl.de/cms/fileadmin/courses/SS2008/NEDM/RDDM.Chapter.06.Windows_and_Query_Functions_in_SQL.pdf
+
+  -- Also new scalar functions listed there.
+
+  -- Allow additional ConstExpr arguments to parameterize calls to aggregate
+     functions. e.g., LEAD(x, 2), LAG(y, 3), etc.
+
+  -- CHECK: Do we ever need non-ConstExpr arguments? Do we ever need to aggregate over
+     two columns at once?
+
 Remote environment stuff:
   -- Design question: think about whether operations like ExecEnv.setFlowName() should be
      synchronous or async. They're currently the latter -- would users expect

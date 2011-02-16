@@ -26,4 +26,34 @@ public class TimeSpan extends TimeSpanBase {
     this.isRelative = relative;
   }
 
+  /**
+   * @return the width of the timespan, in milliseconds.
+   */
+  public long getWidth() {
+    return this.hi - this.lo;
+  }
+
+  @Override
+  public int hashCode() {
+    return ((int) (this.hi & 0xFFFFFFFF)) ^ ((int) (this.lo & 0xFFFFFFFF) * 37);
+  }
+
+  @Override
+  public boolean equals(Object otherObj) {
+    if (otherObj == this) {
+      return true;
+    } else if (null == otherObj) {
+      return false;
+    } else if (!otherObj.getClass().equals(getClass())) {
+      return false;
+    }
+
+    TimeSpan other = (TimeSpan) otherObj;
+    return other.lo == lo && other.hi == hi && other.isRelative == isRelative;
+  }
+
+  @Override
+  public String toString() {
+    return "(" + this.lo + ", " + this.hi + ")";
+  }
 }

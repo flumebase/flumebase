@@ -60,7 +60,7 @@ public class DAGNode<NODETYPE extends DAGNode> {
    */
   public void addParent(NODETYPE parent) {
     mInputs.add(parent);
-    parent.mInputs.add(this);
+    parent.mOutputs.add(this);
   }
 
   /** @return the node's id within the graph. */

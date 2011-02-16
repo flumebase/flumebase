@@ -22,7 +22,8 @@ public class FlowSpecification extends DAG<PlanNode> {
     mConf = conf;
   }
 
-  public FlowSpecification() {
+  public FlowSpecification(Configuration conf) {
+    mConf = conf;
   }
 
   /**

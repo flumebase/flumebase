@@ -50,7 +50,16 @@ public abstract class AvroOutputElementImpl extends FlowElementImpl {
    */
   protected void emitAvroRecord(GenericData.Record record, Event inEvent)
       throws IOException, InterruptedException {
+    emitAvroRecord(record, inEvent, inEvent.getTimestamp());
+  }
 
+  protected void emitAvroRecord(GenericData.Record record, Event inEvent, long timestamp)
+      throws IOException, InterruptedException {
+    emitAvroRecord(record, inEvent, inEvent.getTimestamp(), getContext());
+  }
+
+  protected void emitAvroRecord(GenericData.Record record, Event inEvent, long timestamp,
+      FlowElementContext context) throws IOException, InterruptedException {
     // TODO: BAOS.toByteArray() creates a new byte array, as does the
     // creation of the event. That's at least one more array copy than
     // necessary.
@@ -64,10 +73,10 @@ public abstract class AvroOutputElementImpl extends FlowElementImpl {
       return;
     }
     Event out = new EventImpl(mOutputBytes.toByteArray(),
-        inEvent.getTimestamp(), inEvent.getPriority(), inEvent.getNanos(), inEvent.getHost()); 
+        timestamp, inEvent.getPriority(), inEvent.getNanos(), inEvent.getHost()); 
     AvroEventWrapper outWrapper = new AvroEventWrapper(mOutputSchema);
     outWrapper.reset(out);
-    emit(outWrapper);
+    emit(outWrapper, context);
   }
 
   protected Schema getOutputSchema() {

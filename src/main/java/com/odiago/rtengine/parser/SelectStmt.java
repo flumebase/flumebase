@@ -16,6 +16,7 @@ import com.odiago.rtengine.exec.SymbolTable;
 
 import com.odiago.rtengine.lang.Type;
 
+import com.odiago.rtengine.plan.AggregateNode;
 import com.odiago.rtengine.plan.OutputNode;
 import com.odiago.rtengine.plan.EvaluateExprsNode;
 import com.odiago.rtengine.plan.FilterNode;
@@ -24,6 +25,8 @@ import com.odiago.rtengine.plan.MemoryOutputNode;
 import com.odiago.rtengine.plan.PlanContext;
 import com.odiago.rtengine.plan.PlanNode;
 import com.odiago.rtengine.plan.ProjectionNode;
+
+import com.odiago.rtengine.util.StringUtils;
 
 /**
  * SELECT statement.
@@ -56,6 +59,16 @@ public class SelectStmt extends RecordSource {
   // Expression that must evaluate to true in the WHERE clause to accept records.
   private Expr mWhereExpr;
 
+  // GROUP BY clause (may be null).
+  private GroupBy mGroupBy;
+
+  // OVER clause (may be null); expr specifies the window we aggregate on.
+  private Expr mAggregateOver;
+
+  // Expressions in the SELECT statement that are produced by aggregate functions.
+  // (provided by IdentifyAggregates visitor pass).
+  private List<AliasedExpr> mAggregateExprs;
+
   // List of window definitions; bindings from identifiers to WindowSpecs
   // in the scope of this SELECT statement.
   private List<WindowDef> mWindowDefs;
@@ -77,10 +90,12 @@ public class SelectStmt extends RecordSource {
   private SymbolTable mFieldSymbols;
 
   public SelectStmt(List<AliasedExpr> selExprs, SQLStatement source, Expr where,
-      List<WindowDef> windowDefs) {
+      GroupBy groupBy, Expr aggregateOver, List<WindowDef> windowDefs) {
     mSelectExprs = selExprs;
     mSource = source;
     mWhereExpr = where;
+    mGroupBy = groupBy;
+    mAggregateOver = aggregateOver;
     mWindowDefs = windowDefs;
   }
 
@@ -94,6 +109,10 @@ public class SelectStmt extends RecordSource {
 
   public Expr getWhereConditions() {
     return mWhereExpr;
+  }
+
+  public GroupBy getGroupBy() {
+    return mGroupBy;
   }
 
   public List<WindowDef> getWindowDefs() {
@@ -114,6 +133,18 @@ public class SelectStmt extends RecordSource {
 
   public void setOutputName(String outputName) {
     mOutputName = outputName;
+  }
+
+  public List<AliasedExpr> getAggregateExprs() {
+    return mAggregateExprs;
+  }
+
+  public Expr getWindowOver() {
+    return mAggregateOver;
+  }
+
+  public void setAggregateExprs(List<AliasedExpr> aggregateExprs) {
+    mAggregateExprs = aggregateExprs;
   }
 
   /** {@inheritDoc} */
@@ -159,10 +190,21 @@ public class SelectStmt extends RecordSource {
     pad(sb, depth + 1);
     sb.append("FROM:\n");
     mSource.format(sb, depth + 2);
+
     if (null != mWhereExpr) {
       pad(sb, depth + 1);
       sb.append("WHERE\n");
       mWhereExpr.format(sb, depth + 2);
+    }
+
+    if (null != mGroupBy) {
+      mGroupBy.format(sb, depth + 1);
+    }
+
+    if (null != mAggregateOver) {
+      pad(sb, depth + 1);
+      sb.append("OVER\n");
+      mAggregateOver.format(sb, depth + 2);
     }
 
     if (mWindowDefs.size() > 0) {
@@ -204,7 +246,15 @@ public class SelectStmt extends RecordSource {
     // List of all fields required as output from the source node.
     List<TypedField> allRequiredFields = new ArrayList<TypedField>();
 
+    // All fields carried forward by the aggregation layer from the source layer.
+    List<TypedField> groupByPropagateFields = new ArrayList<TypedField>();
+
+    // Another list holds all the fields which the EvaluateExprsNode will need to
+    // propagate from the initial source layer forward.
+    List<TypedField> exprPropagateFields = new ArrayList<TypedField>();
+
     // List of all fields with their input names that should be read by the ProjectionNode.
+    // This is exprPropagateFields + fields emitted by the expr layer.
     List<TypedField> projectionInputs = new ArrayList<TypedField>();
 
     // List of all fields returned from the ProjectionNode; this layer
@@ -214,19 +264,19 @@ public class SelectStmt extends RecordSource {
     // Create a list containing the (ordered) set of fields we want emitted to the console.
     List<TypedField> consoleFields = new ArrayList<TypedField>();
 
-    // Another list holds all the fields which the EvaluateExprsNode will need to
-    // propagate from the initial source layer forward.
-    List<TypedField> exprPropagateFields = new ArrayList<TypedField>();
-
     // Populate the field lists defined above
-    calculateRequiredFields(srcOutSymbolTable, sourceOutCtxt.getOutFields(), consoleFields,
-        allRequiredFields, projectionInputs, projectionOutputs, exprPropagateFields);
+    calculateRequiredFields(srcOutSymbolTable, sourceOutCtxt.getOutFields(),
+        allRequiredFields, groupByPropagateFields, exprPropagateFields,
+        projectionInputs, projectionOutputs, consoleFields);
 
     if (where != null) {
       // Non-null filter conditions; apply the filter to all of our sources.
       PlanNode filterNode = new FilterNode(where);
       flowSpec.attachToLastLayer(filterNode);
     }
+
+    // Add an aggregation layer, if required.
+    addAggregationToPlan(srcOutSymbolTable, flowSpec, groupByPropagateFields);
 
     // Evaluate calculated-expression fields.
     addExpressionsToPlan(flowSpec, exprPropagateFields, projectionInputs);
@@ -248,23 +298,28 @@ public class SelectStmt extends RecordSource {
    * the types of all the fields of the source stream(s).
    * @param srcOutFields the list of all fields available as output from the
    * source.
-   * @param consoleFields (output) - the list of fields that should be
-   * presented to the console (or other sink for this SELECT statement).
    * @param allRequiredFields (output) - all fields required as output from
    * the source (e.g., because they are consoleFields, or used in other
    * expressions in the WHERE clause).
+   * @param groupByPropagateFields (output) - the fields the aggregate eval
+   * layer carries forward and passes through to its output.
+   * @param exprPropagateFields (output) - the fields which the expression
+   * evaluation layer carries forward and passes through to its output.
    * @param projectionInputs (output) - the fields that should be read by the
    * ProjectionNode and carried through to its output.
    * @param projectionOutputs (output) - the same set of fields as
    * projectionInputs, after being transformed by the projection layer.
-   * @param exprPropagateFields (output) - the fields which the expression
-   * evaluation layer carries forward and passes through to its output.
+   * @param consoleFields (output) - the list of fields that should be
+   * presented to the console (or other sink for this SELECT statement).
    */
   private void calculateRequiredFields(SymbolTable fieldSymbols,
       List<TypedField> srcOutFields,
-      List<TypedField> consoleFields, List<TypedField> allRequiredFields,
-      List<TypedField> projectionInputs, List<TypedField> projectionOutputs,
-      List<TypedField> exprPropagateFields) {
+      List<TypedField> allRequiredFields,
+      List<TypedField> groupByPropagateFields,
+      List<TypedField> exprPropagateFields,
+      List<TypedField> projectionInputs,
+      List<TypedField> projectionOutputs,
+      List<TypedField> consoleFields) {
 
     // Start with all the fields the user explicitly selected.
     List<AliasedExpr> exprList = getSelectExprs();
@@ -273,11 +328,12 @@ public class SelectStmt extends RecordSource {
       if (e instanceof AllFieldsExpr) {
         // Use all field names listed as outputs from the source's output context.
         for (TypedField outField : srcOutFields) {
-          consoleFields.add(outField);
           allRequiredFields.add(outField);
+          groupByPropagateFields.add(outField);
+          exprPropagateFields.add(outField);
           projectionInputs.add(outField);
           projectionOutputs.add(outField);
-          exprPropagateFields.add(outField);
+          consoleFields.add(outField);
         }
       } else {
         // Get the type within the expression, and add the appropriate labels.
@@ -288,21 +344,34 @@ public class SelectStmt extends RecordSource {
           aliasExpr.getUserAlias(), t,
           aliasExpr.getAvroLabel(), aliasExpr.getDisplayLabel());
 
+        // Make sure our dependencies are pulled out of the source layer.
+        List<TypedField> fieldsForExpr = e.getRequiredFields(fieldSymbols);
+
+        if (e instanceof IdentifierExpr) {
+          // The aggregation and expression evaluation nodes need to
+          // carry this field forward into the output.
+          // Make sure to use the aliased name as the output of the
+          // projection/expr-propagate layers, but use the original name as
+          // the output of the source layer (projection input list).
+          groupByPropagateFields.add(projectionField);
+          exprPropagateFields.add(projectionField);
+        } else if (mAggregateExprs.contains(aliasExpr)) {
+          // Calculated in the aggregation layer.
+          // Carry result forward through expr eval.
+          exprPropagateFields.add(projectionField);
+          // Pull dependencies from source layer.
+          allRequiredFields.addAll(fieldsForExpr);
+        } else {
+          // This is calculated in the expression evaluation layer.
+          allRequiredFields.addAll(fieldsForExpr);
+          groupByPropagateFields.addAll(fieldsForExpr); // Propagate dependencies forward..
+        }
+
+        // Regardless of which calculation stage generated the field, this
+        // result is carried through to the end of the query.
         projectionInputs.add(projectionField);
         projectionOutputs.add(projectionField);
         consoleFields.add(projectionField);
-
-        // Make sure our dependencies are pulled out of the source layer.
-        List<TypedField> fieldsForExpr = e.getRequiredFields(fieldSymbols);
-        allRequiredFields.addAll(fieldsForExpr);
-
-        if (e instanceof IdentifierExpr) {
-          // The expr evaluation node needs to carry this field forward
-          // into its output. Make sure to use the aliased name as the output
-          // of the projection/expr-propagate layers, but use the original
-          // name as the output of the source layer (projection input list).
-          exprPropagateFields.add(projectionField);
-        }
       }
     }
 
@@ -313,24 +382,67 @@ public class SelectStmt extends RecordSource {
       allRequiredFields.addAll(whereReqs);
     }
 
+    if (null != mGroupBy) {
+      // Add to this all the fields required for grouping in the GROUP BY clause.
+      allRequiredFields.addAll(mGroupBy.getFieldTypes());
+    }
+
     allRequiredFields = distinctFields(allRequiredFields);
     exprPropagateFields = distinctFields(exprPropagateFields);
     // Important: the ProjectionElement requires these to have the same arity
     // and order.
     projectionInputs = distinctFields(projectionInputs);
     projectionOutputs = distinctFields(projectionOutputs);
+    assert projectionInputs.size() == projectionOutputs.size();
+  }
+
+  private void addAggregationToPlan(SymbolTable fieldSymbols, FlowSpecification flowSpec,
+      List<TypedField> groupByPropagateFields) {
+
+    if (null != mAggregateExprs && mAggregateExprs.size() > 0) {
+      // Non-null aggregate expression list; add an aggregation step to our plan.
+
+      List<TypedField> aggregateOverFields = Collections.emptyList();
+      if (null != mGroupBy) {
+        aggregateOverFields = mGroupBy.getFieldTypes();
+      }
+
+      LOG.debug("Aggregate exprs: " + StringUtils.listToStr(mAggregateExprs));
+      assert flowSpec.getConf() != null;
+      PlanNode aggregateNode = new AggregateNode(aggregateOverFields,
+          mAggregateOver, mAggregateExprs, groupByPropagateFields, flowSpec.getConf());
+      flowSpec.attachToLastLayer(aggregateNode);
+
+      // Output schema for this layer contains everything we need to forward
+      // from our upstream layers...
+      List<TypedField> aggOutputFields = new ArrayList<TypedField>();
+      aggOutputFields.addAll(groupByPropagateFields);
+      // As well as the names of everything we calculate in this layer.
+      for (AliasedExpr aliasExpr : mAggregateExprs) {
+        Expr e = aliasExpr.getExpr();
+        Type t = e.getType(fieldSymbols);
+        TypedField aggregateField = new TypedField(
+          aliasExpr.getUserAlias(), t,
+          aliasExpr.getAvroLabel(), aliasExpr.getDisplayLabel());
+        aggOutputFields.add(aggregateField);
+      }
+      Schema aggregateOutSchema = createFieldSchema(aggOutputFields);
+      aggregateNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, aggregateOutSchema);
+    }
   }
 
   /**
-   * If we output columns which are based on computed expressions,
-   * add an expression computation node to the flow specification.
+   * If we output columns which are based on computed (non-aggregate)
+   * expressions, add an expression computation node to the flow
+   * specification.
    */
   private void addExpressionsToPlan(FlowSpecification flowSpec,
       List<TypedField> exprPropagateFields, List<TypedField> projectionInputs) {
     List<AliasedExpr> calculatedExprs = new ArrayList<AliasedExpr>();
     for (AliasedExpr expr : getSelectExprs()) {
       Expr subExpr = expr.getExpr();
-      if (!(subExpr instanceof AllFieldsExpr) && !(subExpr instanceof IdentifierExpr)) {
+      if (!(subExpr instanceof AllFieldsExpr) && !(subExpr instanceof IdentifierExpr)
+          && !(mAggregateExprs.contains(expr))) {
         calculatedExprs.add(expr);
       }
     }

@@ -41,6 +41,7 @@ public class Type {
          // This represents the "bottom" of the promotesTo type lattice.
     SCALARFUNC, // Callable scalar function (FnType).
     TYPECLASS_NUMERIC, // Typeclass representing all numeric types.
+    TYPECLASS_COMPARABLE, // Typeclass representing all comparable types.
     TYPECLASS_ANY,     // Typeclass representing all types. This is the "top" of
                        // the promotesTo lattice. (nothing promotesTo ANY, but
                        // everything promotesTo TYPECLASS_ANY.)
@@ -81,6 +82,7 @@ public class Type {
     PRIMITIVE_TYPES.put(TypeName.TIMESTAMP, new Type(TypeName.TIMESTAMP));
     PRIMITIVE_TYPES.put(TypeName.TIMESPAN, new Type(TypeName.TIMESPAN));
     PRIMITIVE_TYPES.put(TypeName.TYPECLASS_NUMERIC, new Type(TypeName.TYPECLASS_NUMERIC));
+    PRIMITIVE_TYPES.put(TypeName.TYPECLASS_COMPARABLE, new Type(TypeName.TYPECLASS_COMPARABLE));
     PRIMITIVE_TYPES.put(TypeName.TYPECLASS_ANY, new Type(TypeName.TYPECLASS_ANY));
     // Window is in primitive types, but is not allowed to be nullable.
     PRIMITIVE_TYPES.put(TypeName.WINDOW, new Type(TypeName.WINDOW));
@@ -96,6 +98,8 @@ public class Type {
     NULLABLE_TYPES.put(TypeName.TIMESPAN, new NullableType(TypeName.TIMESPAN));
     NULLABLE_TYPES.put(TypeName.ANY, new NullableType(TypeName.ANY));
     NULLABLE_TYPES.put(TypeName.TYPECLASS_NUMERIC, new NullableType(TypeName.TYPECLASS_NUMERIC));
+    NULLABLE_TYPES.put(TypeName.TYPECLASS_COMPARABLE,
+        new NullableType(TypeName.TYPECLASS_COMPARABLE));
     NULLABLE_TYPES.put(TypeName.TYPECLASS_ANY, new NullableType(TypeName.TYPECLASS_ANY));
   }
 
@@ -160,7 +164,8 @@ public class Type {
    */
   public boolean isComparable() {
     return isNumeric() || this.equals(Type.getPrimitive(TypeName.BOOLEAN))
-        || this.equals(Type.getPrimitive(TypeName.STRING));
+        || this.equals(Type.getPrimitive(TypeName.STRING))
+        || this.equals(Type.getPrimitive(TypeName.TYPECLASS_COMPARABLE));
   }
 
   /** @return an Avro schema describing this type. */
@@ -184,6 +189,7 @@ public class Type {
    *   <li>BIGINT promotesTo FLOAT</li>
    *   <li>FLOAT promotesTo DOUBLE</li>
    *   <li>All numeric types promotesTo TYPECLASS_NUMERIC.</li>
+   *   <li>TYPECLASS_NUMERIC, STRING, and BOOLEAN promotesTo TYPECLASS_COMPARABLE.</li>
    *   <li>Anything promotesTo TYPECLASS_ANY (including other typeclasses).</li>
    *   <li>X promotesTo UniversalType(C1, C2...Cn) iff X promotesTo all constraints Ci</li>
    *
@@ -205,6 +211,13 @@ public class Type {
       return true;
     } else if (isNullable() && other.equals(Type.getNullable(TypeName.TYPECLASS_ANY))) {
       // Any nullable type promotes to nullable TYPECLASS_ANY.
+      return true;
+    } else if (isComparable() && !isNullable()
+        && other.equals(Type.getPrimitive(TypeName.TYPECLASS_COMPARABLE))) {
+      // Any comparable non-null type promotes to non-null TYPECLASS_COMPARABLE.
+      return true;
+    } else if (isComparable() && other.equals(Type.getNullable(TypeName.TYPECLASS_COMPARABLE))) {
+      // Any comparable type promotes to nullable TYPECLASS_COMPARABLE.
       return true;
     } else if (other instanceof UniversalType) {
       // We can promote to a constrained universal type if we can promote

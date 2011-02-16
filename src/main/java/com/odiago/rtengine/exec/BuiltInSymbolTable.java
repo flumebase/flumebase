@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.odiago.rtengine.exec.builtins.*;
 
-import com.odiago.rtengine.lang.ScalarFunc;
+import com.odiago.rtengine.lang.Function;
 import com.odiago.rtengine.lang.Type;
 
 /**
@@ -28,9 +28,14 @@ public class BuiltInSymbolTable extends SymbolTable {
   static {
     BUILTINS = new HashMap<String, Symbol>();
     // Add symbols for all built-in objects in the system.
+    loadBuiltinFunction(avg.class);
+    loadBuiltinFunction(count.class);
     loadBuiltinFunction(current_timestamp.class);
     loadBuiltinFunction(length.class);
+    loadBuiltinFunction(min.class);
+    loadBuiltinFunction(max.class);
     loadBuiltinFunction(square.class);
+    loadBuiltinFunction(sum.class);
     BUILTINS = Collections.unmodifiableMap(BUILTINS);
   }
 
@@ -76,14 +81,14 @@ public class BuiltInSymbolTable extends SymbolTable {
   /**
    * Load instances of the built-in functions into the BuiltInSymbolTable.
    */
-  private static void loadBuiltinFunction(Class<? extends ScalarFunc> cls) {
+  private static void loadBuiltinFunction(Class<? extends Function> cls) {
     try {
-      ScalarFunc scalarFn = (ScalarFunc) cls.newInstance();
-      Type retType = scalarFn.getReturnType();
-      List<Type> argTypes = scalarFn.getArgumentTypes();
+      Function fn = (Function) cls.newInstance();
+      Type retType = fn.getReturnType();
+      List<Type> argTypes = fn.getArgumentTypes();
       String fnName = cls.getSimpleName();
       LOG.debug("Loaded built-in function: " + fnName);
-      Symbol fnSymbol = new FnSymbol(fnName, scalarFn, retType, argTypes);
+      Symbol fnSymbol = new FnSymbol(fnName, fn, retType, argTypes);
       BUILTINS.put(fnName, fnSymbol);
     } catch (InstantiationException ie) {
       LOG.error("Could not instantiate class: " + ie);
