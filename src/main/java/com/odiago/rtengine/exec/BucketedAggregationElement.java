@@ -262,13 +262,9 @@ public class BucketedAggregationElement extends AvroOutputElementImpl {
     long remainder = eventTime % mTimeModulus;
     Long bucketTime;
 
-    if (0 == remainder) {
-      // If we're on an interval boundary (e.g., t=100), we go into that bucket.
-      bucketTime = Long.valueOf(eventTime);
-    } else {
-      // If we're off-boundary (e.g., t=103), we go into the next bucket ('t=110').
-      bucketTime = Long.valueOf(eventTime - remainder + mTimeModulus);
-    }
+    // If we're on an interval boundary (e.g., t=100) we go into that bucket.
+    // If we're off-boundary (e.g., t=103), we go into the closest "previous" bucket (t=100).
+    bucketTime = Long.valueOf(eventTime - remainder);
     HashedEvent hashedEvent = new HashedEvent(e, mGroupByFields);
     return new Pair<Long, HashedEvent>(bucketTime, hashedEvent);
   }

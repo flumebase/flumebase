@@ -245,4 +245,158 @@ public class TestGroupBy extends RtsqlTestCase {
           "a", Integer.valueOf(0), "c", Integer.valueOf(22));
     }
   }
+
+  @Test
+  public void testBoundaries1() throws IOException, InterruptedException {
+    // COUNT() the values of the 'b' column. Test that this works correctly
+    // when values are arriving just after window boundaries.
+    String [] records = { "0,10", "1,11", "2,12" };
+    long [] times = { 0, 1000, 2000 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT COUNT(b) AS c FROM s OVER RANGE INTERVAL 1 SECONDS PRECEDING");
+
+    // We should have three output results; all have value '1'.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(3, results.size());
+      assertRecordExists(Collections.singletonList(results.get(0)), "c", Integer.valueOf(1));
+      assertRecordExists(Collections.singletonList(results.get(1)), "c", Integer.valueOf(1));
+      assertRecordExists(Collections.singletonList(results.get(2)), "c", Integer.valueOf(1));
+    }
+  }
+
+  @Test
+  public void testBoundaries2() throws IOException, InterruptedException {
+    // COUNT() the values of the 'b' column. Test that this works correctly
+    // when values are arriving just ahead of window boundaries.
+    String [] records = { "0,10", "1,11", "2,12" };
+    long [] times = { 0, 999, 2000 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT COUNT(b) AS c FROM s OVER RANGE INTERVAL 1 SECONDS PRECEDING");
+
+    // We should have three output results: 1, 2, 1.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(3, results.size());
+      assertRecordExists(Collections.singletonList(results.get(0)), "c", Integer.valueOf(1));
+      assertRecordExists(Collections.singletonList(results.get(1)), "c", Integer.valueOf(2));
+      assertRecordExists(Collections.singletonList(results.get(2)), "c", Integer.valueOf(1));
+    }
+  }
+
+  @Test
+  public void testBoundaries3() throws IOException, InterruptedException {
+    // COUNT() the values of the 'b' column. Test that this works correctly
+    // when values are arriving just ahead of window boundaries.
+    String [] records = { "0,10", "1,11", "2,12" };
+    long [] times = { 0, 990, 2000 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT COUNT(b) AS c FROM s OVER RANGE INTERVAL 1 SECONDS PRECEDING");
+
+    // We should have three output results: 1, 2, 1.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(3, results.size());
+      assertRecordExists(Collections.singletonList(results.get(0)), "c", Integer.valueOf(1));
+      assertRecordExists(Collections.singletonList(results.get(1)), "c", Integer.valueOf(2));
+      assertRecordExists(Collections.singletonList(results.get(2)), "c", Integer.valueOf(1));
+    }
+  }
+
+  @Test
+  public void testBoundaries4() throws IOException, InterruptedException {
+    // COUNT() the values of the 'b' column. Test that this works correctly
+    // when values are arriving just ahead of window boundaries.
+    String [] records = { "0,10", "1,11", "2,12" };
+    long [] times = { 0, 990, 1990 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT COUNT(b) AS c FROM s OVER RANGE INTERVAL 1 SECONDS PRECEDING");
+
+    // We should have three output results: 1, 2, 1.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(3, results.size());
+      assertRecordExists(Collections.singletonList(results.get(0)), "c", Integer.valueOf(1));
+      assertRecordExists(Collections.singletonList(results.get(1)), "c", Integer.valueOf(2));
+      assertRecordExists(Collections.singletonList(results.get(2)), "c", Integer.valueOf(1));
+    }
+  }
+
+  @Test
+  public void testBoundaries5() throws IOException, InterruptedException {
+    // COUNT() the values of the 'b' column. Test that this works correctly
+    // when values are arriving just ahead of window boundaries.
+    String [] records = { "0,10", "1,11", "2,12" };
+    long [] times = { 0, 990, 1989 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT COUNT(b) AS c FROM s OVER RANGE INTERVAL 1 SECONDS PRECEDING");
+
+    // We should have three output results: 1, 2, 2.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(3, results.size());
+      assertRecordExists(Collections.singletonList(results.get(0)), "c", Integer.valueOf(1));
+      assertRecordExists(Collections.singletonList(results.get(1)), "c", Integer.valueOf(2));
+      assertRecordExists(Collections.singletonList(results.get(2)), "c", Integer.valueOf(2));
+    }
+  }
+
+  @Test
+  public void testBoundaries6() throws IOException, InterruptedException {
+    // COUNT() the values of the 'b' column. Test that this works correctly
+    // when values are arriving just ahead of window boundaries.
+    String [] records = { "0,10", "1,11", "2,12" };
+    long [] times = { 0, 500, 1500 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT COUNT(b) AS c FROM s OVER RANGE INTERVAL 1 SECONDS PRECEDING");
+
+    // We should have three output results: 1, 2, 1.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(3, results.size());
+      assertRecordExists(Collections.singletonList(results.get(0)), "c", Integer.valueOf(1));
+      assertRecordExists(Collections.singletonList(results.get(1)), "c", Integer.valueOf(2));
+      assertRecordExists(Collections.singletonList(results.get(2)), "c", Integer.valueOf(1));
+    }
+  }
+
+  @Test
+  public void testBoundaries7() throws IOException, InterruptedException {
+    // COUNT() the values of the 'b' column. Test that this works correctly
+    // when values are arriving just ahead of window boundaries.
+    String [] records = { "0,10", "1,11", "2,12" };
+    long [] times = { 0, 500, 1499 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT COUNT(b) AS c FROM s OVER RANGE INTERVAL 1 SECONDS PRECEDING");
+
+    // We should have three output results: 1, 2, 2.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(3, results.size());
+      assertRecordExists(Collections.singletonList(results.get(0)), "c", Integer.valueOf(1));
+      assertRecordExists(Collections.singletonList(results.get(1)), "c", Integer.valueOf(2));
+      assertRecordExists(Collections.singletonList(results.get(2)), "c", Integer.valueOf(2));
+    }
+  }
 }
