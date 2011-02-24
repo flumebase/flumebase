@@ -18,8 +18,8 @@ import org.apache.avro.generic.GenericRecord;
 
 import org.apache.avro.io.BinaryEncoder;
 
-import static org.junit.Assert.*;
-import org.junit.Test;
+import static org.testng.AssertJUnit.*;
+import org.testng.annotations.Test;
 
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;

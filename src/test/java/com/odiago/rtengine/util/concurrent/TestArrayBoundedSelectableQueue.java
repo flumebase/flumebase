@@ -2,7 +2,7 @@
 
 package com.odiago.rtengine.util.concurrent;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 public class TestArrayBoundedSelectableQueue extends QueueTestCase {
   @Test

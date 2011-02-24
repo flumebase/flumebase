@@ -2,7 +2,7 @@
 
 package com.odiago.rtengine.io;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +12,7 @@ import com.cloudera.flume.core.EventImpl;
 
 import com.odiago.rtengine.lang.Type;
 
-import static org.junit.Assert.*;
+import static org.testng.AssertJUnit.*;
 
 public class TestDelimitedEventParser {
   private static final Logger LOG = LoggerFactory.getLogger(

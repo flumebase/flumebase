@@ -8,7 +8,7 @@ import java.util.List;
 
 import org.apache.avro.generic.GenericData;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import com.odiago.rtengine.exec.local.LocalEnvironment;
 import com.odiago.rtengine.exec.local.MemoryOutputElement;
@@ -21,7 +21,7 @@ import com.odiago.rtengine.parser.TypedField;
 import com.odiago.rtengine.testutil.MemStreamBuilder;
 import com.odiago.rtengine.testutil.RtsqlTestCase;
 
-import static org.junit.Assert.*;
+import static org.testng.AssertJUnit.*;
 
 /**
  * Test that SELECT statements with JOIN clauses operate like we expect them to.

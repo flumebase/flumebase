@@ -6,11 +6,11 @@ import org.apache.avro.Schema;
 
 import org.apache.hadoop.conf.Configuration;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import com.odiago.rtengine.util.DAGOperatorException;
 
-import static org.junit.Assert.*;
+import static org.testng.AssertJUnit.*;
 
 /** Test that the PropagateSchemas BFS pass works correctly. */
 public class TestPropagateSchemas {
@@ -41,7 +41,7 @@ public class TestPropagateSchemas {
     assertEquals(input, nodeB.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR));
   }
 
-  @Test(expected=DAGOperatorException.class)
+  @Test(expectedExceptions = DAGOperatorException.class)
   public void testMismatchedPredecessors() throws Exception {
     // Given mismatched predecessor output schemas, test that we throw an
     // exception in the bfs.
@@ -60,7 +60,7 @@ public class TestPropagateSchemas {
     spec.bfs(new PropagateSchemas()); // Throws exception
   }
 
-  @Test(expected=DAGOperatorException.class)
+  @Test(expectedExceptions = DAGOperatorException.class)
   public void testMismatchedOutputInput() throws Exception {
     // Given a predecessor output schema that doesn't match our input schema,
     // test that we signal error.

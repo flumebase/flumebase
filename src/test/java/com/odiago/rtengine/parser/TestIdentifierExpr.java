@@ -4,9 +4,9 @@ package com.odiago.rtengine.parser;
 
 import java.util.ArrayList;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
-import static org.junit.Assert.*;
+import static org.testng.AssertJUnit.*;
 
 import com.cloudera.flume.core.EventImpl;
 

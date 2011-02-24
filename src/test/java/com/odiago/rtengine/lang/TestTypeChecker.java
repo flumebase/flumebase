@@ -2,7 +2,7 @@
 
 package com.odiago.rtengine.lang;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import com.odiago.rtengine.exec.AssignedSymbol;
 import com.odiago.rtengine.exec.HashSymbolTable;
@@ -39,7 +39,7 @@ public class TestTypeChecker {
     binopExpr.accept(tc);
   }
 
-  @Test(expected=VisitException.class)
+  @Test(expectedExceptions = VisitException.class)
   public void testBasicBinopFail() throws VisitException {
     // can't add INT and TIMESTAMP.
     Expr binopExpr = new BinExpr(
@@ -49,7 +49,7 @@ public class TestTypeChecker {
     binopExpr.accept(tc);
   }
 
-  @Test(expected=VisitException.class)
+  @Test(expectedExceptions = VisitException.class)
   public void testNestedBinopFail() throws VisitException {
     // can't add INT and TIMESTAMP in a subexpr.
     Expr binopExpr = new BinExpr(

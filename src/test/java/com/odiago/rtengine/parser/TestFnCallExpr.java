@@ -2,9 +2,9 @@
 
 package com.odiago.rtengine.parser;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
-import static org.junit.Assert.*;
+import static org.testng.AssertJUnit.*;
 
 import com.odiago.rtengine.exec.BuiltInSymbolTable;
 import com.odiago.rtengine.exec.HashSymbolTable;

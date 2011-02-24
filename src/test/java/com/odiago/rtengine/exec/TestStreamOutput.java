@@ -10,7 +10,7 @@ import java.io.OutputStreamWriter;
 
 import org.apache.avro.generic.GenericData;
 
-import static org.junit.Assert.*;
+import static org.testng.AssertJUnit.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +27,7 @@ import com.odiago.rtengine.parser.TypedField;
 
 import com.odiago.rtengine.testutil.RtsqlTestCase;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import com.odiago.rtengine.testutil.StreamBuilder;
 

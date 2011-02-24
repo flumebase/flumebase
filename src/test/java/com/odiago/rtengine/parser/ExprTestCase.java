@@ -4,7 +4,7 @@ package com.odiago.rtengine.parser;
 
 import java.util.ArrayList;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.ParsingEventWrapper;

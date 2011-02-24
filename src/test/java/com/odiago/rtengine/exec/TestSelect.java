@@ -12,7 +12,7 @@ import org.apache.avro.generic.GenericData;
 
 import org.apache.avro.util.Utf8;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import com.cloudera.util.Pair;
 
@@ -30,7 +30,7 @@ import com.odiago.rtengine.parser.TypedField;
 import com.odiago.rtengine.testutil.MemStreamBuilder;
 import com.odiago.rtengine.testutil.RtsqlTestCase;
 
-import static org.junit.Assert.*;
+import static org.testng.AssertJUnit.*;
 
 /**
  * Test that SELECT statements operate like we expect them to.
