@@ -20,6 +20,7 @@ import com.odiago.rtengine.parser.TypedField;
  */
 public class MemStreamBuilder extends StreamBuilder {
   private List<Event> mEvents;
+  private InMemStreamSymbol.LatencyPolicy mLatencyPolicy;
 
   public MemStreamBuilder() {
     this(null);
@@ -28,6 +29,7 @@ public class MemStreamBuilder extends StreamBuilder {
   public MemStreamBuilder(String name) {
     super(name);
     mEvents = new ArrayList<Event>();
+    mLatencyPolicy = InMemStreamSymbol.LatencyPolicy.None;
   }
 
   public void addEvent(Event e) {
@@ -46,6 +48,10 @@ public class MemStreamBuilder extends StreamBuilder {
     mEvents.add(new EventImpl(eventBodyText.getBytes(), eventTime, Priority.INFO, 0, null));
   }
 
+  public void setLatencyPolicy(InMemStreamSymbol.LatencyPolicy policy) {
+    mLatencyPolicy = policy;
+  }
+
   /**
    * @return the InMemStreamSymbol representing this stream.
    */
@@ -61,6 +67,7 @@ public class MemStreamBuilder extends StreamBuilder {
 
     return new InMemStreamSymbol(getName(), makeStreamType(),
         new ArrayList<Event>(mEvents),
-        new ArrayList<TypedField>(getFields()), getFormat());
+        new ArrayList<TypedField>(getFields()), getFormat(),
+        mLatencyPolicy);
   }
 }

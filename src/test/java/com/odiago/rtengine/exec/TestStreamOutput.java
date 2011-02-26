@@ -41,7 +41,7 @@ public class TestStreamOutput extends RtsqlTestCase {
   private static final Logger LOG = LoggerFactory.getLogger(
       TestStreamOutput.class.getName());
 
-  @Test
+  @Test(groups = { "slow" })
   public void testCreateAsSelect() throws Exception {
     // Create a stream we will fill with numbers via flume.
     File sourceFile = File.createTempFile("numberstream-", ".txt");
