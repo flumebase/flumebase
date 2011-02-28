@@ -46,11 +46,21 @@ public class RtsqlTestCase {
     mEnvironment = new LocalEnvironment(mConf, mSymbolTable, mOutputs);
   }
 
+  @BeforeMethod(groups = { "slow" })
+  public void slowSetUp() throws IOException, InterruptedException {
+    setUp();
+  }
+
   @AfterMethod
   public void tearDown() throws IOException, InterruptedException {
     if (null != mEnvironment && mEnvironment.isConnected()) {
       mEnvironment.shutdown();
     }
+  }
+
+  @AfterMethod(groups = { "slow" })
+  public void slowTearDown() throws IOException, InterruptedException {
+    tearDown();
   }
 
   protected Map<String, String> getQueryOpts() {

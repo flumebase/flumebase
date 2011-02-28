@@ -42,6 +42,20 @@
           <forkMode>once</forkMode>
           <forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>
         </configuration>
+        <executions>
+          <execution>
+            <id>integration-test</id>
+            <phase>integration-test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <groups>slow</groups>
+              <excludedGroups>none</excludedGroups>
+              <reportsDirectory>${project.build.directory}/surefire-reports/integration</reportsDirectory>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
