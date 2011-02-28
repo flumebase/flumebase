@@ -1,4 +1,10 @@
 
+Type checker bug:
+
+  -- CREATE STREAM bla(a typedoesnotexist) from ....
+     ... causes Enum.valueOf() error in parser.
+
+
 Aggregation:
 
   -- Enable 'COUNT(*)' syntax; do a syntactic replacement to COUNT(1) under the hood.
@@ -43,12 +49,12 @@ Remote environment stuff:
   # Create a flow that reads all of this and emits it to a node 'foo'.
   create stream foo as select a from x;
 
-  # Check its output schema syntax with an 'explain,' then create a stream named foo:
-  create stream foo (a string) from node 'foo' event format 'avro' properties ('schema' =
+  # Check its output schema syntax with an 'explain,' then create a stream named bar:
+  create stream bar (a string) from node 'foo' event format 'avro' properties ('schema' =
   '{"type":"record","name":"foo","fields":[{"name":"a","type":["string","null"]}]}' );
 
   # Then finally, read from that:
-  select * from foo;
+  select * from bar;
 
   A bug:
   The first record that gets pushed through after the node is reconfigured to send
@@ -142,6 +148,30 @@ Aggregation:
 
   - Implement COUNT(*), COUNT(foo).
   - Implement windowing.
+
+
+Bug in CREATE STREAM AS SELECT and Flume node management:
+
+  - We currently assume the Flume world is fairly static. If we set up a stream to
+    read from node 'x', we will create a new local logical node named 'x-receiver'.
+    If 'x' disappears, we do not delete 'x-receiver'. But if 'x' later reappears,
+    we never re-connect it to 'x-receiver'. The changes needed to handle this would
+    be in ForeignNodeConn / EmbeddedFlumeConfig.
+    ** Consider a watchdog thread associated with each receiver. If the upstream
+       disappears, close the receiver and all associated flows.
+    ** Even better: a watchdog that waits for the upstream node to disappear. If it
+       then reappears, we re-configure it to again connect down to our x-receiver
+       in addition to whatever new downstream source it has.
+
+  - CSAS is currently modeled as creating a local output node for the stream; it has
+    no connection to the downstream -receiver node and associated flows.
+    ** We should not allow dropping a flow associated with CSAS as long as any flows
+       require that flow to exist upstream.
+    ** More broadly: We should not allow DROP STREAM if any running flows depend on
+       that stream.
+    ** Furthermore: \d will kill the flow associated with CSAS and remove the stream
+       symbol (good), but DROP STREAM will remove the stream symbol but keeps the
+       associated flow running (bad). DROP STREAM should kill any associated flow.
 
 
 Bugs:

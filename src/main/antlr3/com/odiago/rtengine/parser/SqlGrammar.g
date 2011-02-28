@@ -208,11 +208,15 @@ field_spec returns [TypedField val] :
 field_type returns [Type val] :
     prim=primitive_field_type nonnul=non_nul_qualifier
     {
-      if (nonnul.val) {
-        $val = Type.getPrimitive(Type.TypeName.valueOf($prim.val));
-      } else {
-        $val = Type.getNullable(Type.TypeName.valueOf($prim.val));
-      } 
+      try {
+        if (nonnul.val) {
+          $val = Type.getPrimitive(Type.TypeName.valueOf($prim.val));
+        } else {
+          $val = Type.getNullable(Type.TypeName.valueOf($prim.val));
+        } 
+      } catch (NullPointerException npe) {
+        $val = Type.getPrimitive(Type.TypeName.TYPECLASS_ANY);
+      }
     };
 
 // A non-recursive field type.
