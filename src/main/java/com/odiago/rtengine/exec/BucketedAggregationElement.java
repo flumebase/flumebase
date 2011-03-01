@@ -427,8 +427,10 @@ public class BucketedAggregationElement extends AvroOutputElementImpl {
     // TODO(aaron): This is O(groups * num_buckets). We should actually use a TreeMap
     // instad of a list internally, so we can quickly cull the herd. That would be
     // O(groups * log(num_buckets)).
-    for (Map.Entry<HashedEvent, List<Pair<Long, List<Bucket>>>> entry :
-        mBucketsByGroup.entrySet()) {
+    Iterator<Map.Entry<HashedEvent, List<Pair<Long, List<Bucket>>>>> bucketsByGrpIter =
+        mBucketsByGroup.entrySet().iterator();
+    while (bucketsByGrpIter.hasNext()) {
+      Map.Entry<HashedEvent, List<Pair<Long, List<Bucket>>>> entry = bucketsByGrpIter.next();
       HashedEvent group = entry.getKey();
       List<Pair<Long, List<Bucket>>> bucketsByTime = entry.getValue();
       Iterator<Pair<Long, List<Bucket>>> bucketsByTimeIter = bucketsByTime.iterator();
@@ -445,7 +447,7 @@ public class BucketedAggregationElement extends AvroOutputElementImpl {
       if (bucketsByTime.size() == 0) {
         // We've removed the last time bucket for a given group from mBucketsByGroup.
         // Remove the group from that map.
-        mBucketsByGroup.remove(group);
+        bucketsByGrpIter.remove();
       }
     }
   }
