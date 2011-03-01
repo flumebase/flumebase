@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -276,7 +277,8 @@ public class OutputElement extends FlowElementImpl {
   @Override
   public void takeEvent(EventWrapper e) throws IOException, InterruptedException {
     LocalContext context = (LocalContext) getContext();
-    List<UserSession> subscribers = context.getFlowData().getSubscribers();
+    List<UserSession> subscribers = new LinkedList<UserSession>(
+        context.getFlowData().getSubscribers());
 
     if (mOutputQueue != null) {
       emitToFlume(e);

@@ -1,9 +1,4 @@
 
-Type checker bug:
-
-  -- CREATE STREAM bla(a typedoesnotexist) from ....
-     ... causes Enum.valueOf() error in parser.
-
 
 Aggregation:
 
@@ -38,63 +33,16 @@ Remote environment stuff:
   -- Icing: Operations like \w <streamName> should call a method that resolves a name to
      a flowId, and then calls watch() on the flowId.
 
-  ===============================================
-  weird happenings with AvroEventParser reading flows we generate in avro:
-
-  # Create a bona fide source.
-  create stream x (a string) from local source 'tail("/tmp/meep")';
-
-  # Create a flow that reads all of this and emits it to a node 'foo'.
-  create stream foo as select a from x;
-
-  # Check its output schema syntax with an 'explain,' then create a stream named bar:
-  create stream bar (a string) from node 'foo' event format 'avro' properties ('schema' =
-  '{"type":"record","name":"foo","fields":[{"name":"a","type":["string","null"]}]}' );
-
-  # Then finally, read from that:
-  select * from bar;
-
-  A bug:
-  The first record that gets pushed through after the node is reconfigured to send
-  its output to a new ephemeral logical node causes a big cascade of exceptions:
-
-85342 [logicalNode foo-28] ERROR com.cloudera.flume.agent.LogicalNode  - Driver on foo closed LazyOpenSource | LazyOpenDecorator because of EventSink LazyOpenDecorator not open
-java.lang.IllegalStateException: EventSink LazyOpenDecorator not open
-  at com.google.common.base.Preconditions.checkState(Preconditions.java:145)
-  at com.cloudera.flume.core.EventSinkDecorator.append(EventSinkDecorator.java:56)
-  at com.cloudera.flume.handlers.debug.LazyOpenDecorator.append(LazyOpenDecorator.java:71)
-  at com.cloudera.flume.core.connector.DirectDriver$PumperThread.run(DirectDriver.java:93)
-85344 [logicalNode foo-54] ERROR com.cloudera.flume.core.connector.DirectDriver  - Driving src/sink failed! LazyOpenSource | LazyOpenDecorator because next() called before open()
-java.io.IOException: next() called before open()
-  at com.odiago.rtengine.flume.RtsqlSource.next(RtsqlSource.java:57)
-  at com.cloudera.flume.handlers.debug.LazyOpenSource.next(LazyOpenSource.java:53)
-  at com.cloudera.flume.core.connector.DirectDriver$PumperThread.run(DirectDriver.java:89)
-
-  so, there's an open() call maybe missing in flume after a reconfigure?
-  The first record is lost. The second record works.
-
-  ===============================================
+RPC Testing:
   ... test what happens with multiple clients listening to the same flow
   and what happens when one ^C's, etc.
 
-  ===============================================
-  Problematic behavior
-    client connects, sets up a flow
-    data comes back
-    client ^C
-    send another message into the flow. it goes nowhere (expected)
-    -- but no err reported back to the server about the lost output.
-    connect another client
-    watch the same flow
-    send another message into the flow. 
-    -- server sees an error writing to the first client (expected) and closes
-    -- .... server does NOT send the message to the new client.
-    send a 3rd message into the flow.
-    -- seen by the new client.
+  This requires being able to set the 'callback RPC port'. Really the best way to do
+  this is to have a configurable default callback RPC port (so a sysadmin can bust a
+  specific port open), but if that's busy/fails, pick a random port and send that to
+  the server.
 
-
-    - The 2nd message should be delivered to the 2nd client.
-    - The 1st message should have caused the error on the server side.
+  
 
 Joins:
   I don't know that the various calls to streamSymbol.getName() are actually
@@ -205,3 +153,44 @@ Optimizations:
     we can dispense with the stored Type instances inside Exprs being required at
     run time.
 
+
+NOTABUG, but saved for future reference:
+  A weird thing happens with AvroEventParser reading flows we generate in avro:
+  ... This has been confirmed as a bug in Flume, not rtsql.
+
+  # Create a bona fide source.
+  create stream x (a string) from local source 'tail("/tmp/meep")';
+
+  # Create a flow that reads all of this and emits it to a node 'foo'.
+  create stream foo as select a from x;
+
+  # Check its output schema syntax with an 'explain,' then create a stream named bar:
+  create stream bar (a string) from node 'foo' event format 'avro' properties ('schema' =
+  '{"type":"record","name":"foo","fields":[{"name":"a","type":["string","null"]}]}' );
+
+  # Then finally, read from that:
+  select * from bar;
+
+  This chain of events causes Flume to configure a logical node, then reconfigure it.
+
+  A bug:
+  The first record that gets pushed through after the node is reconfigured to send
+  its output to a new ephemeral logical node causes a big cascade of exceptions:
+
+85342 [logicalNode foo-28] ERROR com.cloudera.flume.agent.LogicalNode  - Driver on foo closed LazyOpenSource | LazyOpenDecorator because of EventSink LazyOpenDecorator not open
+java.lang.IllegalStateException: EventSink LazyOpenDecorator not open
+  at com.google.common.base.Preconditions.checkState(Preconditions.java:145)
+  at com.cloudera.flume.core.EventSinkDecorator.append(EventSinkDecorator.java:56)
+  at com.cloudera.flume.handlers.debug.LazyOpenDecorator.append(LazyOpenDecorator.java:71)
+  at com.cloudera.flume.core.connector.DirectDriver$PumperThread.run(DirectDriver.java:93)
+85344 [logicalNode foo-54] ERROR com.cloudera.flume.core.connector.DirectDriver  - Driving src/sink failed! LazyOpenSource | LazyOpenDecorator because next() called before open()
+java.io.IOException: next() called before open()
+  at com.odiago.rtengine.flume.RtsqlSource.next(RtsqlSource.java:57)
+  at com.cloudera.flume.handlers.debug.LazyOpenSource.next(LazyOpenSource.java:53)
+  at com.cloudera.flume.core.connector.DirectDriver$PumperThread.run(DirectDriver.java:89)
+
+  so, there's an open() call maybe missing in flume after a reconfigure?
+  The first record is lost. The second record works.
+
+  LogicalNode is known to not be thread-safe. It may call next() before open() with
+  an unsynchronized race.
