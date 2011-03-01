@@ -7,8 +7,6 @@ Type checker bug:
 
 Aggregation:
 
-  -- Enable 'COUNT(*)' syntax; do a syntactic replacement to COUNT(1) under the hood.
-
   -- unit test, unit test, unit test, baby.
 
   ... for a bit later:
@@ -139,16 +137,9 @@ Technical debt:
     perturb this to ensure fairness.
 
 SQL Features (in rough priority order):
-  - Aggregation and aggregate functions
   - Filtering (HAVING)
   - LIMIT (within a window?)
   - [windowed] ORDER BY -- how does this work for overlapping windows?
-
-Aggregation:
-
-  - Implement COUNT(*), COUNT(foo).
-  - Implement windowing.
-
 
 Bug in CREATE STREAM AS SELECT and Flume node management:
 
@@ -175,6 +166,9 @@ Bug in CREATE STREAM AS SELECT and Flume node management:
 
 
 Bugs:
+  - 'SELECT COUNT(*) FROM x OVER RANGE INTERVAL 1 SECONDS PRECEDING' followed by
+    '\d <flowId>' causes an NPE; BucketedAggregationElement.close() gets called 2x.
+    (Maybe we don't account for its connection to the eviction element correctly?)
 
   - Quitting is very slow due to the Flume shutdown. Can we improve this?
     ... it also emits a scary looking error message, that we should suppress for
@@ -183,7 +177,7 @@ Bugs:
 Features:
 
   - Windowing should operate on 'previous n rows' too.
-    Associate a rowid tamp with every event on input.
+    Associate a rowid stamp with every event on input.
     Start each stream at 0 for each query, join operates like a "zipper"
 
   - Need ability to run remote physical plan on a set of configured nodes.

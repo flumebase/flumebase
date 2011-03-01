@@ -40,6 +40,7 @@ import com.odiago.rtengine.exec.SymbolTable;
 import com.odiago.rtengine.flume.EmbeddedFlumeConfig;
 
 import com.odiago.rtengine.lang.AssignFieldLabelsVisitor;
+import com.odiago.rtengine.lang.CountStarVisitor;
 import com.odiago.rtengine.lang.IdentifyAggregates;
 import com.odiago.rtengine.lang.JoinKeyVisitor;
 import com.odiago.rtengine.lang.JoinNameVisitor;
@@ -779,6 +780,7 @@ public class LocalEnvironment extends ExecEnvironment {
       }
 
       stmt.accept(new AssignFieldLabelsVisitor());
+      stmt.accept(new CountStarVisitor()); // Must be after assign labels, before TC.
       stmt.accept(new TypeChecker(mRootSymbolTable));
       stmt.accept(new JoinKeyVisitor()); // Must be after TC.
       stmt.accept(new JoinNameVisitor());

@@ -63,6 +63,10 @@ public class FnCallExpr extends Expr {
     return mArgExprs;
   }
 
+  public void setArgExpressions(List<Expr> exprs) {
+    mArgExprs = exprs;
+  }
+
   /**
    * Adds the specified expression to the argument list.
    */

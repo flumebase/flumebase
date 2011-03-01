@@ -117,7 +117,6 @@ public class TestGroupBy extends RtsqlTestCase {
   @Test
   public void testCountRecordsForNullField() throws IOException, InterruptedException {
     // Put in a record entirely of null values; COUNT(1) should still count all the records.
-    // TODO: COUNT(*) when we support that syntax.
     String [] records = { "0,10", ",", "2,12" };
     long [] times = { 35, 36, 200 };
 
@@ -125,6 +124,26 @@ public class TestGroupBy extends RtsqlTestCase {
 
     List<GenericData.Record> results = submitQuery(stream,
         "SELECT COUNT(1) AS c FROM s OVER RANGE INTERVAL 1 SECONDS PRECEDING");
+
+    // We should have two output results: 2 at t=40, 3 at t=200.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(2, results.size());
+      assertRecordExists(results, "c", Integer.valueOf(2));
+      assertRecordExists(results, "c", Integer.valueOf(3));
+    }
+  }
+
+  @Test
+  public void testCountStar() throws IOException, InterruptedException {
+    // Put in a record entirely of null values; COUNT(*) should count this record too.
+    String [] records = { "0,10", ",", "2,12" };
+    long [] times = { 35, 36, 200 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT COUNT(*) AS c FROM s OVER RANGE INTERVAL 1 SECONDS PRECEDING");
 
     // We should have two output results: 2 at t=40, 3 at t=200.
     assertNotNull(results);
