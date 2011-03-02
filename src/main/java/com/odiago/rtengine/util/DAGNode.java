@@ -17,6 +17,15 @@ public class DAGNode<NODETYPE extends DAGNode> {
 
   /** node id within the graph. */
   private int mId;
+  
+  /**
+   * The rank of a node is equal to 1 + max(rank(mInputs)).  Intuitively, the
+   * root is rank 0; nodes that are reachable through the root are rank 1;
+   * their children are rank 2, etc.  Nodes defined as rank 2 in the above
+   * sentence are still rank-2 even if an additional edge exists from the root
+   * to one of those nodes.
+   */
+  private int mRank;
 
   /**
    * Bit set to 'true' if the current traversal operator has seen
@@ -43,6 +52,16 @@ public class DAGNode<NODETYPE extends DAGNode> {
   /** @return true if this node has no parents. */
   public boolean isRoot() {
     return mInputs.size() == 0;
+  }
+
+  /** @return the rank of this node. */
+  int getRank() {
+    return mRank;
+  }
+
+  /** Set the rank of this node. */
+  void setRank(int rank) {
+    mRank = rank;
   }
 
   /**

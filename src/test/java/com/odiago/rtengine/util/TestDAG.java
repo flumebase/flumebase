@@ -127,4 +127,74 @@ public class TestDAG {
     assertArrayEquals(reverseBfsOrder, op.getIds());
 
   }
+
+  /**
+   * BFS does not necessarily hit nodes in rank order, but rankTraversal()
+   * should.
+   * Make sure we reach these nodes in order 1, 2, 3, not 1, 3, 2:
+   *
+   * <p><pre><tt>
+   *        1
+   *       / \
+   *      (   2
+   *       \ /
+   *        3
+   * </tt></pre></p>
+   */
+  @Test
+  public void testRankLookahead() throws Exception {
+    // Create the graph..
+    DAG<Node> graph = new DAG<Node>();
+    Node root = new Node(1);
+    graph.addRoot(root);
+    Node bottom = new Node(3);
+    root.addChild(bottom);
+    Node middle = new Node(2);
+    root.addChild(middle);
+    middle.addChild(bottom);
+
+    WalkOrderOperator op = new WalkOrderOperator();
+    graph.rankTraversal(op);
+    int[] rankOrder = { 1, 2, 3 };
+    assertArrayEquals(rankOrder, op.getIds());
+  }
+
+  /**
+   * Test rankTraversal() on a deeper graph.
+   *
+   * <p><pre><tt>
+   *        1
+   *       / \
+   *      (   2
+   *       \ /
+   *        3
+   *       / \
+   *      4   )
+   *       \ /
+   *        5
+   * </tt></pre></p>
+   */
+  @Test
+  public void testRankLookahead2() throws Exception {
+    // Create the graph..
+    DAG<Node> graph = new DAG<Node>();
+    Node root = new Node(1);
+    graph.addRoot(root);
+    Node pivot = new Node(3);
+    root.addChild(pivot);
+    Node middle = new Node(2);
+    root.addChild(middle);
+    middle.addChild(pivot);
+
+    Node left = new Node(4);
+    pivot.addChild(left);
+    Node last = new Node(5);
+    pivot.addChild(last);
+    left.addChild(last);
+
+    WalkOrderOperator op = new WalkOrderOperator();
+    graph.rankTraversal(op);
+    int[] rankOrder = { 1, 2, 3, 4, 5 };
+    assertArrayEquals(rankOrder, op.getIds());
+  }
 }

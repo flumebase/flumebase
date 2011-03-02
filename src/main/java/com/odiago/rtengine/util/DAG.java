@@ -11,10 +11,11 @@ import java.util.List;
  */
 public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
   
-  private List<NODETYPE> roots;
+  /** The set of nodes that make up this graph. */
+  private List<NODETYPE> mRoots;
 
   public DAG() {
-    roots = new ArrayList<NODETYPE>();
+    mRoots = new ArrayList<NODETYPE>();
   }
 
   /**
@@ -28,12 +29,12 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
    * Adds the specified node as a root of the DAG.
    */
   public void addRoot(NODETYPE node) {
-    roots.add(node);
+    mRoots.add(node);
   }
   
   /** @return the set of root nodes for this DAG. */
   public List<NODETYPE> getRootSet() {
-    return roots;
+    return mRoots;
   }
 
   /**
@@ -41,7 +42,7 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
    * its nodes to our flow specification.
    */
   public void addNodesFromDAG(DAG<NODETYPE> other) {
-    roots.addAll(other.roots);
+    mRoots.addAll(other.mRoots);
   }
 
   /**
@@ -52,13 +53,69 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
     clearAllMarks();
     // Work queue for BFS.
     List<NODETYPE> work = new LinkedList<NODETYPE>();
-    work.addAll(roots);
+    work.addAll(mRoots);
     while (!work.isEmpty()) {
       NODETYPE curNode = work.remove(0);
       if (!curNode.isSeen()) {
         op.process(curNode);
         work.addAll(curNode.getChildren());
         curNode.markSeen();
+      }
+    }
+  }
+
+  /**
+   * Calculate the rank associated with each node. See the 'mRank'
+   * field of DAGNode for a specific definition of rank.
+   */
+  private void calculateRank() {
+    try {
+      // Reset the ranks for all nodes to 0, in case the graph has changed.
+      bfs(new Operator<NODETYPE>() {
+        @Override
+        public void process(NODETYPE node) {
+          node.setRank(0);
+        }
+      });
+
+      // Apply the real ranks.
+      bfs(new Operator<NODETYPE>() {
+        @Override
+        public void process(NODETYPE node) {
+          int rank = node.getRank();
+          int nextRank = rank + 1;
+
+          for (NODETYPE child : node.getChildren()) {
+            child.setRank(Math.max(child.getRank(), nextRank));
+            child.clearSeen(); // If we update a child's rank, we may need to revisit it.
+          }
+        }
+      });
+    } catch (DAGOperatorException doe) {
+      // Impossible with this operator.
+    }
+  }
+
+  /**
+   * Perform a bfs traversal over the flow specification, strictly
+   * observing the property that we will only apply the operator
+   * to each node after applying it to all nodes of lower rank.
+   */
+  public void rankTraversal(Operator op) throws DAGOperatorException {
+    calculateRank();
+    clearAllMarks();
+    List<NODETYPE> work = new LinkedList<NODETYPE>();
+    work.addAll(mRoots);
+    while (!work.isEmpty()) {
+      NODETYPE curNode = work.remove(0);
+      if (!curNode.isSeen()) {
+        op.process(curNode);
+        int nextRank = curNode.getRank() + 1;
+        for (NODETYPE child : curNode.getChildren()) {
+          if (child.getRank() == nextRank) {
+            work.add(child);
+          }
+        }
       }
     }
   }
@@ -71,7 +128,7 @@ public class DAG<NODETYPE extends DAGNode<NODETYPE>> {
     clearAllMarks();
     // Work stack for DFS.
     List<NODETYPE> work = new LinkedList<NODETYPE>();
-    work.addAll(roots);
+    work.addAll(mRoots);
     while (!work.isEmpty()) {
       NODETYPE curNode = work.remove(work.size() - 1);
       if (!curNode.isSeen()) {

@@ -41,7 +41,7 @@ public abstract class FlowElementImpl extends FlowElement {
   @Override
   public void closeUpstream() throws IOException, InterruptedException {
     mNumOpenUpstream--;
-    if (mNumOpenUpstream == 0) { 
+    if (mNumOpenUpstream == 0 && !isClosed()) { 
       close();
     }
   }

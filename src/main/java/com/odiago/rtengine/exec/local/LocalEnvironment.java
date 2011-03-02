@@ -254,7 +254,7 @@ public class LocalEnvironment extends ExecEnvironment {
       // from the set of queues we track.
       LocalFlow flow = flowData.getFlow();
       try {
-        flow.bfs(new DAG.Operator<FlowElementNode>() {
+        flow.rankTraversal(new DAG.Operator<FlowElementNode>() {
           public void process(FlowElementNode elemNode) {
             FlowElement flowElem = elemNode.getFlowElement();
             if (!flowElem.isClosed()) {

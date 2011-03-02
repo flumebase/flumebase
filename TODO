@@ -1,5 +1,4 @@
 
-
 Aggregation:
 
   -- unit test, unit test, unit test, baby.
@@ -20,8 +19,8 @@ Aggregation:
 
   -- Also new scalar functions listed there.
 
-  -- Allow additional ConstExpr arguments to parameterize calls to aggregate
-     functions. e.g., LEAD(x, 2), LAG(y, 3), etc.
+  -- Allow additional expr arguments (where isConstant() is true) to parameterize calls
+     to aggregate functions. e.g., LEAD(x, 2), LAG(y, 3), etc.
 
   -- CHECK: Do we ever need non-ConstExpr arguments? Do we ever need to aggregate over
      two columns at once?
@@ -114,10 +113,6 @@ Bug in CREATE STREAM AS SELECT and Flume node management:
 
 
 Bugs:
-  - 'SELECT COUNT(*) FROM x OVER RANGE INTERVAL 1 SECONDS PRECEDING' followed by
-    '\d <flowId>' causes an NPE; BucketedAggregationElement.close() gets called 2x.
-    (Maybe we don't account for its connection to the eviction element correctly?)
-
   - Quitting is very slow due to the Flume shutdown. Can we improve this?
     ... it also emits a scary looking error message, that we should suppress for
     hygeine's sake.
