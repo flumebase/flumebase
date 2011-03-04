@@ -4,6 +4,7 @@ package com.odiago.rtengine.exec;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.odiago.rtengine.io.EventParser;
 
@@ -116,6 +117,17 @@ public class StreamSymbol extends Symbol {
     sb.append("  format: ");
     sb.append(mFormatSpec.getFormat());
     sb.append("\n");
+    Map<String, String> formatParams = mFormatSpec.getParams();
+    if (formatParams != null && formatParams.size() > 0) {
+      sb.append("    format properties:\n");
+      for (Map.Entry<String, String> entry : formatParams.entrySet()) {
+        sb.append("    '");
+        sb.append(entry.getKey());
+        sb.append("' = '");
+        sb.append(entry.getValue());
+        sb.append("'\n");
+      }
+    }
     if (mIsLocal) {
       sb.append("  local\n");
     }

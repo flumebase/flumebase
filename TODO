@@ -6,8 +6,6 @@ User Guide:
 
 Release blockers:
 
-  DESCRIBE (stream) should display the formatspec properties 
-
   Make slack interval configurable.
 
   The following causes a crash:
