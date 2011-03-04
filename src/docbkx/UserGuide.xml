@@ -4,7 +4,7 @@
   <section>
     <title>Introduction</title>
     <para>rtsql is a stream processing system built on top of
-      <productname>Flume</productname>.
+      <productname>Flume</productname>. TODO: Rest of this section.
     </para>
   </section>
   <section>
@@ -35,18 +35,6 @@
     <para>
       TODO: Rework this next section to include a notion of ‘FILE’... because we
       do basically support materialized tables through this.
-    </para>
-
-    <para>
-      TODO: Fix our
-      bullshit file format. Add an event format property for ‘timestamp.col’
-      which specifies which column to use as the row ts (rather than
-      Sys.getcurrenttime(), if unspecified).
-    </para>
-
-    <para>
-      TODO: Let FROM FILE use any event
-      format, not just delimited.
     </para>
 
     <para>
@@ -84,9 +72,6 @@ CREATE STREAM <userinput>stream_name</userinput> (<userinput>col_name</userinput
 
 CREATE STREAM <userinput>stream_name</userinput> AS select_statement
         </programlisting>
-
-        <para>TODO: Are <literal>PROPERTIES</literal> actually optional in
-        the grammar? They should be!</para>
 
         <para>
           <literal>input_spec</literal> is a
@@ -609,8 +594,6 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
     -&gt; <userinput>WINDOW mywin AS (RANGE INTERVAL 10 SECONDS PRECEDING);</userinput>
           </screen>
         </para>
-
-        <para>TODO: THIS TOTALLY CRASHES</para>
       </section>
     </section>
   </section>

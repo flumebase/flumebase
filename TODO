@@ -1,4 +1,28 @@
 
+User Guide:
+
+  Write intro, installation, config, architecture sections.
+  Write other subsections marked with 'TODO'.
+
+Release blockers:
+
+  file format needs to be reworked to remove the special-purpose timestamp col.
+  Add an event format property for 'timestamp.col' which specifies which column
+  to use as the row ts (use sys.getcurrenttime() if unspecified).
+
+  STREAM... FROM FILE needs to use any event format, not just delimited.
+
+  In CREATE STREAM grammar, are PROPERTIES actually optional? They should be!
+
+  Make slack interval configurable.
+
+  The following causes a crash:
+    SELECT COUNT(*) FROM foo OVER mywin
+    WINDOW mywin AS (RANGE INTERVAL 10 SECONDS PRECEDING);
+
+
+
+
 Aggregation:
 
   -- unit test, unit test, unit test, baby.
@@ -128,6 +152,9 @@ Features:
   - EventParser names/implementations should be accessed through the BuiltInSymbolTable.
   - Need a MapFunc API to allow 1-to-many transformations.
 
+
+  - Would be nice to select arbitrary attributes from events with a syntax like
+    '#attrname'.
 
 Optimizations:
 
