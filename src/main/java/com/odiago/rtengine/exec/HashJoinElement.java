@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,10 +75,21 @@ public class HashJoinElement extends FlowElementImpl {
    */
   private Map<String, Integer> mFieldMap;
 
+  /**
+   * The amount of slack time we provide before we evict old elements.
+   */
+  private int mSlackTime;
+
   public HashJoinElement(FlowElementContext ctxt, String leftName, String rightName,
       TypedField leftKey, TypedField rightKey, WindowSpec windowWidth, String outName,
-      List<TypedField> leftFieldNames, List<TypedField> rightFieldNames) {
+      List<TypedField> leftFieldNames, List<TypedField> rightFieldNames, Configuration conf) {
     super(ctxt);
+
+    mSlackTime = conf.getInt(BucketedAggregationElement.SLACK_INTERVAL_KEY,
+        BucketedAggregationElement.DEFAULT_SLACK_INTERVAL);
+    if (mSlackTime < 0) {
+      mSlackTime = BucketedAggregationElement.DEFAULT_SLACK_INTERVAL;
+    }
 
     mLeftMap = new WindowedHashMap<Object, EventWrapper, Long>();
     mRightMap = new WindowedHashMap<Object, EventWrapper, Long>();
@@ -101,7 +114,7 @@ public class HashJoinElement extends FlowElementImpl {
   public HashJoinElement(FlowElementContext ctxt, HashJoinNode joinNode) {
     this(ctxt, joinNode.getLeftName(), joinNode.getRightName(), joinNode.getLeftKey(),
         joinNode.getRightKey(), joinNode.getWindowWidth(), joinNode.getOutputName(),
-        joinNode.getLeftFields(), joinNode.getRightFields());
+        joinNode.getLeftFields(), joinNode.getRightFields(), joinNode.getConf());
   }
 
 
@@ -215,10 +228,7 @@ public class HashJoinElement extends FlowElementImpl {
     // Remove entries from the join target map that are behind the current
     // window, to keep the window maps from overfilling.
     // Anything behind the 'lo' value can be removed.
-    joinMap.removeOlderThan(lo);
-
-    // TODO(aaron): Introduce a notion of "slack." Don't remove things until they
-    // are 'lo - slack' behind.
+    joinMap.removeOlderThan(lo - mSlackTime);
 
     // If we get lots of records on one side of the join but no records
     // on the other side for an extended period of time, we won't be culling the
@@ -235,7 +245,7 @@ public class HashJoinElement extends FlowElementImpl {
         otherMapLo = oldestInOtherMap + mTimeSpan.lo;
       }
       LOG.debug("otherMapLo=" + otherMapLo);
-      insertMap.removeOlderThan(otherMapLo);
+      insertMap.removeOlderThan(otherMapLo - mSlackTime);
     }
   }
 }

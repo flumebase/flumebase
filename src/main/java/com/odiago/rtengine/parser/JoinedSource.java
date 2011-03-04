@@ -186,7 +186,8 @@ public class JoinedSource extends RecordSource {
     }
 
     HashJoinNode joinNode = new HashJoinNode(leftName, rightName, leftKey, rightKey,
-        window, getSourceName(), leftContext.getOutFields(), rightContext.getOutFields());
+        window, getSourceName(), leftContext.getOutFields(), rightContext.getOutFields(),
+        planContext.getConf());
 
     // Set this node to expect multiple input schemas.
     List<Schema> inputSchemas = new ArrayList<Schema>();

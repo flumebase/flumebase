@@ -619,9 +619,9 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo GROUP BY event_src</userinput>
           ordered events that arrive within the "slack interval" of 200
           milliseconds of when they are expected. Events that arrive after the
           slack interval may be excluded from aggregate functions.
-        </para>
-        <para>
-          TODO: Explain how to configure the slack interval.
+          The slack interval may be configured by setting <constant>rtsql.slack.time</constant>
+          to a different integer number of milliseconds in the session configuration.
+          (See <xref linkend="session.configuration" />.)
         </para>
 
         <para>

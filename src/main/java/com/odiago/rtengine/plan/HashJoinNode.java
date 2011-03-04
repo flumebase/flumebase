@@ -4,6 +4,8 @@ package com.odiago.rtengine.plan;
 
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
+
 import com.odiago.rtengine.parser.TypedField;
 import com.odiago.rtengine.parser.WindowSpec;
 
@@ -24,11 +26,12 @@ public class HashJoinNode extends PlanNode {
   private String mOutName; // name to assign to the output stream from this join.
   private List<TypedField> mLeftFields; // field names from the left stream.
   private List<TypedField> mRightFields; // field names from the right stream.
+  private Configuration mConf; // user configuration.
 
 
   public HashJoinNode(String leftName, String rightName, TypedField leftKey, TypedField rightKey,
       WindowSpec windowWidth, String outName, List<TypedField> leftFieldNames,
-      List<TypedField> rightFieldNames) {
+      List<TypedField> rightFieldNames, Configuration conf) {
     mLeftName = leftName;
     mRightName = rightName;
     mLeftKey = leftKey;
@@ -37,6 +40,7 @@ public class HashJoinNode extends PlanNode {
     mOutName = outName;
     mLeftFields = leftFieldNames;
     mRightFields = rightFieldNames;
+    mConf = conf;
   }
 
   protected void formatParams(StringBuilder sb) {
@@ -77,6 +81,10 @@ public class HashJoinNode extends PlanNode {
 
   public String getOutputName() {
     return mOutName;
+  }
+
+  public Configuration getConf() {
+    return mConf;
   }
 
   public List<TypedField> getLeftFields() {

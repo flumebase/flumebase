@@ -66,6 +66,13 @@ public class BucketedAggregationElement extends AvroOutputElementImpl {
   private static final boolean DEFAULT_CONTINUOUS_OUTPUT = false;
 
   /**
+   * Configuration key specifying the amount of slack time we tolerate between
+   * events that should occur at the same time.
+   */
+  public static final String SLACK_INTERVAL_KEY = "rtsql.slack.time";
+  public static final int DEFAULT_SLACK_INTERVAL = 200;
+
+  /**
    * Configuration key specifying how far in the past we emit as output when
    * an insertion forces a close/emit of prior time windows.
    * If there's a massive stall, don't worry about data that is more than
@@ -103,7 +110,7 @@ public class BucketedAggregationElement extends AvroOutputElementImpl {
    * The maximum lateness (specified in milliseconds) we will tolerate for an
    * event.
    */
-  private final long mSlackTime = 200; // TODO: Parameterize, and unify with HashJoinElt.
+  private final long mSlackTime;
 
   /**
    * The set of aliased expressions describing the aggregation functions to run
@@ -160,6 +167,12 @@ public class BucketedAggregationElement extends AvroOutputElementImpl {
     mContinuousOutput = conf.getBoolean(CONTINUOUS_OUTPUT_KEY, DEFAULT_CONTINUOUS_OUTPUT);
     mMaxPriorEmitInterval = conf.getLong(MAX_PRIOR_EMIT_INTERVAL_KEY,
         DEFAULT_MAX_PRIOR_EMIT_INTERVAL);
+    int slackTime = conf.getInt(SLACK_INTERVAL_KEY, DEFAULT_SLACK_INTERVAL);
+    if (slackTime < 0) {
+      mSlackTime = DEFAULT_SLACK_INTERVAL;
+    } else {
+      mSlackTime = slackTime;
+    }
 
     assert mMaxPriorEmitInterval > 0;
     assert mMaxPriorEmitInterval > mSlackTime;

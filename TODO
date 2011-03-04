@@ -6,8 +6,6 @@ User Guide:
 
 Release blockers:
 
-  Make slack interval configurable.
-
   The following causes a crash:
     SELECT COUNT(*) FROM foo OVER mywin
     WINDOW mywin AS (RANGE INTERVAL 10 SECONDS PRECEDING);
