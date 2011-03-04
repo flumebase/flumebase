@@ -77,7 +77,7 @@ public class NullableType extends Type {
 
   @Override
   public String toString() {
-    return "NULLABLE " + mNullableType;
+    return "" + mNullableType;
   }
 
   @Override

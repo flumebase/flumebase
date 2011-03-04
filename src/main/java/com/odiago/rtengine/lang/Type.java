@@ -341,7 +341,7 @@ public class Type {
 
   @Override
   public String toString() {
-    return mTypeName.name();
+    return mTypeName.name() + " NOT NULL";
   }
 
   @Override

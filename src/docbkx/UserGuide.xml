@@ -161,7 +161,7 @@ DROP STREAM <userinput>stream_name</userinput>
           output_type)</literal>.
           <screen>
 rtsql&gt; <userinput>SHOW FUNCTIONS;</userinput>
-length ((NULLABLE STRING) -> NULLABLE INT)
+length ((STRING) -> INT)
 ...
           </screen>
         </para>
@@ -180,13 +180,13 @@ length ((NULLABLE STRING) -> NULLABLE INT)
 
           <screen>
 rtsql&gt; <userinput>SHOW FUNCTIONS;</userinput>
-sum ((var('a, constraints={NULLABLE TYPECLASS_NUMERIC})) -> var('a, constraints={NULLABLE TYPECLASS_NUMERIC}))
+sum ((var('a, constraints={TYPECLASS_NUMERIC})) -> var('a, constraints={TYPECLASS_NUMERIC}))
 ...
           </screen>
         </para>
 
         <para>
-          The input argument’s type is <literal>var('a, constraints={NULLABLE
+          The input argument’s type is <literal>var('a, constraints={
           TYPECLASS_NUMERIC})</literal>. This is a type variable with the name
           <literal>'a</literal> (pronounced "alpha"), and can take any type subject to the
           constraint that it is in the typeclass "<type>numeric</type>" -- that is, it is one
@@ -221,7 +221,7 @@ DESCRIBE <userinput>identifier</userinput>
 
           <screen>
 rtsql&gt; <userinput>DESCRIBE length;</userinput>
-length ((NULLABLE STRING) -> NULLABLE INT)
+length ((STRING) -> INT)
           </screen>
         </para>
       </section>
