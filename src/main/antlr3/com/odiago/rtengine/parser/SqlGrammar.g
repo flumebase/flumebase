@@ -336,10 +336,10 @@ time_width returns [TimeWidth val]:
 optional_format_spec returns [FormatSpec val] :
     { $val = new FormatSpec(); }
   | EVENT FORMAT fmt=Q_STRING { $val = new FormatSpec(unescape($fmt.text)); }
-    PROPERTIES LPAREN ( k=Q_STRING EQ v=Q_STRING {
+    (PROPERTIES LPAREN ( k=Q_STRING EQ v=Q_STRING {
         $val.setParam(unescape($k.text), unescape($v.text)); }
         ( COMMA k2=Q_STRING EQ v2=Q_STRING {
         $val.setParam(unescape($k2.text), unescape($v2.text)); } )*
-    )? RPAREN
+    )? RPAREN)?
   ;
 

@@ -6,9 +6,6 @@ User Guide:
 
 Release blockers:
 
-  In CREATE STREAM grammar, are PROPERTIES actually optional? They should be!
-  --- nope, they're not. unfuck that.
-
   DESCRIBE (stream) should display the formatspec properties 
 
   Make slack interval configurable.
