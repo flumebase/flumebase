@@ -6,13 +6,10 @@ User Guide:
 
 Release blockers:
 
-  file format needs to be reworked to remove the special-purpose timestamp col.
-  Add an event format property for 'timestamp.col' which specifies which column
-  to use as the row ts (use sys.getcurrenttime() if unspecified).
-
-  STREAM... FROM FILE needs to use any event format, not just delimited.
-
   In CREATE STREAM grammar, are PROPERTIES actually optional? They should be!
+  --- nope, they're not. unfuck that.
+
+  DESCRIBE (stream) should display the formatspec properties 
 
   Make slack interval configurable.
 

@@ -16,6 +16,7 @@ import com.cloudera.flume.core.Event;
 
 import com.odiago.rtengine.exec.StreamSymbol;
 
+import com.odiago.rtengine.lang.Timestamp;
 import com.odiago.rtengine.lang.Type;
 
 /**
@@ -258,10 +259,13 @@ public class DelimitedEventParser extends EventParser {
     case TIMESTAMP:
       out = CharBufferUtils.parseLong(chars);
       if (null != out) {
-        out = new java.sql.Timestamp((Long) out);
+        out = new Timestamp((Long) out);
       }
       break;
     case TIMESPAN:
+      // TODO: This should return a TimeSpan object, which is actually two
+      // fields. We need to work on this... it should not just be a 'long'
+      // representation.
       out = CharBufferUtils.parseLong(chars);
       break;
     default:

@@ -17,7 +17,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.flume.core.Event.Priority;
 import com.cloudera.flume.core.EventImpl;
 
 import com.odiago.rtengine.exec.EventWrapper;
@@ -25,6 +24,9 @@ import com.odiago.rtengine.exec.FlowElementContext;
 import com.odiago.rtengine.exec.FlowElementImpl;
 import com.odiago.rtengine.exec.ParsingEventWrapper;
 import com.odiago.rtengine.exec.StreamSymbol;
+
+import com.odiago.rtengine.lang.Timestamp;
+import com.odiago.rtengine.lang.Type;
 
 import com.odiago.rtengine.parser.TypedField;
 
@@ -39,12 +41,37 @@ public class FileSourceElement extends FlowElementImpl {
   private static final Logger LOG = LoggerFactory.getLogger(
       FileSourceElement.class.getName());
 
+  /**
+   * EVENT FORMAT property specifying which column of the input file is to be
+   * used as the timestamp for each event. If left unspecified, the current
+   * system time is used for the timestamp of the row, when each row is read
+   * from the file.
+   */
+  public static final String TIMESTAMP_COL_KEY = "timestamp.col";
+
   private String mFilename;
   private boolean mLocal;
   private EventGenThread mEventGenThread;
   private volatile boolean mIsFinished;
+
+  /** List of all typed fields defined in the stream, with their avro-name mappings, etc. */
+  private List<TypedField> mFields;
+
+  /** List of all avro names of the fields in the stream, in the same order as mFields. */
   private List<String> mFieldNames;
+
   private StreamSymbol mStream;
+
+  /** Private extension of EventImpl that allows us to call setTimestamp(). */
+  private static class FileSourceEvent extends EventImpl {
+    public FileSourceEvent(byte[] body) {
+      super(body, 0, Priority.INFO, 0, "localhost");
+    }
+
+    public void setTimestamp(long timestamp) {
+      super.setTimestamp(timestamp);
+    }
+  }
 
   /**
    * Additional thread that actually reads the file and converts it
@@ -52,6 +79,35 @@ public class FileSourceElement extends FlowElementImpl {
    */
   private class EventGenThread extends Thread {
     public void run() {
+      // If the user has specified a column to extract the timestamp from, get it here.
+      String timestampCol = mStream.getFormatSpec().getParam(TIMESTAMP_COL_KEY);
+      TypedField timestampField = null;
+      if (null != timestampCol) {
+        // timestampCol refers to a user-selected name for the column. Translate that
+        // to the internal ("avro") name for the column.
+        for (TypedField field : mFields) {
+          if (field.getUserAlias().equals(timestampCol)) {
+            timestampField = field;
+            break;
+          }
+        }
+
+        if (null == timestampField) {
+          LOG.warn("Could not find column '" + timestampCol + "' to use for timestamps.");
+          LOG.warn("Timestamps will be generated based on the local system clock.");
+        } else if (!timestampField.getType().getPrimitiveTypeName()
+            .equals(Type.TypeName.TIMESTAMP)) {
+          LOG.warn("Specified timestamp.col '" + timestampCol + "' has type "
+              + timestampField.getType() + ", but we need TIMESTAMP.");
+          LOG.warn("Timestamps will be generated based on the local system clock.");
+          timestampField = null;
+        } else {
+          // Ensure that we normalize the type associated with this column for ts retrieval.
+          timestampField = new TypedField(timestampField.getAvroName(),
+              Type.getNullable(Type.TypeName.TIMESTAMP));
+        }
+      }
+
       BufferedReader reader = null;
       try {
         // TODO: Inherit from a global configuration.
@@ -81,19 +137,23 @@ public class FileSourceElement extends FlowElementImpl {
             continue;
           }
 
-          int tabIdx = line.indexOf('\t', 0);
-          if (-1 == tabIdx) {
-            LOG.warn("Invalid input line contains no timestamp field: " + line);
-          }
-
           try {
-            long timestamp = Long.parseLong(line.substring(0, tabIdx));
-            byte [] body = line.substring(tabIdx + 1).getBytes();
-            EventImpl event = new EventImpl(body, timestamp, Priority.INFO, 0, "localhost");
+            FileSourceEvent event = new FileSourceEvent(line.getBytes());
             event.set(STREAM_NAME_ATTR, mStream.getName().getBytes());
-            EventWrapper wrapper = new ParsingEventWrapper(mStream.getEventParser(),
+            ParsingEventWrapper wrapper = new ParsingEventWrapper(mStream.getEventParser(),
                 mFieldNames);
             wrapper.reset(event);
+
+            if (timestampField == null) {
+              event.setTimestamp(System.currentTimeMillis());
+            } else {
+              Timestamp timestamp = (Timestamp) wrapper.getField(timestampField);
+              if (null == timestamp) {
+                event.setTimestamp(System.currentTimeMillis());
+              } else {
+                event.setTimestamp(timestamp.milliseconds);
+              }
+            }
             emit(wrapper);
           } catch (NumberFormatException nfe) {
             LOG.warn("Could not parse timestamp: " + nfe);
@@ -128,6 +188,7 @@ public class FileSourceElement extends FlowElementImpl {
     super(context);
     mFilename = fileName;
     mLocal = local;
+    mFields = fields;
     mFieldNames = new ArrayList<String>();
     mStream = streamSym;
     for (TypedField field : fields) {

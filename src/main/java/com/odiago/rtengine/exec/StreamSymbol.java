@@ -91,6 +91,10 @@ public class StreamSymbol extends Symbol {
     return mStreamType;
   }
 
+  public FormatSpec getFormatSpec() {
+    return mFormatSpec;
+  }
+
   /**
    * @return an EventParser for events coming from this stream.
    */
