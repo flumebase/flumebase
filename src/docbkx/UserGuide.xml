@@ -1,0 +1,876 @@
+<?xml version="1.0" encoding="utf-8"?>  
+<article xmlns="http://docbook.org/ns/docbook" version="4.5" xml:lang="en">  
+  <title>rtsql User Guide</title>  
+  <section>
+    <title>Introduction</title>
+    <para>rtsql is a stream processing system built on top of
+      <productname>Flume</productname>.
+    </para>
+  </section>
+  <section>
+    <title>Installation</title>
+    <para>TODO: This.</para>
+  </section>
+  <section>
+    <title>Configuration</title>
+    <para>TODO: This.</para>
+  </section>
+  <section>
+    <title>Architecture</title>
+    <para>TODO: explain rtsql client / server model, and relationship to flume.
+    talk about persistent queries, flume outputs, etc. Define a “flow” here.
+    </para>
+  </section>
+  <section id="rtsql.language">
+    <title>The rtsql language</title>
+    <para>
+      The rtsql language is designed to allow on-going analysis of incoming
+      data. The language is similar to <productname>SQL:2003</productname>; its
+      syntax will be largely familiar to SQL experts. It also provides
+      <productname>SQL:2003</productname>-style <emphasis>windowed
+      operators</emphasis> which allow joining and aggregation over bounded
+      amounts of time.
+    </para>
+
+    <para>
+      TODO: Rework this next section to include a notion of ‘FILE’... because we
+      do basically support materialized tables through this.
+    </para>
+
+    <para>
+      TODO: Fix our
+      bullshit file format. Add an event format property for ‘timestamp.col’
+      which specifies which column to use as the row ts (rather than
+      Sys.getcurrenttime(), if unspecified).
+    </para>
+
+    <para>
+      TODO: Let FROM FILE use any event
+      format, not just delimited.
+    </para>
+
+    <para>
+      rtsql does not [currently] support a notion of a materialized table. All
+      data is consumed through <emphasis>streams</emphasis>, which cannot be
+      replayed. Future versions of rtsql may allow replaying of streams and/or
+      analysis of pre-materialized tables. Streams in rtsql are generally
+      considered to be infinite in length. Therefore, all operators such as
+      <literal>GROUP BY</literal> which can use “all the rows” as input are
+      restricted so that they can only use windowed views into the stream.
+    </para>
+
+    <para>
+      Keywords in rtsql are case-insensitive. Identifiers (stream, column,
+      function names, etc) are translated to lower-case for their canonical
+      representation, unless they are <literal>"double-quoted"</literal> in
+      which case they are interpreted literally.
+    </para>
+
+    <section>
+      <title>DDL Commands</title>
+      <section>
+        <title><literal>CREATE STREAM</literal></title>
+
+        <para>
+          The <literal>CREATE STREAM</literal> statement will create a stream
+          definition which may be used in subsequent statements such as
+          <literal>SELECT</literal>.
+        </para>
+
+        <programlisting>
+CREATE STREAM <userinput>stream_name</userinput> (<userinput>col_name</userinput> data_type [, ...])
+    FROM [LOCAL] {FILE | NODE | SOURCE} <userinput>input_spec</userinput>
+    [EVENT FORMAT format_spec [PROPERTIES (key = val, …)]]
+
+CREATE STREAM <userinput>stream_name</userinput> AS select_statement
+        </programlisting>
+
+        <para>TODO: Are <literal>PROPERTIES</literal> actually optional in
+        the grammar? They should be!</para>
+
+        <para>
+          <literal>input_spec</literal> is a
+          <literal>'single-quoted-string'</literal> identifying the filename /
+          Flume logical node / Flume source specification to use as the input
+          for this stream.
+        </para>
+
+        <programlisting>
+data_type ::= BOOLEAN | BIGINT | INT | FLOAT | DOUBLE | STRING | TIMESTAMP 
+format_spec ::= 'delimited' | 'avro'
+        </programlisting>
+
+        <para>
+          File names are Hadoop <classname>Path</classname> objects; they may
+          specify the complete URI to a file, using any protocol permitted by
+          the Hadoop common library. e.g.:
+
+          <screen>
+rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE</userinput>
+    -&gt; <userinput>'hdfs://nn.example.com/user/aaron/foo.txt';</userinput>
+          </screen>
+        </para>
+
+        <para>
+          Unqualified file names are interpreted relative to the value of the
+          <constant>fs.default.name</constant> configuration parameter. For
+          example, if this were set to
+          <userinput>'hdfs://nn.example.com'</userinput>, the following
+          definition would be equivalent to the previous one:
+
+          <screen>
+rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE '/user/aaron/foo.txt';</userinput>
+          </screen>
+        </para>
+
+        <para>
+          Using the <literal>LOCAL</literal> keyword will cause the source
+          definition to be interpreted relative to the local filesystem of the
+          rtsql server. The following two statements are equivalent:
+
+          <screen>
+rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM LOCAL FILE '/home/aaron/foo.txt';</userinput>
+rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/foo.txt';</userinput>
+          </screen>
+        </para>
+
+        <para>
+          Note that if the rtsql server is on a different machine than the
+          client, this will read from <filename>/home/aaron/foo.txt</filename>
+          on the rtsql server -- not the client.
+        </para>
+
+        <section>
+          <title>Properties governing delimited events</title>
+          <para>TODO: this</para>
+        </section>
+        <section>
+          <title>Properties governing avro-formatted events</title>
+          <para>TODO: this</para>
+        </section>
+      </section>
+      <section>
+        <title><literal>DROP STREAM</literal></title>
+        <para>
+          The <literal>DROP STREAM</literal> statement removes a stream
+          definition created by <literal>CREATE STREAM</literal>.
+        </para>
+        <programlisting>
+DROP STREAM <userinput>stream_name</userinput>
+        </programlisting>
+      </section>
+      <section>
+        <title><literal>SHOW STREAMS</literal></title>
+        <para>
+          The <literal>SHOW STREAMS</literal> statement shows the definitions
+          of all streams.
+        </para>
+      </section>
+      <section>
+        <title><literal>SHOW FUNCTIONS</literal></title>
+        <para>
+          The <literal>SHOW FUNCTIONS</literal> statement shows the definitions
+          of all functions which may be applied to expressions in a statement.
+          The output of this command is a list of functions and their types.
+          Types are written in the form <literal>((input_types) -&gt;
+          output_type)</literal>.
+          <screen>
+rtsql&gt; <userinput>SHOW FUNCTIONS;</userinput>
+length ((NULLABLE STRING) -> NULLABLE INT)
+...
+          </screen>
+        </para>
+        <para>
+          The <function>length</function> function may take a
+          <type>STRING</type> or <type>NULL</type> value, and returns an
+          <type>INT</type> (or <type>NULL</type>, if the input was
+          <type>NULL</type>).
+        </para>
+
+        <para>
+          Some functions are polymorphic -- their input types are flexible,
+          subject to certain constraints, and their output types may or may not
+          match their input types. For example, the <function>sum</function>
+          function can operate over any numeric type: 
+
+          <screen>
+rtsql&gt; <userinput>SHOW FUNCTIONS;</userinput>
+sum ((var('a, constraints={NULLABLE TYPECLASS_NUMERIC})) -> var('a, constraints={NULLABLE TYPECLASS_NUMERIC}))
+...
+          </screen>
+        </para>
+
+        <para>
+          The input argument’s type is <literal>var('a, constraints={NULLABLE
+          TYPECLASS_NUMERIC})</literal>. This is a type variable with the name
+          <literal>'a</literal> (pronounced "alpha"), and can take any type subject to the
+          constraint that it is in the typeclass "<type>numeric</type>" -- that is, it is one
+          of <type>INT</type>, <type>BIGINT</type>, <type>FLOAT</type>, or
+          <type>DOUBLE</type>. It is an error to take the sum of a
+          <type>STRING</type> or <type>BOOLEAN</type> column.
+        </para>
+
+        <para>
+          The output argument is the same type variable "alpha;" whatever type
+          is used for the input, will also be used as the output type.
+        </para>
+      </section>
+      <section>
+        <title><literal>DESCRIBE</literal></title>
+        <para>
+          The <literal>DESCRIBE</literal> statement shows the definition of a
+          single object in rtsql:
+        </para>
+        <programlisting>
+DESCRIBE <userinput>identifier</userinput>        
+        </programlisting>
+
+        <para>
+          This may be used to inspect a single stream, function, or other entity
+          present in the symbol table.
+        </para>
+
+        <para>
+          The following statement displays the argument and return types for the
+          <function>length</function> function:
+
+          <screen>
+rtsql&gt; <userinput>DESCRIBE length;</userinput>
+length ((NULLABLE STRING) -> NULLABLE INT)
+          </screen>
+        </para>
+      </section>
+    </section>
+    <section>
+      <title><literal>SELECT</literal> statements</title>
+      <para>
+        The <literal>SELECT</literal> statement returns an event stream
+        computed in terms of one or more existing event streams.
+      </para>
+
+      <programlisting>
+select_statement ::= SELECT select_expr, select_expr ... FROM stream_reference
+    [ JOIN stream_reference ON join_expr OVER range_expr, JOIN ... ]
+    [ WHERE where_condition ]
+    [ GROUP BY column_list ]
+    [ OVER range_expr ]
+    [ WINDOW <userinput>window_name</userinput> AS ( range_expr ), WINDOW ... ]
+      </programlisting>
+
+      <para>
+        A simple <literal>SELECT</literal> statement can return all events in
+        a stream:
+
+        <screen>
+rtsql&gt; <userinput>SELECT * FROM foo;</userinput>
+        </screen>
+      </para>
+
+      <para>
+        It can also return only a specific subset of fields from the
+        underlying stream:
+        <screen>
+rtsql&gt; <userinput>SELECT a, b, d FROM foo;</userinput>
+        </screen>
+      </para>
+
+      <para>
+        In addition to referencing specific fields, mathematical expressions
+        may be calculated as well:
+
+        <screen>
+rtsql&gt; <userinput>SELECT 2 * a + 3 FROM foo;</userinput>
+        </screen>
+      </para>
+
+      <para>
+        The following table lists all available operators. Operators at one
+        level of the table have higher priority than operators in a lower row
+        of the table. Operators of the same priority are applied
+        left-to-right. Parentheses can be used to override precedence. (This
+        is the same precedence order as uesd by Java, for the subset of Java
+        operators supported by rtsql.)
+      </para>
+
+      <table><caption>Operator precedence rules in rtsql</caption>
+        <thead>
+          <tr><td>Operator class</td><td>operators</td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>unary null operators:</td>
+            <td><literal>IS NULL</literal>, <literal>IS NOT NULL</literal></td></tr>
+          <tr><td>unary operators:</td>
+            <td><literal>+ - NOT</literal></td></tr>
+          <tr><td>multiplicative:</td>
+            <td><literal>* / %</literal></td></tr>
+          <tr><td>additive:</td>
+            <td><literal>+ -</literal></td></tr>
+          <tr><td>comparison:</td>
+            <td><literal>&gt; &lt; &gt;= &lt;=</literal></td></tr>
+          <tr><td>equality:</td>
+            <td><literal>= !=</literal></td></tr>
+          <tr><td>logical conjunction:</td>
+            <td><literal>AND</literal></td></tr>
+          <tr><td>logical disjunction:</td>
+            <td><literal>OR</literal></td></tr>
+          <tr><td>function call:</td>
+            <td><literal>f(e1, e2, e3...)</literal></td></tr>
+          <tr><td>identifiers and constants:</td><td><literal>x 42 'hello!'</literal></td></tr>
+        </tbody>
+      </table>
+
+      <para>
+        Each selected expression may have an alias associated with it:
+
+        <screen>
+rtsql&gt; <userinput>SELECT 2 * a AS doubled FROM foo;</userinput>
+        </screen>
+      </para>
+
+      <para>
+        The <literal>AS</literal> keyword itself is optional.
+      </para>
+
+      <para>
+        This is specifically useful in the context of nested
+        <literal>SELECT</literal> statements:
+
+        <screen>
+rtsql&gt; <userinput>SELECT doubled FROM (SELECT 2 * a AS doubled FROM foo)</userinput>
+    -&gt; <userinput>AS q WHERE doubled > 4;</userinput>
+        </screen>
+      </para>
+
+      <para>
+        rtsql does not support the <literal>DISTINCT</literal> or
+        <literal>ALL</literal> keywords; every query is implicitly
+        "<literal>SELECT ALL</literal>."
+      </para>
+
+      <section>
+        <title>Stream references</title>
+        <programlisting>
+stream_reference ::= (<userinput>stream_name</userinput> | select_statement) [[AS] <userinput>ref_name</userinput>]
+        </programlisting>
+
+        <para>
+          The <literal>stream_reference</literal> in a <literal>SELECT</literal>
+          statement may literally identify a stream:
+
+          <screen>
+rtsql&gt; <userinput>CREATE STREAM foo (x string) FROM ...;</userinput>
+CREATE STREAM
+rtsql&gt; <userinput>SELECT * FROM foo;</userinput>
+...
+          </screen>
+        </para>
+        <para>
+          You may also qualify column names with their stream name:
+          <screen>
+rtsql&gt; <userinput>SELECT foo.x FROM foo;</userinput>
+          </screen>
+        </para>
+
+        <para>
+          And you may provide a reference name (<literal>ref_name</literal>)
+          that is different than the stream name:
+          <screen>
+rtsql&gt; <userinput>SELECT v.x FROM verylongname AS v;</userinput>
+          </screen>
+        </para>
+
+        <para>
+          The <literal>AS</literal> keyword is optional. This is equivalent to:
+          <screen>
+rtsql&gt; <userinput>SELECT v.x FROM verylongname v;</userinput>
+          </screen>
+        </para>
+
+        <para>
+          A <literal>stream_reference</literal> may also be a nested
+          <literal>SELECT</literal> statement.
+          <screen>
+rtsql&gt; <userinput>SELECT length(x) FROM (SELECT x FROM foo) AS f;</userinput>
+          </screen>
+        </para>
+
+        <para>
+          Each nested <literal>SELECT</literal> statement must be given a
+          <literal>ref_name</literal> alias (<userinput>f</userinput> in the
+          previous example). You do not need to qualify individual column names
+          with the <literal>ref_name</literal> unless the column name would
+          otherwise be ambiguous (e.g., if two sources are joined, and they each
+          contain a column named <userinput>x</userinput>, then all references
+          to <userinput>x</userinput> must be qualified with the source
+          <literal>ref_name</literal>).
+        </para>
+      </section>
+      <section>
+        <title><literal>WHERE</literal> clauses</title>
+        <programlisting>
+where_clause ::= WHERE bool_expr
+        </programlisting>
+
+        <para>
+          A <literal>SELECT</literal> statement may filter some input events, and emit output events
+          corresponding only to input events that match a boolean predicate.
+
+          <screen>
+rtsql&gt; <userinput>SELECT x FROM foo WHERE length(x) > 5;</userinput>
+          </screen>
+        </para>
+
+        <para>
+          This may be a compound boolean expression (using the
+          <literal>AND</literal> and <literal>OR</literal> operators). rtsql
+          does not support the <literal>IN</literal> or
+          <literal>EXISTS</literal> operators.  Subqueries are also not
+          permitted in a <literal>WHERE</literal> clause.
+        </para>
+
+      </section>
+      <section id="select.join.clause">
+        <title><literal>JOIN</literal> clauses</title>
+        <programlisting>
+join_clause ::= JOIN stream_reference ON join_expr OVER range_expr
+        </programlisting>
+
+        <para>
+          A <literal>SELECT</literal> statement may correlate events from
+          multiple sources and operate on their joined representation. In
+          table-based SQL systems, any row of one table may be joined with any
+          row of another table in a <literal>JOIN</literal> clause. Since rtsql
+          operates over potentially infinite streams of data, this model would
+          not scale. Instead, <literal>JOIN</literal> clauses require a window
+          clause which defines the time-based boundaries within which a join may
+          occur.
+        </para>
+        <para>
+          The only join expression supported is an equi-join; the
+          <literal>join_expr</literal> must use the equality operator
+          (<literal>=</literal>) to relate one field of each of the two joined
+          streams.
+        </para>
+        <para>
+          The <literal>range_expr</literal> specifies the time range for the
+          dependent (right) stream in which events may be joined to a given
+          event of the primary (left) stream.
+        </para>
+        <programlisting>
+range_expr ::= RANGE INTERVAL expr time_scale PRECEDING
+    | BETWEEN INTERVAL expr time_scale PRECEDING AND INTERVAL expr time_scale FOLLOWING
+
+time_scale ::= SECONDS | MINUTES | HOURS | DAYS | WEEKS | MONTHS | YEARS
+        </programlisting>
+        <para>
+          Consider the following example:
+          <screen>
+rtsql&gt; <userinput>SELECT * FROM f JOIN g ON f.x = g.y</userinput>
+    -&gt; <userinput>OVER RANGE INTERVAL 5 SECONDS PRECEDING;</userinput>
+          </screen>
+        </para>
+        <para>
+          This specifies that for each event seen in <userinput>f</userinput>
+          (the primary stream), it may be joined with any events in
+          <userinput>g</userinput> (the dependent stream) which occurred up to
+          five seconds before the event in <userinput>f</userinput>.
+        </para>
+        <para>
+          The opposite time relation holds from the perspective of events in
+          <userinput>g</userinput>: for each event in stream
+          <userinput>g</userinput>, it may be joined with any events in
+          <userinput>f</userinput> which occur up to five seconds later.
+        </para>
+        <para>
+          <screen>
+rtsql&gt; <userinput>SELECT * FROM f JOIN g ON f.x = g.y OVER</userinput>
+    -&gt; <userinput>RANGE BETWEEN INTERVAL 1 SECONDS PRECEDING</userinput>
+    -&gt; <userinput>AND INTERVAL 5 SECONDS FOLLOWING;</userinput>
+          </screen>
+
+          This example specifies that each event in <userinput>f</userinput> may
+          be joined with any matching events in <userinput>g</userinput> which
+          occured up to one second before, or five seconds after the event in
+          <userinput>f</userinput>. 
+        </para>
+      </section>
+      <section>
+        <title>Aggregation</title>
+        <para>
+          Aggregate operators may be used in rtsql in a similar manner to
+          ordinary SQL systems.
+        </para>
+        <programlisting>
+group_by_clause ::= GROUP BY <userinput>col</userinput> [, <userinput>col</userinput>...]
+over_clause ::= OVER range_expr
+        </programlisting>
+
+        <para>
+          If an aggregate function (e.g., <function>sum</function>,
+          <function>count</function>) is used in a <literal>SELECT</literal>
+          statement, the statement must have an <literal>over_clause</literal>
+          which defines the time window in which aggregate operators work.
+          Aggregation over "the entire stream" is not supported.
+        </para>
+        <para>
+          The <literal>range_expr</literal> syntax is given in
+          <xref linkend="select.join.clause" />.
+        </para>
+
+        <para>
+          The following example provides a count of the number of events
+          observed over a rolling five second window:
+          <screen>
+rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER RANGE INTERVAL 5 SECONDS PRECEDING;</userinput>
+          </screen>
+        </para>
+
+        <para>
+          This may be further refined with a <literal>group_by_clause</literal>. For example:
+          <screen>
+rtsql&gt; <userinput>SELECT COUNT(*) FROM foo GROUP BY event_src</userinput>
+    -&gt; <userinput>OVER RANGE INTERVAL 5 SECONDS PRECEDING;</userinput>
+          </screen>
+        </para>
+
+        <para>
+          rtsql uses <emphasis>bucketing</emphasis> to support rolling time
+          windows. By default, 100 buckets are used. So the previous two
+          examples will support rolling counts with a "step" size of 50
+          milliseconds (5 seconds / 100 buckets). 
+        </para>
+
+        <para>
+          TODO: explain how to configure number of buckets
+        </para>
+
+        <para>
+          Flume may deliver events out of order; rtsql tolerates improperly
+          ordered events that arrive within the "slack interval" of 200
+          milliseconds of when they are expected. Events that arrive after the
+          slack interval may be excluded from aggregate functions.
+        </para>
+        <para>
+          TODO: Explain how to configure the slack interval.
+        </para>
+
+        <para>
+          The following aggregate functions are available:
+        </para>
+
+        <table><caption>Aggregate functions in rtsql</caption>
+          <thead>
+            <tr><td>Function name</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            <tr><td><literal><function>COUNT(*)</function></literal></td>
+              <td>Counts the number of events which match the group and time interval</td></tr>
+            <tr><td><literal><function>COUNT(expr)</function></literal></td>
+              <td>Counts the number of events where expr is non-null</td></tr>
+            <tr><td><literal><function>SUM(expr)</function></literal></td>
+              <td>Returns the sum of the values in expr</td></tr>
+            <tr><td><literal><function>MAX(expr)</function></literal></td>
+              <td>Returns the maximum value for expr</td></tr>
+            <tr><td><literal><function>MIN(expr)</function></literal></td>
+              <td>Returns the minimum value for expr</td></tr>
+            <tr><td><literal><function>AVG(expr)</function></literal></td>
+              <td>Returns the arithmetic mean value for expr</td></tr>
+          </tbody>
+        </table>
+
+        <para>
+          rtsql does not support the
+          <literal><function>COUNT</function>(DISTINCT
+          <userinput>col</userinput>)</literal> syntax.
+        </para>
+        <para>
+          rtsql also does not support full <productname>SQL:2003</productname>
+          windowed operators; a single range for the entire select statement is
+          applied by the <literal>over_clause</literal> to all aggregate operators.
+          This may change in a future version of rtsql.
+        </para>
+      </section>
+      <section>
+        <title><literal>WINDOW</literal> clauses</title>
+        <programlisting>
+window_clause ::= WINDOW <userinput>window_name</userinput> AS ( range_expr ), WINDOW ...
+        </programlisting>
+
+        <para>
+          Windows may be defined with a window clause at the end of a
+          <literal>SELECT</literal> statement. A
+          <userinput>window_name</userinput> may be substituted for a
+          <literal>range_expr</literal> anywhere in the
+          <literal>SELECT</literal> statement:
+
+          <screen>
+rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
+    -&gt; <userinput>WINDOW mywin AS (RANGE INTERVAL 10 SECONDS PRECEDING);</userinput>
+          </screen>
+        </para>
+
+        <para>TODO: THIS TOTALLY CRASHES</para>
+      </section>
+    </section>
+  </section>
+  <section>
+    <title>The rtsql shell</title>
+    <para>
+      The rtsql shell allows users to interact with the rtsql environment. The
+      default rtsql configuration connects to a single-threaded execution
+      environment within the same process as the shell. You may also connect
+      to a remote execution environment running in another process (on the
+      same or a different machine).
+    </para>
+    <para>
+      The rtsql shell can be used to transmit rtsql statements defined in
+      <xref linkend="rtsql.language"/> to the execution environment.  Several
+      control commands are also defined which allow users to interact with the
+      shell or the environment itself.
+    </para>
+
+    <section>
+      <title>Connecting to the execution environment</title>
+      <para>
+        As mentioned, rtsql's default configuration file causes an automatic
+        connection to the local environment. You can connect to a remote
+        environment with the command:
+
+        <screen>
+rtsql&gt; <userinput>\open server [port]</userinput>
+        </screen>
+      </para>
+      <para>
+        You can connect to the local (self-hosted) environment explicitly with
+        the command:
+
+        <screen>
+rtsql&gt; <userinput>\open local</userinput>
+        </screen>
+      </para>
+      <para>
+        The shell can connect to at most one environment at a time. A
+        <literal>\open</literal> command automatically disconnects from any
+        previously-connected environment. You can explicitly disconnect from
+        the environment with the command:
+
+        <screen>
+rtsql&gt; <userinput>\disconnect</userinput>
+        </screen>
+      </para>
+      <para>
+        You can close the shell with the command:
+        
+        <screen>
+rtsql&gt; <userinput>\q</userinput>
+        </screen>
+      </para>
+      <para>
+        This is a synomym for:
+
+        <screen>
+rtsql&gt; <userinput>exit;</userinput>
+        </screen>
+      </para>
+      <para>
+        You can shut down the execution environment (which stops all running
+        flows) with the command:
+
+        <screen>
+rtsql&gt; <userinput>\shutdown!</userinput>
+        </screen>
+      </para>
+    </section>
+    <section>
+      <title>Monitoring flows</title>
+      <para>
+        Each <literal>SELECT</literal> statement is instantiated as a flow in
+        the execution environment. Flows are persistent: they continue to read
+        data from the associated Flume sources indefinitely, even if the
+        client disconnects.
+      </para>
+      <para>
+        You can get a list of all running flows with the command:
+        
+        <screen>
+rtsql&gt; <userinput>\f</userinput>
+        </screen>
+      </para>
+      <para>
+        This returns the following fields of information:
+      </para>
+      <table><caption>Columns in the running flows list</caption>
+        <thead>
+          <tr><td>Column</td><td>Description</td></tr>
+        </thead>
+        <tbody>
+          <tr><td>Watch?</td><td>This column has a <literal>*</literal> in it if you are
+            watching the output of this flow on your console.</td></tr>
+          <tr><td>FlowId</td><td>The numeric id associated with the flow.
+            Commands that control a flow will use this id.</td></tr>
+          <tr><td>Stream</td><td> If the output of this flow is used as a
+            stream (e.g., <literal>CREATE STREAM foo AS SELECT...</literal>),
+            the name of the stream (<userinput>foo</userinput>) is shown
+            here.</td></tr>
+          <tr><td>Query</td><td>The actual rtsql query which was used to
+            create this flow.</td></tr>
+        </tbody>
+      </table>
+
+      <para>
+        By default, when you submit a flow (that is, run a <literal>SELECT</literal> statement),
+        you are watching the output. Any events which are generated by this
+        flow will be printed to your console. You can unwatch a flow with the
+        <literal>\u</literal> or <literal>\unwatch</literal> commands.
+      </para>
+
+      <para>
+        The following command unwatches a flow with FlowId 3:
+        <screen>
+rtsql&gt; <userinput>\u 3</userinput>          
+        </screen>
+      </para>
+      <para>
+        (You can find the flowId for a flow with the <literal>\f</literal> command first.)
+      </para>
+
+      <para>
+        You can then resubscribe to a flow with the <literal>\w</literal> or
+        <literal>\watch</literal> commands. This will resubscribe to the same
+        flow’s output:
+
+        <screen>
+rtsql&gt; <userinput>\w 3</userinput>
+        </screen>
+      </para>
+
+      <para>
+        TODO: Describe how to suppress flow auto-watch.
+      </para>
+
+    </section>
+    <section>
+      <title>Controlling flows</title>
+      <para>
+        You can cancel a flow entirely with with the <literal>\d</literal> and
+        <literal>\D</literal> commands. Each of these takes a FlowId, and
+        destroys the associated flow. The <literal>\d</literal> command does not
+        block; <literal>\D</literal> will wait until the flow is complete before
+        returning:
+
+        <screen>
+rtsql&gt; <userinput>\d 3</userinput>
+        </screen>
+      </para>
+      <para>
+        If a flow was created via <literal>CREATE STREAM AS SELECT</literal>, the stream name
+        associated with the flow can be removed, without stopping the flow
+        itself, via the <literal>\dname</literal> command:
+
+        <screen>
+rtsql&gt; <userinput>CREATE STREAM foo AS SELECT x FROM bar;</userinput>
+Started flow: flow[mId=5]
+rtsql&gt; <userinput>\dname 5</userinput>
+Removed stream name from flow 5
+        </screen>
+      </para>
+      <para>
+        A new stream name can then be attached to the same flow:
+        <screen>
+rtsql&gt; <userinput>\name 5 baz</userinput>
+Created stream 'baz' on flow 5
+        </screen>
+      </para>
+      <para>
+        A stream name can be attached to any running flow with the
+        <literal>\name</literal> command. This creates a new Flume logical node
+        with the same name as the stream; its source is populated with events
+        containing avro representations of the fields emitted by the flow.
+        A flow can have at most one stream name attached at a time. 
+      </para>
+    </section>
+    <section>
+      <title>Controlling the session configuration</title>
+      <para>
+        Each client session has a configuration associated with it; this is
+        initially populated from the configuration files. The configuration is a
+        set of key=val pairs, where both the keys and values are strings
+        (although some keys are expected to have values which behave as
+        integers, etc.). The configuration can be viewed with the command:
+        <literal>\set</literal>
+
+        <screen>
+rtsql&gt; <userinput>\set</userinput>
+io.seqfile.compress.blocksize = '1000000'
+io.skip.checksum.errors = 'false'
+fs.checkpoint.size = '67108864'
+...
+        </screen>
+      </para>
+      <para>
+        Configuration keys are roughly hierarchical. You can view the
+        configuration keys under any prefix that ends with a "<userinput>.</userinput>"
+        by typing <literal>\set <userinput>prefix.</userinput></literal>:
+
+        <screen>
+rtsql&gt; <userinput>\set rtengine.</userinput>
+rtengine.flume.master.port = '35873'
+rtengine.flume.master.host = 'localhost'
+rtengine.autoconnect = 'local'
+        </screen>
+      </para>
+
+      <para>
+        You can also view any specific key:
+        <screen>
+rtsql&gt; <userinput>\set rtengine.autoconnect</userinput>
+rtengine.autoconnect = 'local'
+        </screen>
+      </para>
+      <para>
+        This command may also be used to set the value of any key:
+        <screen>
+rtsql&gt; <userinput>\set rtengine.flume.master.port=12345</userinput>
+rtengine.flume.master.port = '12345'
+        </screen>
+      </para>
+
+      <para>
+        Setting configuration values does not modify the behavior of any
+        previously-submitted flows. The behavior of a new flow may be controlled
+        by setting configuration keys, and then submitting the query that
+        generates the flow.
+      </para>
+    </section>
+    <section>
+      <title>Miscellaneous commands</title>
+      <para>
+        At any time when inputting a command, the current input may be canceled
+        by appending <userinput>\c</userinput> to the current line, and pressing enter:
+        <screen>
+rtsql&gt; <userinput>SELECT something where I made a typo</userinput>
+    -&gt; <userinput>and then continued \c</userinput>
+rtsql&gt;
+        </screen>
+      </para>
+      <para>
+        A help message which lists all available control commands can be
+        accessed by typing <userinput>help;</userinput> or
+        <userinput>\h</userinput>:
+
+        <screen>
+rtsql&gt; <userinput>\h</userinput>
+All text commands must end with a ';' character.
+Session control commands must be on a line by themselves.
+
+Session control commands:
+  \c                    Cancel the current input statement.
+  \d flowId             Drop the specified flow.
+  \D flowId             Drop a flow and wait for it to stop.
+...
+        </screen>
+      </para>
+    </section>
+  </section>
+</article>

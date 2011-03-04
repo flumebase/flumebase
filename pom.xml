@@ -138,6 +138,11 @@
             <scope>runtime</scope>  
           </dependency>  
         </dependencies>  
+        <configuration>
+          <sectionAutolabel>1</sectionAutolabel>
+          <tocSectionDepth>3</tocSectionDepth>
+          <generateHtmlTitle>0</generateHtmlTitle>
+        </configuration>
         
         <executions>  
           <execution>
