@@ -123,9 +123,6 @@ Bug in CREATE STREAM AS SELECT and Flume node management:
        require that flow to exist upstream.
     ** More broadly: We should not allow DROP STREAM if any running flows depend on
        that stream.
-    ** Furthermore: \d will kill the flow associated with CSAS and remove the stream
-       symbol (good), but DROP STREAM will remove the stream symbol but keeps the
-       associated flow running (bad). DROP STREAM should kill any associated flow.
 
 
 Bugs:
@@ -144,6 +141,9 @@ Features:
   - EventParser names/implementations should be accessed through the BuiltInSymbolTable.
   - Need a MapFunc API to allow 1-to-many transformations.
 
+  - Should be able to CREATE STREAM AS FILE and then specify the file format. Right now
+    we can't practically use avro data in files, because we parse the file itself as
+    if it is \n-terminated text records.
 
   - Would be nice to select arbitrary attributes from events with a syntax like
     '#attrname'.

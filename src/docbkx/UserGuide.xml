@@ -33,18 +33,16 @@
     </para>
 
     <para>
-      TODO: Rework this next section to include a notion of ‘FILE’... because we
-      do basically support materialized tables through this.
-    </para>
-
-    <para>
-      rtsql does not [currently] support a notion of a materialized table. All
-      data is consumed through <emphasis>streams</emphasis>, which cannot be
-      replayed. Future versions of rtsql may allow replaying of streams and/or
-      analysis of pre-materialized tables. Streams in rtsql are generally
-      considered to be infinite in length. Therefore, all operators such as
-      <literal>GROUP BY</literal> which can use “all the rows” as input are
-      restricted so that they can only use windowed views into the stream.
+      In rtsql, all data is consumed through <emphasis>streams</emphasis>. The
+      rtsql architecture assumes that these streams cannot be replayed, and may
+      be of infinite length.  Therefore, all operators such as <literal>GROUP
+      BY</literal> which can use “all the rows” as input are restricted so that
+      they can only use windowed views into the stream.  rtsql does allow a
+      stream to be defined over a file. A <literal>SELECT</literal> statement
+      querying such a stream will read the data in-order in the file and then
+      terminate when it reaches the end of the file, but rtsql does not
+      currently have special provisions for working with these data sources
+      in a different fashion than Flume-based sources.
     </para>
 
     <para>
@@ -125,13 +123,79 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
           on the rtsql server -- not the client.
         </para>
 
+        <para>
+          The <literal>EVENT FORMAT</literal> clause specifies how the bytes
+          inside an event should be interpreted. By default, rtsql uses the
+          <literal>delimited</literal> event format.  Events are assumed to
+          contain UTF-8 text representations of each field, separated by commas.
+        </para>
+        <para>
+          By specifying an <literal>EVENT FORMAT</literal>, you can choose which
+          parser to apply to each event. The event format is specified as a
+          <literal>'quoted string'</literal>. Currently, only the values
+          <literal>'delimited'</literal> and <literal>'avro'</literal> are
+          available. You can further control the behavior of the event parser
+          by specifying (key, value) pairs in the <literal>PROPERTIES</literal>
+          section. The keys recognized are specific to each event format. Keys
+          and values are both single-quoted strings.
+        </para>
+
+        <para>
+          When reading a stream from a file, there is no Flume timestamp to
+          associate with each event. By default, rtsql will associate the
+          current system timestamp as it reads each line of the file with the
+          event generated for that line. This can be overridden by specifying
+          the <constant>timestamp.col</constant> property in the
+          <literal>PROPERTIES</literal> section of the <literal>CREATE
+          STREAM</literal> statement. The <constant>timestamp.col</constant>
+          must refer to a column of type <type>TIMESTAMP</type>. If the
+          timestamp value for an event is null, the current system timestamp
+          will be used instead.
+        </para>
+
         <section>
-          <title>Properties governing delimited events</title>
-          <para>TODO: this</para>
+          <title>Delimited events</title>
+          <para>
+            The <literal>delimited</literal> event format allows rtsql to
+            interpret events consisting of UTF-8 encoded text. Individual fields
+            are expected to be separated by commas. All values are expected to
+            be converted to text.
+          </para>
+          <para>
+            The delimiter character is controlled by the
+            <constant>delimiter</constant> property. You may set this to any
+            other character; for example, a pipe character:
+            <screen>
+  rtsql&gt; <userinput>CREATE STREAM x(a int, b int) FROM LOCAL FILE 'foo.txt'</userinput>
+      -&gt; <userinput>EVENT FORMAT 'delimited' PROPERTIES ('delimiter' = '|');</userinput>
+            </screen>
+          </para>
+          <para>
+            Nullable integer, timestamp, etc. fields are regarded as null if the
+            field is an empty string (i.e., two delimiters occur in a row). A
+            column of type <type>STRING</type> of zero length will be an empty
+            string.  NULL string values are, by default, indicated by the
+            sequence <literal>\N</literal>.  This sequence can be overridden by
+            any other string with the <constant>null.sequence</constant>
+            property.
+          </para>
+
         </section>
         <section>
-          <title>Properties governing avro-formatted events</title>
-          <para>TODO: this</para>
+          <title>Avro-encoded events</title>
+          <para>
+            rtsql can interpret events which contain a single serialized avro
+            record as a collection of fields. The event is assumed to be in the
+            Avro binary encoding format. You must specify the
+            <constant>schema</constant> property to describe the expected
+            encoding schema. (This is in addition to the normal column
+            definition section of the <literal>CREATE STREAM</literal>
+            statement.) The schema is expected to be a single Avro record (with
+            any name) which contains a set of fields; these fields must have the
+            correct avro types (<literal>"string"</literal>,
+            <literal>"long"</literal>, etc.) to match the expected rtsql types
+            (<type>STRING</type>, <type>BIGINT</type>, etc.).
+          </para>
         </section>
       </section>
       <section>
@@ -527,7 +591,27 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo GROUP BY event_src</userinput>
         </para>
 
         <para>
-          TODO: explain how to configure number of buckets
+          You can specify the number of buckets by setting the
+          <constant>rtsql.aggregation.buckets</constant> key in the session
+          configuration (See <xref linkend="session.configuration" />).
+          A larger number of buckets allows finer granularity in rolling
+          windows, but may increase memory usage.
+        </para>
+
+        <para>
+          By default, windowed aggregation operators will emit output groups
+          only when the corresponding input buckets contained data. For
+          example, if data arrives at t=100 and t=150, and buckets are 10 ms
+          wide, an output group will be emitted with timestamp t=100 and
+          another one for t=150, but no intermediate counts or other
+          aggregates will be generated for t=110, t=120, etc.
+          This behavior can be configured by setting
+          <constant>rtsql.aggregation.continuous.output</constant> in the
+          session configuration. Setting this flag to <literal>true</literal>
+          will cause the aggregation operator to emit output groups for all
+          time intervals in which any data is available. This may prove more
+          useful for building time-series graphs, etc, but less so for working
+          with sporadic incoming data.
         </para>
 
         <para>
@@ -729,7 +813,11 @@ rtsql&gt; <userinput>\w 3</userinput>
       </para>
 
       <para>
-        TODO: Describe how to suppress flow auto-watch.
+        You can configure your session to not automatically watch flows as you
+        create them; you will then need to explicitly watch any flows you create
+        if you want to inspect their output. This property is controlled by
+        the <constant>rtengine.flow.autowatch</constant> key in the session
+        configuration (see <xref linkend="session.configuration"/>).
       </para>
 
     </section>
@@ -773,7 +861,7 @@ Created stream 'baz' on flow 5
         A flow can have at most one stream name attached at a time. 
       </para>
     </section>
-    <section>
+    <section id="session.configuration">
       <title>Controlling the session configuration</title>
       <para>
         Each client session has a configuration associated with it; this is
