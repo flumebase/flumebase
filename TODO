@@ -6,11 +6,13 @@ User Guide:
 
 Release blockers:
 
+  Write COMPILING.txt
+
   The following causes a crash:
     SELECT COUNT(*) FROM foo OVER mywin
     WINDOW mywin AS (RANGE INTERVAL 10 SECONDS PRECEDING);
 
-
+  Change copyright notice at top of all files to mimic Apache / sqoop headers.
 
 
 Aggregation:

@@ -289,6 +289,28 @@ length ((STRING) -> INT)
           </screen>
         </para>
       </section>
+      <section>
+        <title><literal>EXPLAIN</literal></title>
+        <para>
+          The <literal>EXPLAIN</literal> statement shows the execution plan
+          for an rtsql statement:
+        </para>
+        <programlisting>
+EXPLAIN statement        
+        </programlisting>
+
+        <para>
+          This may be used to inspect the operation of any rtsql statement.
+          The output of the command is a text description of how the statement
+          was parsed (in a tree-based representation), followed by a control-flow
+          graph of the steps applied in the runtime environment to satisfy
+          the query.
+        </para>
+
+        <screen>
+rtsql&gt; <userinput>EXPLAIN SELECT x FROM foo;</userinput>        
+        </screen>
+      </section>
     </section>
     <section>
       <title><literal>SELECT</literal> statements</title>

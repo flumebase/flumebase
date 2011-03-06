@@ -159,7 +159,7 @@
     <dependency>
       <groupId>org.apache.thrift</groupId>
       <artifactId>libthrift</artifactId>
-      <version>0.5.0</version>
+      <version>0.5.0-cdh</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
@@ -200,7 +200,7 @@
     <dependency>
       <groupId>com.cloudera.flume</groupId>
       <artifactId>flume</artifactId>
-      <version>0.9.3</version>
+      <version>0.9.3-CDH3B4</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
@@ -212,8 +212,15 @@
   </dependencies>
   <repositories>
     <repository>
-      <id>repository.jboss.org</id>
-      <url>http://repository.jboss.org/nexus/content/groups/public/</url>
+      <id>repository.cloudera.com-cloudera</id>
+      <url>https://repository.cloudera.com/content/groups/cloudera-repos/</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>repository.cloudera.com-public</id>
+      <url>https://repository.cloudera.com/content/groups/public/</url>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>

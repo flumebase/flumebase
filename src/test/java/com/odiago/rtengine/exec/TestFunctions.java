@@ -237,15 +237,30 @@ public class TestFunctions extends RtsqlTestCase {
       fail("Expected type checker error!");
     }
   }
+  @Test
+  public void testDoubleUnification0() throws IOException, InterruptedException {
+    // Test that we can unify two instances of the exact same type.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("c", Integer.valueOf(1)));
+    runFnTest("SELECT max2(a, a) as c FROM memstream WHERE a = 1", checks);
+  }
 
   @Test
   public void testDoubleUnification1() throws IOException, InterruptedException {
-    // Test that we can unify two instances of the same type.
+    // Test that we can unify two instances of the same type, but with one
+    // of them nullable, and one of them not-null.
     List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
     checks.add(new Pair<String, Object>("c", Integer.valueOf(2)));
     runFnTest("SELECT max2(a, b) as c FROM memstream WHERE a = 1", checks);
   }
 
+  @Test
+  public void testDoubleUnification1a() throws IOException, InterruptedException {
+    // Test that we can unify two instances of the same type.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("c", Integer.valueOf(2)));
+    runFnTest("SELECT max2(b, a) as c FROM memstream WHERE a = 1", checks);
+  }
   @Test
   public void testDoubleUnification2() throws IOException, InterruptedException {
     // Test that we can unify two instances of different types when a promotion

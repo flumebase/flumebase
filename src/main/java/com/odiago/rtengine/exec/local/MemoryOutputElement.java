@@ -66,7 +66,6 @@ public class MemoryOutputElement extends FlowElementImpl {
     for (TypedField field : mFields) {
       outRecord.put(field.getDisplayName(), wrapper.getField(field));
     }
-    LOG.info("Spun up: " + outRecord);
     mOutputRecords.add(outRecord);
   }
 

@@ -285,10 +285,10 @@ public class DelimitedEventParser extends EventParser {
     mColumnValues.add(out);
     mColumnNulls.add(Boolean.valueOf(out == null));
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Parsed string [" + debugInputString + "] with expected type ["
-          + expectedType + "] for column idx=" + colIdx + "; result is [" + out + "]"); 
-    }
+    //if (LOG.isDebugEnabled()) {
+    //  LOG.debug("Parsed string [" + debugInputString + "] with expected type ["
+    //      + expectedType + "] for column idx=" + colIdx + "; result is [" + out + "]"); 
+    //}
     return out;
   }
 
