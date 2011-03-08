@@ -26,6 +26,10 @@ public class WindowSpec extends Expr {
     return mRangeSpec;
   }
 
+  public void setRangeSpec(RangeSpec rangeSpec) {
+    mRangeSpec = rangeSpec;
+  }
+
   @Override
   public boolean isConstant() {
     return true;

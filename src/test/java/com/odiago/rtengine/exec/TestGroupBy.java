@@ -115,6 +115,26 @@ public class TestGroupBy extends RtsqlTestCase {
   }
 
   @Test
+  public void testNamedWindow() throws IOException, InterruptedException {
+    // Same as testCountOfNullField(), but use a named WINDOW clause.
+    String [] records = { "0,10", "1,", "2,12" };
+    long [] times = { 35, 36, 200 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT COUNT(b) AS c FROM s OVER win WINDOW win AS (RANGE INTERVAL 1 SECONDS PRECEDING)");
+
+    // We should have two output results: 1 at t=40, 2 at t=200.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(2, results.size());
+      assertRecordExists(results, "c", Integer.valueOf(1));
+      assertRecordExists(results, "c", Integer.valueOf(2));
+    }
+  }
+
+  @Test
   public void testCountRecordsForNullField() throws IOException, InterruptedException {
     // Put in a record entirely of null values; COUNT(1) should still count all the records.
     String [] records = { "0,10", ",", "2,12" };

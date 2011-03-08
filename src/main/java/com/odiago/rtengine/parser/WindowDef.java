@@ -23,6 +23,10 @@ public class WindowDef extends SQLStatement {
     return mWindowSpec;
   }
 
+  public void setWindowSpec(WindowSpec windowSpec) {
+    mWindowSpec = windowSpec;
+  }
+
   public void format(StringBuilder sb, int depth) {
     pad(sb, depth);
     sb.append("WindowDef mName=");

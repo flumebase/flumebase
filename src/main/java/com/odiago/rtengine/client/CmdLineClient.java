@@ -502,6 +502,10 @@ public class CmdLineClient {
         if (null == line) {
           // EOF on input. We're done.
           throw new QuitException(0);
+        } else if (line.endsWith("\\c")) {
+          // Lines ending in '\\c' cancel the current input.
+          resetCmdState();
+          continue;
         }
         String trimmed = line.trim();
         if (trimmed.startsWith("\\")) {

@@ -28,6 +28,10 @@ public class AliasedExpr extends SQLStatement {
     return mExpr;
   }
 
+  public void setExpr(Expr expr) {
+    mExpr = expr;
+  }
+
   /**
    * @return the label to present to the user for this column.
    */

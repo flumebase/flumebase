@@ -1,20 +1,15 @@
 
-User Guide:
-
-  Write intro, installation, config, architecture sections.
-  Write other subsections marked with 'TODO'.
-
 Release blockers:
+  Disable -ea in bin/rtsql for normal users (make it easy to leave on for running
+  on my own development machine...)
 
   Test COMPILING.txt instructions.
+
+  Finish TODO entries in user guide.
 
   pom.xml: should flume, hadoop dependencies be bundled? or should
   these be marked as 'provided' ? If the latter, our bin/rtsql script
   should ensure they're put on the classpath...
-
-  The following causes a crash:
-    SELECT COUNT(*) FROM foo OVER mywin
-    WINDOW mywin AS (RANGE INTERVAL 10 SECONDS PRECEDING);
 
   Change copyright notice at top of all files to mimic Apache / sqoop headers.
 
@@ -134,6 +129,12 @@ Bug in CREATE STREAM AS SELECT and Flume node management:
     ** More broadly: We should not allow DROP STREAM if any running flows depend on
        that stream.
 
+
+UX Improvement:
+  - If a stream is created FROM [LOCAL] FILE and timestamp.col is not specified,
+    we should print a warning (when we create the stream) that timestamps are
+    going to be based on file read time, and suggest that the user specify
+    timestamp.col.
 
 Bugs:
   - Quitting is very slow due to the Flume shutdown. Can we improve this?

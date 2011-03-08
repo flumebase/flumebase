@@ -18,6 +18,10 @@ public class ExplainStmt extends SQLStatement {
     return mChildStmt;
   }
 
+  public void setChildStmt(SQLStatement child) {
+    mChildStmt = child;
+  }
+
   @Override
   public void format(StringBuilder sb, int depth) {
     pad(sb, depth);

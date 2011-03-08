@@ -66,18 +66,33 @@ public class JoinedSource extends RecordSource {
     return mLeftSrc;
   }
 
+  public void setLeft(RecordSource left) {
+    mLeftSrc = left;
+  }
+
   public RecordSource getRight() {
     return mRightSrc;
+  }
+
+  public void setRight(RecordSource right) {
+    mRightSrc = right;
   }
 
   public Expr getJoinExpr() {
     return mJoinExpr;
   }
 
+  public void setJoinExpr(Expr joinExpr) {
+    mJoinExpr = joinExpr;
+  }
+
   public Expr getWindowExpr() {
     return mWindowExpr;
   }
 
+  public void setWindowExpr(Expr windowExpr) {
+    mWindowExpr = windowExpr;
+  }
 
   /** {@inheritDoc} */
   @Override

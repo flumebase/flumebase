@@ -577,6 +577,7 @@ public class TypeChecker extends Visitor {
     // EventWrapper.
     e.setType(fieldType);
     e.setAssignedName(fieldSym.getAssignedName());
+    e.setAssignedSymbol(fieldSym);
   }
 
   protected void visit(UnaryExpr e) throws VisitException {

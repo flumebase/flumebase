@@ -107,12 +107,24 @@ public class SelectStmt extends RecordSource {
     return mSource;
   }
 
+  public void setSource(SQLStatement src) {
+    mSource = src;
+  }
+
   public Expr getWhereConditions() {
     return mWhereExpr;
   }
 
+  public void setWhereConditions(Expr where) {
+    mWhereExpr = where;
+  }
+
   public GroupBy getGroupBy() {
     return mGroupBy;
+  }
+
+  public void setGroupBy(GroupBy groupBy) {
+    mGroupBy = groupBy;
   }
 
   public List<WindowDef> getWindowDefs() {
@@ -141,6 +153,10 @@ public class SelectStmt extends RecordSource {
 
   public Expr getWindowOver() {
     return mAggregateOver;
+  }
+
+  public void setWindowOver(Expr windowOver) {
+    mAggregateOver = windowOver;
   }
 
   public void setAggregateExprs(List<AliasedExpr> aggregateExprs) {

@@ -46,12 +46,20 @@ public class RangeSpec extends Expr {
     return mPrevSize;
   }
 
+  public void setPrevSize(Expr prevSize) {
+    mPrevSize = prevSize;
+  }
+
   public TimeWidth getPrevScale() {
     return mPrevScale;
   }
 
   public Expr getAfterSize() {
     return mAfterSize;
+  }
+
+  public void setAfterSize(Expr afterSize) {
+    mAfterSize = afterSize;
   }
 
   public TimeWidth getAfterScale() {

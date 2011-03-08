@@ -44,6 +44,7 @@ import com.odiago.rtengine.lang.CountStarVisitor;
 import com.odiago.rtengine.lang.IdentifyAggregates;
 import com.odiago.rtengine.lang.JoinKeyVisitor;
 import com.odiago.rtengine.lang.JoinNameVisitor;
+import com.odiago.rtengine.lang.ReplaceWindows;
 import com.odiago.rtengine.lang.TypeChecker;
 import com.odiago.rtengine.lang.VisitException;
 
@@ -782,6 +783,7 @@ public class LocalEnvironment extends ExecEnvironment {
       stmt.accept(new AssignFieldLabelsVisitor());
       stmt.accept(new CountStarVisitor()); // Must be after assign labels, before TC.
       stmt.accept(new TypeChecker(mRootSymbolTable));
+      stmt.accept(new ReplaceWindows()); // Must be after TC.
       stmt.accept(new JoinKeyVisitor()); // Must be after TC.
       stmt.accept(new JoinNameVisitor());
       stmt.accept(new IdentifyAggregates()); // Must be after TC.

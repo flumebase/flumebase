@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import com.odiago.rtengine.exec.AssignedSymbol;
 import com.odiago.rtengine.exec.EventWrapper;
 import com.odiago.rtengine.exec.Symbol;
 import com.odiago.rtengine.exec.SymbolTable;
@@ -29,6 +30,12 @@ public class IdentifierExpr extends Expr {
 
   /** Assigned type after symbol table resolution, in the type checker. */
   private Type mType;
+
+  /**
+   * AssignedSymbol instance identified by the TypeChecker as belonging
+   * to this IdentifierExpr.
+   */
+  private AssignedSymbol mAssignedSym;
 
   public IdentifierExpr(String identifier) {
     mIdentifier = identifier;
@@ -84,6 +91,18 @@ public class IdentifierExpr extends Expr {
   @Override
   Type getResolvedType() {
     return mType;
+  }
+
+  /**
+   * Sets the AssignedSymbol instance identified by the TypeChecker
+   * for this identifier expression.
+   */
+  public void setAssignedSymbol(AssignedSymbol assignedSym) {
+    mAssignedSym = assignedSym;
+  }
+
+  public AssignedSymbol getAssignedSymbol() {
+    return mAssignedSym;
   }
 
   @Override

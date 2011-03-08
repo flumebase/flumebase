@@ -39,6 +39,10 @@ public class UnaryExpr extends Expr {
     return mSubExpr;
   }
 
+  public void setSubExpr(Expr subExpr) {
+    mSubExpr = subExpr;
+  }
+
   @Override
   public void format(StringBuilder sb, int depth) {
     pad(sb, depth);

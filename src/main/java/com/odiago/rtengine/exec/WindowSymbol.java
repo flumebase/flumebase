@@ -9,11 +9,11 @@ import com.odiago.rtengine.parser.WindowSpec;
 /**
  * A named Window in a SymbolTable.
  */
-public class WindowSymbol extends Symbol {
+public class WindowSymbol extends AssignedSymbol {
   private WindowSpec mWindowSpec;
 
   public WindowSymbol(String name, WindowSpec spec) {
-    super(name, Type.getPrimitive(Type.TypeName.WINDOW));
+    super(name, Type.getPrimitive(Type.TypeName.WINDOW), name);
     mWindowSpec = spec;
   }
 

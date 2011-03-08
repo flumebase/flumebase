@@ -42,8 +42,16 @@ public class BinExpr extends Expr {
     return mLeftExpr;
   }
 
+  public void setLeftExpr(Expr left) {
+    mLeftExpr = left;
+  }
+
   public Expr getRightExpr() {
     return mRightExpr;
+  }
+
+  public void setRightExpr(Expr right) {
+    mRightExpr = right;
   }
 
   @Override
