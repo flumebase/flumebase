@@ -6,7 +6,11 @@ User Guide:
 
 Release blockers:
 
-  Write COMPILING.txt
+  Test COMPILING.txt instructions.
+
+  pom.xml: should flume, hadoop dependencies be bundled? or should
+  these be marked as 'provided' ? If the latter, our bin/rtsql script
+  should ensure they're put on the classpath...
 
   The following causes a crash:
     SELECT COUNT(*) FROM foo OVER mywin
@@ -14,6 +18,12 @@ Release blockers:
 
   Change copyright notice at top of all files to mimic Apache / sqoop headers.
 
+
+Types:
+  -- BIGINT should really be LONG. We should have a proper BIGINT type that
+     is actuall a BigInteger. We should also have BIGNUM that uses BigDecimal.
+  -- Add CHARACTER type which is a single char.
+  -- need List<T>, Map<T1, T2> types
 
 Aggregation:
 
@@ -139,7 +149,7 @@ Features:
   - Need ability to run remote physical plan on a set of configured nodes.
 
   - EventParser names/implementations should be accessed through the BuiltInSymbolTable.
-  - Need a MapFunc API to allow 1-to-many transformations.
+  - Need a MapFunc API to allow 1-to-many transformations, and LATERAL VIEW syntax.
 
   - Should be able to CREATE STREAM AS FILE and then specify the file format. Right now
     we can't practically use avro data in files, because we parse the file itself as

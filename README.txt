@@ -8,11 +8,23 @@ data delivered by Flume.
 rtsql will easily connect to existing Flume sources and allows users
 to write SQL-based queries over these streaming data sets.
 
+
+    *************************************************************
+    *                         DISCLAIMER                        *
+    *                                                           *
+    * rtsql is an EXPERIMENTAL system! This is in no way ready  *
+    * for production use. Use this AT YOUR OWN RISK. Connecting *
+    * this system to production Flume nodes may result in data  *
+    * loss, misconfiguration, or other serious problems.        *
+    *                                                           *
+    *************************************************************
+
+
 More documentation (in particular, a user guide explaining how to
 configure rtsql, and the rtsql language) is available in the docs/
 directory.
 
-See the COMPILING.txt for information on how to compile rtsql from
+See the COMPILING.txt file for information on how to compile rtsql from
 source.  rtsql is licensed to you under the terms of the Apache
 Software License version 2.0. See the LICENSE.txt and NOTICE.txt files
 for more specific information about this license.

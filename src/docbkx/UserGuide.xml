@@ -4,21 +4,289 @@
   <section>
     <title>Introduction</title>
     <para>rtsql is a stream processing system built on top of
-      <productname>Flume</productname>. TODO: Rest of this section.
+      <productname>Flume</productname>. This system allows users to
+      dynamically insert queries into a data collection environment and
+      inspect the stream of events being collected by Flume. These
+      queries may spot-check incoming data, or specify persistent 
+      monitoring, data transformation, or quality filtering tasks.
+    </para>
+    <para>
+      rtsql can present data back to users of an interactive shell environment.
+      It can also be configured to deliver streams of output events back into a
+      Flume network, for consumption by other tools or persistance in HBase, HDFS,
+      or other storage media.
+    </para>
+    <para>
+      The emphasis of this system is on low-latency analysis of
+      incoming data being captured by Flume. The name "rtsql"
+      underscores the real-time nature of the query system, as well as
+      the SQL-based origin of the query language syntax. It is hoped
+      that rtsql will allow you to perform useful in-line data
+      transformation or filtering, or time-sensitive alerting or
+      tuning of a broader system, before subjecting the data being
+      captured by <productname>Flume</productname> to a deeper (but
+      perhaps higher-latency) analysis with other tools such as
+      <productname>Hadoop MapReduce</productname>.
+    </para>
+    <admonition type="warn">
+      <para>TODO: make this look urgent.</para>
+      <para>
+        rtsql is an EXPERIMENTAL system! This is in no way ready
+        for production use. Use this AT YOUR OWN RISK. Connecting
+        this system to production Flume nodes may result in data
+        loss, misconfiguration, or other serious problems.
+      </para>
+    </admonition>
+    <para>
+      This document explains how to install and configure the rtsql
+      program. It then explains the rtsql language, used to submit
+      queries to the runtime environment, and the commands used to
+      control the terminal client itself. This document is intended
+      for:
+      <orderedlist>
+        <listitem>TODO: Bulleted list, not ordered</listitem>
+        <listitem>System administrators</listitem>
+        <listitem>Data analysts</listitem>
+        <listitem>Data engineers</listitem>
+      </orderedlist>
     </para>
   </section>
   <section>
     <title>Installation</title>
-    <para>TODO: This.</para>
+    <section>
+      <title>Prerequisites</title>
+
+      <para>
+        rtsql requires a few prerequisites before it can be run on your machine:
+      </para>
+      <orderedlist>
+        <listitem><productname>Hadoop</productname> 0.20</listitem>
+        <listitem><productname>Flume</productname> 0.9.3</listitem>
+      </orderedlist>
+      <para>
+        Both prerequisites can be installed from <productname>Cloudera's
+        Distribution for Hadoop</productname>, version 3-beta-4 (CDH3b4) or
+        newer. See http://archive.cloudera.com (TODO: link this) for instructions on downloading
+        and installing <productname>Cloudera's Distribution for
+        Hadoop</productname>.
+      </para>
+      <para>
+        While rtsql is written in <productname>Java</productname> and thus
+        should be portable across a wide variety of operating systems, testing
+        has only been performed under a Linux environment. It is likely to work
+        under cygwin and OS X as well, but no guarantees are made.
+      </para>
+      <para>
+        The following prerequisite knowledge is required to understand
+        this documentation:
+        <orderedlist>
+          <listitem>TODO: bulletpoints</listitem>
+          <listitem>Basic computer technology and terminology</listitem>
+          <listitem>Familiarity with command-line interfaces such as
+              <literal>bash</literal></listitem>
+          <listitem>Prior understanding of Flume's operation and purpose</listitem>
+          <listitem>Prior exposure to SQL is recommended</listitem>
+        </orderedlist>
+      </para>
+    </section>
+    <section>
+      <title>Program installation</title>
+      <para>
+        rtsql itself is distributed as a tar file. Install rtsql by unzipping
+        the tar file:
+        <screen>
+$ <userinput>tar vzxf rtsql-(version).tar.gz</userinput>      
+        </screen>
+      </para>
+      <para>
+        This will expand to a directory called
+        <filename>rtsql-(version)/</filename>.
+      </para>
+    </section>
   </section>
   <section>
     <title>Configuration</title>
-    <para>TODO: This.</para>
+    <para>
+      By default, rtsql is configured to run in a single process
+      combining both the interactive shell, and the execution engine.
+      Terminating the shell will also terminate the execution
+      environment, including all running queries. This is most useful
+      for evaluating rtsql.  For more serious use, the execution
+      environment should be run in a persistent process on a server.
+      Clients should be configured to connect to this server, or users
+      should be instructed to explicitly do so.
+     </para>
+     <para>
+       To enable zero-configuration evaluation of rtsql, the rtsql
+       process will also host an embedded Flume master node. To
+       interact with existing streaming data sources, this should also
+       be reconfigured to point to an existing Flume deployment.
+    </para>
+
+    <section>
+      <title>Server configuration</title>
+      <para>
+        Install rtsql on a server where the query execution engine should
+        be run. Then edit the <filename>etc/rtengine-site.xml</filename> file
+        to contain the following values:
+      </para>
+      <table>
+        <caption>Configuration settings for rtsql servers.</caption>
+        <thead>
+          <tr><td>Property</td><td>Value</td></tr>
+        </thead>
+        <tbody>
+          <tr><td><constant>flume.home</constant></td>
+            <td>The path to $FLUME_HOME on your server.</td></tr>
+          <tr><td><constant>rtengine.remote.port</constant></td>
+            <td>The port where the rtsql server listens for clients.</td></tr>
+          <tr><td><constant>embedded.flume.master</constant></td>
+            <td>This should be set to <constant>false</constant> if a Flume
+            master is available. A value of <constant>true</constant> means
+            that the rtsql environment acts as its own Flume master, separate
+            from an existing Flume network.</td></tr>
+          <tr><td><constant>rtengine.flume.master.host</constant></td>
+            <td>The hostname of the foreign Flume master to connect to.</td></tr>
+          <tr><td><constant>rtengine.flume.master.port</constant></td>
+            <td>The port the foreign Flume master listens on.</td></tr>
+          <tr><td><constant>rtengine.flume.collector.port.min/max</constant></td>
+            <td>rtsql uses Flume collectors to receive data from the broader
+            Flume network. set <constant>...port.min</constant> and
+            <constant>...port.max</constant> to the range of ports on the
+            rtsql server which the rtsql daemon may use for this purpose.</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section>
+      <title>Client configuration</title>
+      <para>
+        Install a copy of rtsql on every client machine where users intend to
+        submit queries to the rtsql system. The client must be able to open a
+        TCP connection to the rtsql server. In order to view output events on
+        the rtsql console, the server must be able to open a TCP connection
+        back to the client.
+      </para>
+      <para>
+        Set the following settings in <filename>etc/rtengine-site.xml</filename>
+        on the client machine:
+      </para>
+      <table>
+        <caption>Configuration settings for rtsql clients.</caption>
+        <thead>
+          <tr><td>Property</td><td>Value</td></tr>
+        </thead>
+        <tbody>
+          <tr><td><constant>flume.home</constant></td>
+            <td>The path to $FLUME_HOME on the client.</td></tr>
+          <tr><td><constant>rtengine.autoconnect</constant></td>
+            <td>The host:port of the rtsql server to connect to. If set
+            to <constant>local</constant>, this will use an in-process server.
+            If set to <constant>none</constant>, the user must explicitly open
+            a server connection with <userinput>\open</userinput> in the
+            console.</td></tr>
+          <tr><td><constant>rtengine.flow.autowatch</constant></td>
+            <td>Defaults to <constant>true</constant>; this boolean property
+            specifies whether you want every query to automatically send its
+            output to the console when submitted. If false, you must explicitly
+            watch flow output with the <userinput>\watch</userinput> command.
+            </td></tr>
+          <tr><td><constant>rtengine.console.port</constant></td>
+            <td>rtsql uses a Thrift RPC connection to relay query output back to
+            the client. The client listens on the port specified by this
+            property.</td></tr>
+        </tbody>
+      </table>
+    </section>
   </section>
   <section>
     <title>Architecture</title>
-    <para>TODO: explain rtsql client / server model, and relationship to flume.
-    talk about persistent queries, flume outputs, etc. Define a “flow” here.
+    <para>
+      The rtsql system is composed of a command-line client, a server called
+      the "execution environment," and the Flume system that collects and
+      transports data. These may be configured as separate, distributed
+      processes, or collocated on a single machine, or in a single process.
+    </para>
+    <para>
+      The command-line client is the simplest component in the product. This
+      process is run directly by a user (perhaps on a server, but more
+      often her own desktop or laptop). This connects to the execution
+      environment. The client provides the user with a prompt, where new
+      queries or control statements may be entered.</para>
+    <para>
+      Each query (i.e., <literal>SELECT</literal> statement) produces a
+      <emphasis>flow</emphasis> in the execution environment. The user may
+      subscribe to running flows (this is done automatically for new flows
+      created by the user). When a subscribed flow emits an output event, its
+      text is printed to the client terminal.
+    </para>
+    <para>
+      Closing the client does not terminate any submitted flows. These are
+      running in the <emphasis>execution environment</emphasis>, a separate
+      long-lived process which may be shared by multiple users. An execution
+      environment holds the definitions of all streams (created by
+      <literal>CREATE STREAM</literal> statements), and processes the running flows. The
+      execution environment is typically run on a dedicated server. For
+      evaluation purposes, it may also be hosted inside the same process as a
+      command-line client. (When the execution environment is embedded
+      in the client, terminating the client will terminate all running
+      flows, and discard knowledge of any streams.)
+    </para>
+    <para>
+      Submitted queries (flows) allow computation over
+      <emphasis>streams</emphasis> of data. Streams are defined as a set of
+      <emphasis>events</emphasis>, which are roughly analogous to "records" in a
+      table-based SQL environment. These events are directly linked to "events"
+      in Flume. Users define streams before querying them; these definitions
+      specify the fields within each event, how to parse the event body into the
+      fields, and where the stream originates. Each flow is itself a stream;
+      its output is also a series of events, based on the computations specified
+      by the user and the set of input events the flow operates over.
+    </para>
+    <para>
+      By default, queries submitted by users result in anonymous flows, which
+      deliver their outputs only to the subscribed client instances. These flows
+      continue to operate while no users are subscribed, but output events
+      generated when no users are subscribed are simply dropped (there is no way
+      to retrieve them later).
+    </para>
+    <para>
+      Users can bind a name to a running flow (or do so when submitting a flow
+      with the <literal>CREATE STREAM AS SELECT</literal> syntax). This name is
+      used as the name for a Flume logical node, which broadcasts the output of the
+      flow as a set of Avro-encoded events. Users may then use the Flume shell
+      to configure this logical node to direct a copy of its output to a
+      monitoring application, persistent storage (such as HDFS), or elsewhere.
+      <xref linkend="create.as.select" /> describes the <literal>CREATE STREAM
+      AS SELECT</literal> syntax and its effects in greater detail.  <xref
+      linkend="controlling.flows" /> describes how to manipulate flow names.
+    </para>
+    <para>
+      rtsql reads from a Flume network by modifying the sink
+      definitions of nodes specified with <literal>CREATE
+      STREAM</literal> statements. When a logical node is identified
+      as a stream source, its sink definition is rewritten as a
+      fan-out sink containing its original sink, and a new agent sink
+      which forwards the node's output to a collector source hosted
+      within the rtsql execution environment. (The rtsql execution
+      environment will host an embedded Flume physical node, which
+      then hosts logical nodes as necessary to receive and transmit
+      streams of events.) When a stream is gracefully dropped (by
+      using <userinput>DROP STREAM</userinput> to drop the stream, or
+      <userinput>\shutdown!</userinput> to shutdown the execution
+      environment), the original logical node definition is restored
+      to the logical node which provided the data stream. 
+    </para>
+    <para>
+      Interaction between an rtsql execution environment and Flume is performed
+      via the Flume master node's thrift interface. The physical node hosted
+      within an execution environment is controlled by the Flume master node,
+      and is for all intents and purposes, an ordinary Flume node. For this
+      reason, flows may take a few seconds to initialize (or cancel), as they
+      are dependent on Flume for aspects of their configuration. Once
+      initialized, flows should operate on events with low latency. If no
+      external Flume network is available, you can configure the Flume execution
+      environment to host an embedded Flume master node, for evaluation or
+      single-machine computation purposes.
     </para>
   </section>
   <section id="rtsql.language">
@@ -69,7 +337,15 @@ CREATE STREAM <userinput>stream_name</userinput> (<userinput>col_name</userinput
     [EVENT FORMAT format_spec [PROPERTIES (key = val, …)]]
 
 CREATE STREAM <userinput>stream_name</userinput> AS select_statement
+
+data_type ::= BOOLEAN | BIGINT | INT | FLOAT | DOUBLE | STRING | TIMESTAMP 
+format_spec ::= 'delimited' | 'avro'
         </programlisting>
+
+        <para>
+          <xref linkend="types" /> describes the rtsql data types in greater
+          detail.
+        </para>
 
         <para>
           <literal>input_spec</literal> is a
@@ -77,11 +353,6 @@ CREATE STREAM <userinput>stream_name</userinput> AS select_statement
           Flume logical node / Flume source specification to use as the input
           for this stream.
         </para>
-
-        <programlisting>
-data_type ::= BOOLEAN | BIGINT | INT | FLOAT | DOUBLE | STRING | TIMESTAMP 
-format_spec ::= 'delimited' | 'avro'
-        </programlisting>
 
         <para>
           File names are Hadoop <classname>Path</classname> objects; they may
@@ -140,18 +411,21 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
           and values are both single-quoted strings.
         </para>
 
-        <para>
-          When reading a stream from a file, there is no Flume timestamp to
-          associate with each event. By default, rtsql will associate the
-          current system timestamp as it reads each line of the file with the
-          event generated for that line. This can be overridden by specifying
-          the <constant>timestamp.col</constant> property in the
-          <literal>PROPERTIES</literal> section of the <literal>CREATE
-          STREAM</literal> statement. The <constant>timestamp.col</constant>
-          must refer to a column of type <type>TIMESTAMP</type>. If the
-          timestamp value for an event is null, the current system timestamp
-          will be used instead.
-        </para>
+        <section id="stream.timestamp.col">
+          <title>Designated timestamp columns</title>
+          <para>
+            When reading a stream from a file, there is no Flume timestamp to
+            associate with each event. By default, rtsql will associate the
+            current system timestamp as it reads each line of the file with the
+            event generated for that line. This can be overridden by specifying
+            the <constant>timestamp.col</constant> property in the
+            <literal>PROPERTIES</literal> section of the <literal>CREATE
+            STREAM</literal> statement. The <constant>timestamp.col</constant>
+            must refer to a column of type <type>TIMESTAMP</type>. If the
+            timestamp value for an event is null, the current system timestamp
+            will be used instead.
+          </para>
+        </section>
 
         <section>
           <title>Delimited events</title>
@@ -197,6 +471,27 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
             (<type>STRING</type>, <type>BIGINT</type>, etc.).
           </para>
         </section>
+        <section id="create.as.select">
+          <title><literal>CREATE STREAM AS SELECT</literal></title>
+          <para>
+            One of the most powerful uses of rtsql is as an inline processor of
+            Flume events. The output of an rtsql flow can be used as a Flume
+            source for further downstream processing or data collection. Named
+            streams, defined by <literal>CREATE STREAM AS SELECT</literal> will
+            cause the rtsql execution environment to host a Flume logical node
+            with the same name as the stream name. This logical node will
+            deliver to its sink all output events of the flow. The events will
+            be in binary-encoded Avro format; a record with the same name as the
+            stream, with field names equal to the display names of each select
+            expression.
+          </para>
+          <para>
+            By default, the <literal>null</literal> sink is used for the logical
+            node created by this syntax. You should use the Flume shell to
+            reconfigure the logical node to deliver this output to other
+            required sinks.
+          </para>
+        </section>
       </section>
       <section>
         <title><literal>DROP STREAM</literal></title>
@@ -207,6 +502,13 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
         <programlisting>
 DROP STREAM <userinput>stream_name</userinput>
         </programlisting>
+        <para>
+          When dropping a stream created in terms of a flow (<literal>CREATE
+          STREAM AS SELECT</literal>), this will decommission the Flume logical
+          node and drop the stream identifier, but will not cancel the flow
+          itself. See <xref linkend="controlling.flows" /> for more information
+          on how to cancel the flow itself.
+        </para>
       </section>
       <section>
         <title><literal>SHOW STREAMS</literal></title>
@@ -702,6 +1004,113 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
         </para>
       </section>
     </section>
+    <section id="types">
+      <title>Data types and value ranges</title>
+      <para>
+        Several data types are defined which can hold values of differing
+        ranges. These column types do not follow ANSI SQL names; they are
+        stored in underlying Java types and have the following ranges:
+      </para>
+      <table><caption>rtsql Types and Ranges</caption>
+        <thead>
+          <tr><td>rtsql type</td><td>Underlying Java type</td><td>Range</td></tr>
+        </thead>
+        <tbody>
+          <tr><td>BOOLEAN</td><td>Boolean</td><td><constant>true</constant>,
+            <constant>false</constant></td></tr>
+          <tr><td>BIGINT</td><td>Long</td><td>
+            [<constant>-2<superscript>63</superscript></constant>,
+            <constant>2<superscript>63</superscript>-1</constant>]</td></tr>
+          <tr><td>INT</td><td>Integer</td><td>
+            [<constant>-2<superscript>31</superscript></constant>,
+            <constant>2<superscript>31</superscript>-1</constant>]</td></tr>
+          <tr><td>FLOAT</td><td>Float</td><td>
+            TODO: float range</td></tr>
+          <tr><td>DOUBLE</td><td>Double</td><td>
+            TODO: double range</td></tr>
+          <tr><td>STRING</td><td>String</td><td>
+            A UTF-8-encoded string</td></tr>
+          <tr><td>TIMESTAMP</td><td>(internal)</td><td>
+            (See <xref linkend="types.timestamp" />)</td></tr>
+        </tbody>
+      </table>
+      <para>
+        Like all keywords in rtsql, type names are case-insensitive.
+      </para>
+
+      <section>
+        <title>Integral types</title>
+        <para>
+          The <type>BIGINT</type> and <type>INT</type> types store integer
+          values in 64- and 32-bit values, accordingly. The text representation
+          of these values (e.g., in the delimited event format) is a base-10
+          integer.
+        </para>
+      </section>
+
+      <section>
+        <title>The BOOLEAN type</title>
+        <para>
+          The <type>BOOLEAN</type> type holds true/false values only. It
+          cannot be coerced to or from an integer type. The text
+          representation of these values are the UTF-8 strings
+          <constant>true</constant> and <constant>false</constant>.
+        </para>
+      </section>
+
+      <section>
+        <title>Floating-point types</title>
+        <para>
+          The <type>FLOAT</type> and <type>DOUBLE</type> types hold
+          floating-point values. Operations on floating-point values
+          may be imprecise, subject to the constraints of the IEEE
+          floating-point format standard. All string values parsed by
+          <function>java.lang.Float.valueOf()</function> and
+          <function>java.lang.Double.valueOf()</function> may be
+          used as the text representation of these values.
+        </para>
+      </section>
+      
+      <section>
+        <title>The STRING type</title>
+        <para>
+          The <type>STRING</type> type will hold a UTF-8 encoded character
+          string of arbitrary length. (Events in Flume have a maximum length,
+          which defaults to 32 KB. The contents of all columns together in an
+          event is subject to this limit.)
+        </para>
+        <para>
+          The empty string is a legal value in rtsql. In delimited events, a
+          <constant>NULL</constant> string is denoted by a configurable escape
+          sequence which defaults to the two characters <constant>\N</constant>.
+          Delimited events may not contain the delimiter character itself; the
+          ability to escape these characters is future work.
+        </para>
+      </section>
+      
+      <section id="types.timestamp">
+        <title>The TIMESTAMP type</title>
+        <para>
+          rtsql employs a notion of a <type>TIMESTAMP</type> distinct from other
+          numerical values. A <type>TIMESTAMP</type> contains two fields; a
+          milliseconds part, and a nanoseconds part. The milliseconds part holds
+          the number of milliseconds since the UNIX epoch (00:00:00 UTC, Jan 1,
+          1970). The nanoseconds part holds the number of nanoseconds after the
+          specified millisecond and should not exceed 1,000,000.
+        </para>
+        <para>
+          Despite this internal precision, the delimited event format parses
+          timestamps as a single 64-bit base-10 integer corresponding to the
+          milliseconds part, and the nanoseconds part is <constant>0</constant>.
+          Furthermore, rtsql's internal notion of time and event-ordering works
+          only at the granularity of milliseconds. The Avro event format allows
+          the nanoseconds part to be specified. Even in this case, a column
+          specified by <constant>timestamp.col</constant> (see
+          <xref linkend="stream.timestamp.col" />) will associate only the
+          milliseconds part of a timestamp with the event itself.
+        </para>
+      </section>
+    </section>
   </section>
   <section>
     <title>The rtsql shell</title>
@@ -843,7 +1252,7 @@ rtsql&gt; <userinput>\w 3</userinput>
       </para>
 
     </section>
-    <section>
+    <section id="controlling.flows">
       <title>Controlling flows</title>
       <para>
         You can cancel a flow entirely with with the <literal>\d</literal> and

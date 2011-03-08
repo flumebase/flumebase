@@ -1,0 +1,71 @@
+
+
+                  How to compile rtsql
+
+
+rtsql is a Java application with a maven-based build process.
+
+BUILD SYSTEM REQUIREMENTS:
+  * Maven 2.0+
+  * Java 1.6+
+  * git
+  * Linux, or other POSIX-like environment (e.g. cygwin)
+
+
+INSTALLING PREREQUISITES:
+
+The following prerequisite tools must be installed prior to building
+rtsql:
+
+  * Apache Thrift compiler 0.5.0
+  * maven-thrift-plugin 0.1.10
+
+
+  Installing Apache Thrift:
+
+Apache Thrift can be downloaded from http://incubator.apache.org/thrift.
+Download the 0.5.0 release of Thrift, untar it, and build it with
+./configure && make && sudo make install.
+
+Correct installation can be verified with the following commands:
+
+  aaron@sailboat:~$ which thrift
+  /usr/local/bin/thrift
+  aaron@sailboat:~$ thrift -version
+  Thrift version 0.5.0
+
+
+  Installing the maven-thrift-plugin:
+
+To integrate thrift in the Maven build, a specific plugin must be
+downloaded from github.com/odiago/maven-thrift-plugin. Clone the
+repository (git clone http://github.com/odiago/maven-thrift-plugin)
+and run:
+
+  cd path/to/maven-thrift-plugin
+  git checkout maven-thrift-plugin-0.1.10
+  mvn package
+  mvn install:install-file -Dfile=target/maven-thrift-plugin-0.1.10.jar \
+      -DpomFile=./pom.xml -Dpackaging=maven-plugin -Dversion=0.1.10
+
+
+
+BUILDING RTSQL:
+
+Finally, build rtsql itself by changing to the rtsql source directory (the
+directory containing this COMPILING.txt file) and running:
+
+  mvn package
+
+Unit tests can be executed by running:
+
+  mvn test
+
+More thorough (longer-running) integration tests are available at:
+
+  mvn integration-test
+
+The rtsql shell can be run with:
+
+  bin/rtsql shell
+
