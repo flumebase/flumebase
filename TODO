@@ -5,8 +5,6 @@ Release blockers:
 
   Test COMPILING.txt instructions.
 
-  Finish TODO entries in user guide.
-
   pom.xml: should flume, hadoop dependencies be bundled? or should
   these be marked as 'provided' ? If the latter, our bin/rtsql script
   should ensure they're put on the classpath...

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>  
-<article xmlns="http://docbook.org/ns/docbook" version="4.5" xml:lang="en">  
+<article xmlns="http://docbook.org/ns/docbook" version="4.5" xml:lang="en"
+    xmlns:xlink="http://www.w3.org/1999/xlink">
   <title>rtsql User Guide</title>  
   <section>
     <title>Introduction</title>
@@ -28,27 +29,25 @@
       perhaps higher-latency) analysis with other tools such as
       <productname>Hadoop MapReduce</productname>.
     </para>
-    <admonition type="warn">
-      <para>TODO: make this look urgent.</para>
+    <warning>
       <para>
         rtsql is an EXPERIMENTAL system! This is in no way ready
         for production use. Use this AT YOUR OWN RISK. Connecting
         this system to production Flume nodes may result in data
         loss, misconfiguration, or other serious problems.
       </para>
-    </admonition>
+    </warning>
     <para>
       This document explains how to install and configure the rtsql
       program. It then explains the rtsql language, used to submit
       queries to the runtime environment, and the commands used to
       control the terminal client itself. This document is intended
       for:
-      <orderedlist>
-        <listitem>TODO: Bulleted list, not ordered</listitem>
+      <itemizedlist>
         <listitem>System administrators</listitem>
         <listitem>Data analysts</listitem>
         <listitem>Data engineers</listitem>
-      </orderedlist>
+      </itemizedlist>
     </para>
   </section>
   <section>
@@ -59,16 +58,17 @@
       <para>
         rtsql requires a few prerequisites before it can be run on your machine:
       </para>
-      <orderedlist>
+      <itemizedlist>
         <listitem><productname>Hadoop</productname> 0.20</listitem>
         <listitem><productname>Flume</productname> 0.9.3</listitem>
-      </orderedlist>
+      </itemizedlist>
       <para>
         Both prerequisites can be installed from <productname>Cloudera's
         Distribution for Hadoop</productname>, version 3-beta-4 (CDH3b4) or
-        newer. See http://archive.cloudera.com (TODO: link this) for instructions on downloading
-        and installing <productname>Cloudera's Distribution for
-        Hadoop</productname>.
+        newer. See
+        <link xlink:href="http://archive.cloudera.com">http://archive.cloudera.com</link>
+        for instructions on downloading and installing <productname>Cloudera's
+        Distribution for Hadoop</productname>.
       </para>
       <para>
         While rtsql is written in <productname>Java</productname> and thus
@@ -79,14 +79,13 @@
       <para>
         The following prerequisite knowledge is required to understand
         this documentation:
-        <orderedlist>
-          <listitem>TODO: bulletpoints</listitem>
+        <itemizedlist>
           <listitem>Basic computer technology and terminology</listitem>
           <listitem>Familiarity with command-line interfaces such as
               <literal>bash</literal></listitem>
           <listitem>Prior understanding of Flume's operation and purpose</listitem>
           <listitem>Prior exposure to SQL is recommended</listitem>
-        </orderedlist>
+        </itemizedlist>
       </para>
     </section>
     <section>
@@ -1025,9 +1024,15 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
             [<constant>-2<superscript>31</superscript></constant>,
             <constant>2<superscript>31</superscript>-1</constant>]</td></tr>
           <tr><td>FLOAT</td><td>Float</td><td>
-            TODO: float range</td></tr>
+            [2<superscript>-149</superscript>,
+            (2-2<superscript>-23</superscript>)*2<superscript>127</superscript>]
+            (positive or negative)
+            </td></tr>
           <tr><td>DOUBLE</td><td>Double</td><td>
-            TODO: double range</td></tr>
+            [2<superscript>-1074</superscript>,
+            (2-2<superscript>-52</superscript>)*2<superscript>1023</superscript>]
+            (positive or negative)
+            </td></tr>
           <tr><td>STRING</td><td>String</td><td>
             A UTF-8-encoded string</td></tr>
           <tr><td>TIMESTAMP</td><td>(internal)</td><td>
