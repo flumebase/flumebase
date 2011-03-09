@@ -59,11 +59,18 @@
         rtsql requires a few prerequisites before it can be run on your machine:
       </para>
       <itemizedlist>
+        <listitem><productname>Java</productname> 6.0</listitem>
         <listitem><productname>Hadoop</productname> 0.20</listitem>
         <listitem><productname>Flume</productname> 0.9.3</listitem>
       </itemizedlist>
       <para>
-        Both prerequisites can be installed from <productname>Cloudera's
+        Java can be obtained from <link
+        xlink:href="http://www.oracle.com/technetwork/java/index.html">http://www.oracle.com/technetwork/java/index.html</link>.
+        The Java 6.0 SE JRE (or JDK) is required. Java downloads and installation
+        instructions can be found on Oracle's web site.
+      </para>
+      <para>
+        Both other prerequisites can be installed from <productname>Cloudera's
         Distribution for Hadoop</productname>, version 3-beta-4 (CDH3b4) or
         newer. See
         <link xlink:href="http://archive.cloudera.com">http://archive.cloudera.com</link>
