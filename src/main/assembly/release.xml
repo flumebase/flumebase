@@ -1,0 +1,75 @@
+<!--
+   (c) Copyright 2011 Odiago, Inc.
+
+   Assembly configuration for the release bundle.
+  -->
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+  <id>release</id>
+  <formats>
+    <format>tar.gz</format>
+  </formats>
+  <includeBaseDirectory>true</includeBaseDirectory>
+  <baseDirectory>${project.build.finalName}-${project.version}</baseDirectory>
+  <fileSets>
+    <fileSet>
+      <directory>${project.basedir}</directory>
+      <outputDirectory>/</outputDirectory>
+      <includes>
+        <include>*.txt</include>
+        <include>TODO</include>
+        <include>pom.xml</include>
+      </includes>
+      <excludes>
+        <exclude>TAGS</exclude>
+        <exclude>lib</exclude>
+        <exclude>docs</exclude>
+      </excludes>
+      <fileMode>0644</fileMode>
+    </fileSet>
+    <fileSet>
+      <directory>${project.basedir}/bin</directory>
+      <outputDirectory>/bin</outputDirectory>
+      <fileMode>0755</fileMode>
+    </fileSet>
+    <fileSet>
+      <directory>${project.basedir}/etc</directory>
+      <outputDirectory>/etc</outputDirectory>
+      <fileMode>0644</fileMode>
+      <excludes>
+        <exclude>rtengine-site.xml</exclude>
+      </excludes>
+    </fileSet>
+    <fileSet>
+      <directory>${project.build.sourceDirectory}</directory>
+      <outputDirectory>/src</outputDirectory>
+      <useDefaultExcludes>true</useDefaultExcludes>
+    </fileSet>
+    <fileSet>
+      <!-- Add documentation to docs/ directory -->
+      <directory>${docbook.target.dir}</directory>
+      <outputDirectory>/docs</outputDirectory>
+      <useDefaultExcludes>true</useDefaultExcludes>
+      <fileMode>0644</fileMode>
+    </fileSet>
+  </fileSets>
+  <files>
+    <file>
+      <!-- rtengine-site.xml.template is copied as rtengine-site.xml too. -->
+      <source>${project.basedir}/etc/rtengine-site.xml.template</source>
+      <outputDirectory>/etc</outputDirectory>
+      <destName>rtengine-site.xml</destName>
+      <fileMode>0644</fileMode>
+    </file>
+  </files>
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>lib</outputDirectory>
+      <scope>runtime</scope>
+      <useProjectArtifact>true</useProjectArtifact>
+      <useTransitiveFiltering>true</useTransitiveFiltering>
+      <fileMode>0644</fileMode>
+    </dependencySet>
+  </dependencySets>
+</assembly>

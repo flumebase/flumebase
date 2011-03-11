@@ -7,6 +7,9 @@
   <url>http://www.odiago.com</url>
   <packaging>jar</packaging>
   <version>1.0.0-SNAPSHOT</version>
+  <properties>
+    <docbook.target.dir>${project.build.directory}/docbkx/html</docbook.target.dir>
+  </properties>
   <build>
     <finalName>rtengine</finalName>
     <plugins>
@@ -127,7 +130,7 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>  
+      <plugin>
         <groupId>com.agilejava.docbkx</groupId>  
         <artifactId>docbkx-maven-plugin</artifactId>  
         <dependencies>  
@@ -142,10 +145,19 @@
           <sectionAutolabel>1</sectionAutolabel>
           <tocSectionDepth>3</tocSectionDepth>
           <generateHtmlTitle>0</generateHtmlTitle>
+          <targetDirectory>${docbook.target.dir}</targetDirectory>
         </configuration>
         
         <executions>  
           <execution>
+            <id>package</id>
+            <phase>package</phase>  
+            <goals>  
+              <goal>generate-html</goal>  
+            </goals>  
+          </execution>  
+          <execution>
+            <id>pre-site</id>
             <phase>pre-site</phase>  
             <goals>  
               <goal>generate-html</goal>  
@@ -160,6 +172,25 @@
           <configuration>
             <includeScope>runtime</includeScope>
           </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.2.1</version>
+        <configuration>
+          <descriptors>
+            <descriptor>src/main/assembly/release.xml</descriptor>
+          </descriptors>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

@@ -1,7 +1,5 @@
 
 Release blockers:
-  Test COMPILING.txt instructions.
-
   Change copyright notice at top of all files to mimic Apache / sqoop headers.
 
 
