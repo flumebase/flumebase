@@ -17,6 +17,7 @@ function usage() {
   echo "Commands include:"
   echo "  shell     Start the rtsql shell"
   echo "  server    Start a server to run background queries"
+  echo "  version   Print rtsql version information and exit"
 }
 
 # Format: rtsql <command> [args...]
@@ -29,6 +30,8 @@ elif [ "$action" == "shell" ]; then
   RTENGINE_MAIN_CLASS=com.odiago.rtengine.client.CmdLineClient
 elif [ "$action" == "server" ]; then
   RTENGINE_MAIN_CLASS=com.odiago.rtengine.server.ServerMain
+elif [ "$action" == "version" ]; then
+  RTENGINE_MAIN_CLASS=com.odiago.rtengine.util.VersionInfo
 else
   echo "Invalid command: $action"
   usage

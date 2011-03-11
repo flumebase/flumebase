@@ -26,6 +26,7 @@ import com.odiago.rtengine.server.SessionId;
 import com.odiago.rtengine.util.AppUtils;
 import com.odiago.rtengine.util.QuitException;
 import com.odiago.rtengine.util.StringUtils;
+import com.odiago.rtengine.util.VersionInfo;
 
 import jline.ConsoleReader;
 
@@ -33,8 +34,6 @@ import jline.ConsoleReader;
  * Client frontend to rtengine system.
  */
 public class CmdLineClient {
-  private static final String VERSION_STRING = "rtengine 1.0.0 / rtsql for Flume";
-
   private static final Logger LOG = LoggerFactory.getLogger(
       CmdLineClient.class.getName());
 
@@ -75,7 +74,7 @@ public class CmdLineClient {
    * Print the version string to stdout.
    */
   private void printVersion() {
-    System.out.println(VERSION_STRING);
+    System.out.println("rtengine version " + VersionInfo.getVersionString());
   }
 
   /**
