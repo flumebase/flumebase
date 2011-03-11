@@ -9,6 +9,9 @@ LIB_DIR="${projectroot}/lib"
 MVN_TARGET_DIR="${projectroot}/target"
 MVN_BUILD_DEPS_DIR="${MVN_TARGET_DIR}/dependency"
 
+# CDH installation default
+FLUME_HOME=${FLUME_HOME:-/usr/lib/flume}
+
 function usage() {
   echo "Usage: rtsql <command> [args...]"
   echo "Commands include:"
@@ -71,10 +74,13 @@ fi
 add_to_classpath "${LIB_DIR}"
 add_to_classpath "${MVN_BUILD_DEPS_DIR}"
 
-# For now, put Flume on the classpath directly. Some day, this will be mvn-managed.
-# TODO(aaron): Remove this!!
+# Put Flume (and via this, Hadoop) directly on the classpath; we don't redistribute
+# Flume with rtsql; it's marked as a 'provided' dependency.
 if [ ! -z "${FLUME_HOME}" -a -d "${FLUME_HOME}/lib" ]; then
   add_to_classpath "${FLUME_HOME}/lib"
+else
+  echo "Warning: Couldn't find Flume installation. Make sure $$FLUME_HOME is set."
+  exit 1
 fi
 
 if [ -d "${MVN_TARGET_DIR}/classes" ]; then
@@ -95,7 +101,7 @@ if [ ! -e "${RTENGINE_JAR}" ]; then
   fi
 fi
 
-exec java -ea -cp "${RTENGINE_CLASSPATH}:${RTENGINE_JAR}" \
+exec java -cp "${RTENGINE_CLASSPATH}:${RTENGINE_JAR}" \
     -Drtengine.conf.dir="${RTENGINE_CONF_DIR}" \
     $RTENGINE_OPTS \
     "${RTENGINE_MAIN_CLASS}" "$@"

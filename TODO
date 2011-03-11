@@ -1,13 +1,6 @@
 
 Release blockers:
-  Disable -ea in bin/rtsql for normal users (make it easy to leave on for running
-  on my own development machine...)
-
   Test COMPILING.txt instructions.
-
-  pom.xml: should flume, hadoop dependencies be bundled? or should
-  these be marked as 'provided' ? If the latter, our bin/rtsql script
-  should ensure they're put on the classpath...
 
   Change copyright notice at top of all files to mimic Apache / sqoop headers.
 
