@@ -1,7 +1,7 @@
 #!/usr/bin/env thrift
 # (c) Copyright 2011 Odiago, Inc.
 
-namespace java com.odiago.rtengine.thrift
+namespace java com.odiago.flumebase.thrift
 
 /**
  * Thrift-serialized version of exec.FlowId.

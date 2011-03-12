@@ -1,6 +1,6 @@
 
 {
-  "namespace" : "com.odiago.rtengine.lang",
+  "namespace" : "com.odiago.flumebase.lang",
   "type"      : "record",
   "name"      : "TimeSpanBase",
   "fields"    : [
