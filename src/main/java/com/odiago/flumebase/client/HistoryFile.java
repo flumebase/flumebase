@@ -21,7 +21,7 @@ import jline.History;
 public class HistoryFile {
 
   /** Default filename to use for this if unspecified. */
-  private static final String DEFAULT_FILE_NAME = ".rtsql_history";
+  private static final String DEFAULT_FILE_NAME = ".flumebase_history";
 
   private String mFileName;
 

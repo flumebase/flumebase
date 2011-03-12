@@ -53,7 +53,7 @@ public class BucketedAggregationElement extends AvroOutputElementImpl {
       BucketedAggregationElement.class.getName());
 
   /** Configuration key for the number of buckets that subdivide the aggregation time interval. */
-  private static final String NUM_BUCKETS_KEY = "rtsql.aggregation.buckets";
+  private static final String NUM_BUCKETS_KEY = "flumebase.aggregation.buckets";
   private static final int DEFAULT_NUM_BUCKETS = 100;
 
   /**
@@ -62,14 +62,14 @@ public class BucketedAggregationElement extends AvroOutputElementImpl {
    * is available in that bucket; if false, only generate output when the input
    * condition changes.
    */
-  private static final String CONTINUOUS_OUTPUT_KEY = "rtsql.aggregation.continuous.output";
+  private static final String CONTINUOUS_OUTPUT_KEY = "flumebase.aggregation.continuous.output";
   private static final boolean DEFAULT_CONTINUOUS_OUTPUT = false;
 
   /**
    * Configuration key specifying the amount of slack time we tolerate between
    * events that should occur at the same time.
    */
-  public static final String SLACK_INTERVAL_KEY = "rtsql.slack.time";
+  public static final String SLACK_INTERVAL_KEY = "flumebase.slack.time";
   public static final int DEFAULT_SLACK_INTERVAL = 200;
 
   /**
@@ -79,7 +79,7 @@ public class BucketedAggregationElement extends AvroOutputElementImpl {
    * this many milliseconds old.
    */
   private static final String MAX_PRIOR_EMIT_INTERVAL_KEY =
-      "rtsql.aggregation.max.prior.interval";
+      "flumebase.aggregation.max.prior.interval";
   private static final long DEFAULT_MAX_PRIOR_EMIT_INTERVAL = 5000;
 
   /** The number of buckets that subdivide the aggregation time interval. */

@@ -12,7 +12,7 @@ public class SourceContext {
   private final String mContextName;
 
   /**
-   * Queue of events that will be populated by rtsql; these should be
+   * Queue of events that will be populated by flumebase; these should be
    * broadcast to Flume via the associated RtsqlSource.
    */
   private final BlockingQueue<Event> mEventQueue;

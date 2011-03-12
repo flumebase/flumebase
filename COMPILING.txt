@@ -1,9 +1,9 @@
 
 
-                  How to compile rtsql
+                  How to compile FlumeBase
 
 
-rtsql is a Java application with a maven-based build process.
+FlumeBase is a Java application with a maven-based build process.
 
 BUILD SYSTEM REQUIREMENTS:
   * Maven 2.0+
@@ -15,7 +15,7 @@ BUILD SYSTEM REQUIREMENTS:
 INSTALLING PREREQUISITES:
 
 The following prerequisite tools must be installed prior to building
-rtsql:
+FlumeBase:
 
   * Apache Thrift compiler 0.5.0
   * maven-thrift-plugin 0.1.10
@@ -50,10 +50,10 @@ and run:
 
 
 
-BUILDING RTSQL:
+BUILDING FLUMEBASE:
 
-Finally, build rtsql itself by changing to the rtsql source directory (the
-directory containing this COMPILING.txt file) and running:
+Finally, build FlumeBase itself by changing to the FlumeBase source directory
+(the directory containing this COMPILING.txt file) and running:
 
   mvn package
 
@@ -65,7 +65,7 @@ More thorough (longer-running) integration tests are available at:
 
   mvn integration-test
 
-The rtsql shell can be run with:
+The FlumeBase shell can be run with:
 
-  bin/rtsql shell
+  bin/flumebase shell
 

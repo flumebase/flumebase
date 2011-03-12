@@ -29,7 +29,7 @@ public class RtsqlSource extends EventSource.Base {
    */
   private SourceContext mSourceContext;
 
-  /** Queue of events being delivered by rtsql that we should emit as a source. */
+  /** Queue of events being delivered by flumebase that we should emit as a source. */
   private BlockingQueue<Event> mEventQueue;
 
 

@@ -37,16 +37,16 @@ public class SelectStmt extends RecordSource {
 
   /**
    * Configuration key that specifies how we should deliver output records of a
-   * top-level RTSQL statement to the client. If this is set to "$console," we
+   * top-level rtsql statement to the client. If this is set to "$console," we
    * print to the screen. Other strings cause us to allocate a list buffer that
    * can be retrieved later by the client.
    */
-  public static final String CLIENT_SELECT_TARGET_KEY = "rtsql.client.select.target";
+  public static final String CLIENT_SELECT_TARGET_KEY = "flumebase.client.select.target";
 
-  /** Special value for rtsql.client.select.target that prints to stdout. */
+  /** Special value for flumebase.client.select.target that prints to stdout. */
   public static final String CONSOLE_SELECT_TARGET = "$console";
 
-  /** The default for rtsql.client.select.target is to use the console. */
+  /** The default for flumebase.client.select.target is to use the console. */
   public static final String DEFAULT_CLIENT_SELECT_TARGET = CONSOLE_SELECT_TARGET;
 
   /** Set of fields or other expressions to select */
