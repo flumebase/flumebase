@@ -46,10 +46,10 @@ public class ForeignNodeConn {
   private static final Logger LOG = LoggerFactory.getLogger(
       ForeignNodeConn.class.getName());
 
-  public static final String LOCAL_COLLECTOR_MIN_PORT_KEY = "rtengine.flume.collector.port.min";
+  public static final String LOCAL_COLLECTOR_MIN_PORT_KEY = "flumebase.flume.collector.port.min";
   public static final int DEFAULT_MIN_COLLECTOR_PORT = 45000;
 
-  public static final String LOCAL_COLLECTOR_MAX_PORT_KEY = "rtengine.flume.collector.port.max";
+  public static final String LOCAL_COLLECTOR_MAX_PORT_KEY = "flumebase.flume.collector.port.max";
   public static final int DEFAULT_MAX_COLLECTOR_PORT = 46000;
 
   /**

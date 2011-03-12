@@ -11,7 +11,6 @@
     <docbook.target.dir>${project.build.directory}/docbkx/html</docbook.target.dir>
   </properties>
   <build>
-    <finalName>flumebase</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -30,7 +29,6 @@
           <execution>
             <goals>
               <goal>compile</goal>
-              <goal>testCompile</goal>
             </goals>
           </execution>
         </executions>
@@ -59,6 +57,14 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+          <encoding>UTF-8</encoding>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

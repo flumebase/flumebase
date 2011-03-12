@@ -31,20 +31,20 @@ import com.odiago.flumebase.util.VersionInfo;
 import jline.ConsoleReader;
 
 /**
- * Client frontend to rtengine system.
+ * Client frontend to flumebase system.
  */
 public class CmdLineClient {
   private static final Logger LOG = LoggerFactory.getLogger(
       CmdLineClient.class.getName());
 
   /** Config key specifying what environment to autoconnect to. */
-  public static final String AUTOCONNECT_URL_KEY = "rtengine.autoconnect";
+  public static final String AUTOCONNECT_URL_KEY = "flumebase.autoconnect";
 
   /** Default autoconnect environment is local. */
   public static final String DEFAULT_AUTOCONNECT_URL = "local";
 
   /** All config keys we pass to the environment start with this prefix. */
-  public static final String RTENGINE_KEY_PREFIX = "rtengine.";
+  public static final String FLUMEBASE_KEY_PREFIX = "flumebase.";
 
   /** Application configuration. */
   private Configuration mConf;
@@ -74,7 +74,7 @@ public class CmdLineClient {
    * Print the version string to stdout.
    */
   private void printVersion() {
-    System.out.println("rtengine version " + VersionInfo.getVersionString());
+    System.out.println("FlumeBase version " + VersionInfo.getVersionString());
   }
 
   /**
@@ -102,12 +102,12 @@ public class CmdLineClient {
   /**
    * @return the set of configuration options to pass to the execEnvironment
    * governing a submitted query's behavior. This is all the elements in our
-   * mConf that match the rtengine key prefix.
+   * mConf that match the flumebase key prefix.
    */
   private Map<String, String> getQuerySettings() {
     Map<String, String> settings = new HashMap<String, String>();
     for (Map.Entry<String, String> entry : mConf) {
-      if (entry.getKey().startsWith(RTENGINE_KEY_PREFIX)) {
+      if (entry.getKey().startsWith(FLUMEBASE_KEY_PREFIX)) {
         settings.put(entry.getKey(), entry.getValue());
       }
     }
@@ -479,7 +479,7 @@ public class CmdLineClient {
    * @return the exit code for the program (0 on success).
    */
   public int run() throws IOException {
-    System.out.println("Welcome to the rtengine client.");
+    System.out.println("Welcome to the FlumeBase client.");
     printVersion();
     System.out.println("Type 'help;' or '\\h' for instructions.");
     System.out.println("Type 'exit;' or '\\q' to quit.");

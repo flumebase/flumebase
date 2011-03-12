@@ -78,11 +78,11 @@ public class LocalEnvironment extends ExecEnvironment {
       LocalEnvironment.class.getName());
 
   /** Config key specifying whether we automatically watch a flow when we create it or not. */
-  public static final String AUTO_WATCH_FLOW_KEY = "rtengine.flow.autowatch";
+  public static final String AUTO_WATCH_FLOW_KEY = "flumebase.flow.autowatch";
   public static final boolean DEFAULT_AUTO_WATCH_FLOW = true;
 
   /** Config key specifying the session id of the submitting user for a query. */
-  public static final String SUBMITTER_SESSION_ID_KEY = "rtengine.query.submitter.session.id";
+  public static final String SUBMITTER_SESSION_ID_KEY = "flumebase.query.submitter.session.id";
 
   static class ControlOp {
     enum Code {

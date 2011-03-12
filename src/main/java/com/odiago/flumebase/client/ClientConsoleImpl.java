@@ -12,7 +12,7 @@ import com.odiago.flumebase.thrift.ClientConsole;
  */
 public class ClientConsoleImpl implements ClientConsole.Iface {
   /** Config key specifying the port where the console is hosted. */
-  public static final String CONSOLE_SERVER_PORT_KEY = "rtengine.console.port";
+  public static final String CONSOLE_SERVER_PORT_KEY = "flumebase.console.port";
 
   public static final int DEFAULT_CONSOLE_SERVER_PORT = 9293;
 

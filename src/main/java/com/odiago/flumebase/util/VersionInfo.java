@@ -5,7 +5,7 @@ package com.odiago.flumebase.util;
 import com.odiago.flumebase.client.CmdLineClient;
 
 /** 
- * Retrieves version information from the package jar for this version of rtengine.
+ * Retrieves version information from the package jar for this version of FlumeBase.
  */
 public final class VersionInfo {
 
@@ -13,7 +13,7 @@ public final class VersionInfo {
   }
 
   /** 
-   * @return the version string for rtengine.
+   * @return the version string for FlumeBase.
    */
   public static String getVersionString() {
     // CmdLineClient is specified as the "main class" for our jar.
@@ -25,6 +25,6 @@ public final class VersionInfo {
   }
 
   public static void main(String[] args) {
-    System.out.println("rtengine version " + getVersionString());
+    System.out.println("FlumeBase version " + getVersionString());
   }
 }

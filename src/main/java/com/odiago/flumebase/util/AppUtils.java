@@ -24,14 +24,14 @@ import org.slf4j.LoggerFactory;
 public final class AppUtils {
   private static final Logger LOG = LoggerFactory.getLogger(AppUtils.class.getName());
 
-  /** System property that sets the path of the RTEngine configuration. */
-  private static final String RTENGINE_CONF_DIR_KEY = "rtengine.conf.dir";
+  /** System property that sets the path of the FlumeBase configuration. */
+  private static final String FLUMEBASE_CONF_DIR_KEY = "flumebase.conf.dir";
 
-  /** Environment variable that sets the path of the RTEngine configuration. */
-  private static final String RTENGINE_CONF_DIR_ENV = "RTENGINE_CONF_DIR";
+  /** Environment variable that sets the path of the FlumeBase configuration. */
+  private static final String FLUMEBASE_CONF_DIR_ENV = "FLUMEBASE_CONF_DIR";
 
-  /** Environment variable that sets the path of the RTEngine installation "home". */
-  private static final String RTENGINE_HOME_ENV = "RTENGINE_HOME";
+  /** Environment variable that sets the path of the FlumeBase installation "home". */
+  private static final String FLUMEBASE_HOME_ENV = "FLUMEBASE_HOME";
 
   private AppUtils() { }
 
@@ -63,20 +63,22 @@ public final class AppUtils {
       System.err.println("Specific exception follows:");
       System.err.println(ioe);
     } finally {
-      try {
-        fis.close();
-      } catch (IOException ioe) {
-        LOG.warn("Exception closing log4j.properties file: " + ioe);
+      if (null != fis) {
+        try {
+          fis.close();
+        } catch (IOException ioe) {
+          LOG.warn("Exception closing log4j.properties file: " + ioe);
+        }
       }
     }
   }
 
   /**
    * @return the home directory for this application installation.
-   * This is taken from $RTENGINE_HOME. Returns null if this is not set.
+   * This is taken from $FLUMEBASE_HOME. Returns null if this is not set.
    */
   public static String getAppHomeDir() {
-    String homeEnv = System.getenv(RTENGINE_HOME_ENV);
+    String homeEnv = System.getenv(FLUMEBASE_HOME_ENV);
     if (null != homeEnv) {
       File homeFile = new File(homeEnv);
       return homeFile.getAbsolutePath();
@@ -89,27 +91,27 @@ public final class AppUtils {
    * @return the configuration directory for this application.
    * This is one of the following, in order:
    * <ol>
-   *   <li>${rtengine.conf.dir} (System property)</li>
-   *   <li>$RTENGINE_CONF_DIR</li>
-   *   <li>$RTENGINE_HOME/etc</li>
+   *   <li>${flumebase.conf.dir} (System property)</li>
+   *   <li>$FLUMEBASE_CONF_DIR</li>
+   *   <li>$FLUMEBASE_HOME/etc</li>
    *   <li>(current dir)</li>
    * </ol>
    */
   public static String getAppConfDir() {
-    String rtengineConfDir = System.getProperty(RTENGINE_CONF_DIR_KEY, null);
-    if (null == rtengineConfDir) {
-      rtengineConfDir = System.getenv(RTENGINE_CONF_DIR_ENV);
+    String flumebaseConfDir = System.getProperty(FLUMEBASE_CONF_DIR_KEY, null);
+    if (null == flumebaseConfDir) {
+      flumebaseConfDir = System.getenv(FLUMEBASE_CONF_DIR_ENV);
     }
 
-    if (null != rtengineConfDir) {
-      File confFile = new File(rtengineConfDir);
+    if (null != flumebaseConfDir) {
+      File confFile = new File(flumebaseConfDir);
       return confFile.getAbsolutePath();
     }
 
     // Infer from application home dir. 
     String homeDir = getAppHomeDir();
     if (null != homeDir) {
-      // return $RTENGINE_HOME/etc.
+      // return $FLUMEBASE_HOME/etc.
       File homeFile = new File(homeDir);
       return new File(homeFile, "etc").getAbsolutePath();
     }
@@ -118,14 +120,14 @@ public final class AppUtils {
   }
 
   /**
-   * @return a Configuration with the appropriate rtengine-site.xml file added.
+   * @return a Configuration with the appropriate flumebase-site.xml file added.
    * Should be used as the base Configuration for the program.
    */
   public static Configuration initConfResources() {
-    String rtengineConfFile = new File(getAppConfDir(), "rtengine-site.xml").toString();
-    LOG.debug("Initializing configuration from " + rtengineConfFile);
+    String flumebaseConfFile = new File(getAppConfDir(), "flumebase-site.xml").toString();
+    LOG.debug("Initializing configuration from " + flumebaseConfFile);
     Configuration conf = new Configuration();
-    conf.addResource(new Path(rtengineConfFile));
+    conf.addResource(new Path(flumebaseConfFile));
     return conf;
   }
 }

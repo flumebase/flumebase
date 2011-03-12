@@ -13,25 +13,25 @@ MVN_BUILD_DEPS_DIR="${MVN_TARGET_DIR}/dependency"
 FLUME_HOME=${FLUME_HOME:-/usr/lib/flume}
 
 function usage() {
-  echo "Usage: rtsql <command> [args...]"
+  echo "Usage: flumebase <command> [args...]"
   echo "Commands include:"
-  echo "  shell     Start the rtsql shell"
+  echo "  shell     Start the FlumeBase shell"
   echo "  server    Start a server to run background queries"
-  echo "  version   Print rtsql version information and exit"
+  echo "  version   Print FlumeBase version information and exit"
 }
 
-# Format: rtsql <command> [args...]
+# Format: flumebase <command> [args...]
 action="$1"
 shift
 if [ -z "$action" ]; then
   usage
   exit 0
 elif [ "$action" == "shell" ]; then
-  RTENGINE_MAIN_CLASS=com.odiago.rtengine.client.CmdLineClient
+  FLUMEBASE_MAIN_CLASS=com.odiago.flumebase.client.CmdLineClient
 elif [ "$action" == "server" ]; then
-  RTENGINE_MAIN_CLASS=com.odiago.rtengine.server.ServerMain
+  FLUMEBASE_MAIN_CLASS=com.odiago.flumebase.server.ServerMain
 elif [ "$action" == "version" ]; then
-  RTENGINE_MAIN_CLASS=com.odiago.rtengine.util.VersionInfo
+  FLUMEBASE_MAIN_CLASS=com.odiago.flumebase.util.VersionInfo
 else
   echo "Invalid command: $action"
   usage
@@ -39,9 +39,9 @@ else
 fi
 
 
-RTENGINE_CLASSPATH="${RTENGINE_CLASSPATH:-}"
-RTENGINE_OPTS="${RTENGINE_OPTS:-}"
-RTENGINE_CONF_DIR=${RTENGINE_CONF_DIR:-"${projectroot}/etc"}
+FLUMEBASE_CLASSPATH="${FLUMEBASE_CLASSPATH:-}"
+FLUMEBASE_OPTS="${FLUMEBASE_OPTS:-}"
+FLUMEBASE_CONF_DIR=${FLUMEBASE_CONF_DIR:-"${projectroot}/etc"}
 
 function add_to_classpath() {
   dir=$1
@@ -49,10 +49,10 @@ function add_to_classpath() {
     return 0
   fi
   for jar in `ls "${dir}"`; do
-    if [ -z "$RTENGINE_CLASSPATH" ]; then
-      RTENGINE_CLASSPATH="${dir}/${jar}"
+    if [ -z "$FLUMEBASE_CLASSPATH" ]; then
+      FLUMEBASE_CLASSPATH="${dir}/${jar}"
     else
-      RTENGINE_CLASSPATH="${RTENGINE_CLASSPATH}:${dir}/${jar}"
+      FLUMEBASE_CLASSPATH="${FLUMEBASE_CLASSPATH}:${dir}/${jar}"
     fi
   done
 }
@@ -78,7 +78,7 @@ add_to_classpath "${MVN_BUILD_DEPS_DIR}"
 add_to_classpath "${LIB_DIR}"
 
 # Put Flume (and via this, Hadoop) directly on the classpath; we don't redistribute
-# Flume with rtsql; it's marked as a 'provided' dependency.
+# Flume with FlumeBase; it's marked as a 'provided' dependency.
 if [ ! -z "${FLUME_HOME}" -a -d "${FLUME_HOME}/lib" ]; then
   add_to_classpath "${FLUME_HOME}/lib"
 else
@@ -86,19 +86,14 @@ else
   exit 1
 fi
 
-# Is there a mvn target directory jar file? If we're running this from
-# a development tree, put this ahead of any rtengine jar in lib/.
-if [ -f "${MVN_TARGET_DIR}/rtengine.jar" ]; then
-  RTENGINE_CLASSPATH="${MVN_TARGET_DIR}/rtengine.jar:${RTENGINE_CLASSPATH}"
-fi
 if [ -d "${MVN_TARGET_DIR}/classes" ]; then
   # If there's a target/classes/ dir, then we want to put this ahead of any
-  # jar on the classpath; use the most recently compiled bits.
-  RTENGINE_CLASSPATH="${MVN_TARGET_DIR}/classes:$RTENGINE_CLASSPATH"
+  # jars on the classpath; use the most recently compiled bits.
+  FLUMEBASE_CLASSPATH="${MVN_TARGET_DIR}/classes:$FLUMEBASE_CLASSPATH"
 fi
 
-exec java -cp "${RTENGINE_CLASSPATH}" \
-    -Drtengine.conf.dir="${RTENGINE_CONF_DIR}" \
-    $RTENGINE_OPTS \
-    "${RTENGINE_MAIN_CLASS}" "$@"
+exec java -cp "${FLUMEBASE_CLASSPATH}" \
+    -Dflumebase.conf.dir="${FLUMEBASE_CONF_DIR}" \
+    $FLUMEBASE_OPTS \
+    "${FLUMEBASE_MAIN_CLASS}" "$@"
 

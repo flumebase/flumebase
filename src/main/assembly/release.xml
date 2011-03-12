@@ -11,7 +11,7 @@
     <format>tar.gz</format>
   </formats>
   <includeBaseDirectory>true</includeBaseDirectory>
-  <baseDirectory>${project.build.finalName}-${project.version}</baseDirectory>
+  <baseDirectory>${project.build.finalName}</baseDirectory>
   <fileSets>
     <fileSet>
       <directory>${project.basedir}</directory>
@@ -38,7 +38,7 @@
       <outputDirectory>/etc</outputDirectory>
       <fileMode>0644</fileMode>
       <excludes>
-        <exclude>rtengine-site.xml</exclude>
+        <exclude>flumebase-site.xml</exclude>
       </excludes>
     </fileSet>
     <fileSet>
@@ -56,10 +56,10 @@
   </fileSets>
   <files>
     <file>
-      <!-- rtengine-site.xml.template is copied as rtengine-site.xml too. -->
-      <source>${project.basedir}/etc/rtengine-site.xml.template</source>
+      <!-- flumebase-site.xml.template is copied as flumebase-site.xml too. -->
+      <source>${project.basedir}/etc/flumebase-site.xml.template</source>
       <outputDirectory>/etc</outputDirectory>
-      <destName>rtengine-site.xml</destName>
+      <destName>flumebase-site.xml</destName>
       <fileMode>0644</fileMode>
     </file>
   </files>

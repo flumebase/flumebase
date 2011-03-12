@@ -53,17 +53,17 @@ public class EmbeddedFlumeConfig {
 
   /**
    * Configuration key set to true if a Flume master node should be embedded in
-   * the current process. This provides us with a fully standalone rtengine process.
+   * the current process. This provides us with a fully standalone flumebase process.
    */
   public static final String EMBED_FLUME_MASTER_KEY = "embedded.flume.master";
   public static final boolean DEFAULT_EMBED_FLUME_MASTER = true;
 
   /** Configuration property specifying the (external) FlumeMaster to connect to. */
-  public static final String FLUME_MASTER_HOST_KEY = "rtengine.flume.master.host";
+  public static final String FLUME_MASTER_HOST_KEY = "flumebase.flume.master.host";
   public static final String DEFAULT_FLUME_MASTER_HOST = "localhost";
   
   /** Configuration property specifying the (external) FlumeMaster's port. */
-  public static final String FLUME_MASTER_PORT_KEY = "rtengine.flume.master.port";
+  public static final String FLUME_MASTER_PORT_KEY = "flumebase.flume.master.port";
   public static final int DEFAULT_FLUME_MASTER_PORT = 35873;
 
   /** The complete set of (physical) Flume nodes spawned for our application. */
@@ -262,7 +262,7 @@ public class EmbeddedFlumeConfig {
 
   /**
    * Starts an embedded instance of the FlumeMaster service.  Used when
-   * rtengine is running in a "standalone" mode.
+   * flumebase is running in a "standalone" mode.
    */
   private void startMaster() {
     LOG.info("Starting standalone Flume master.");

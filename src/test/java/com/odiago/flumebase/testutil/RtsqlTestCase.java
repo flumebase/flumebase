@@ -64,7 +64,7 @@ public class RtsqlTestCase {
   }
 
   protected Map<String, String> getQueryOpts() {
-    // TODO: Pull "rtengine.*" from mConf.
+    // TODO: Pull "flumebase.*" from mConf.
     return new HashMap<String, String>();
   }
 

@@ -30,7 +30,7 @@ import com.odiago.flumebase.util.AppUtils;
 public class ServerMain {
   private static final Logger LOG = LoggerFactory.getLogger(ServerMain.class.getName());
 
-  public static final String THRIFT_SERVER_PORT_KEY = "rtengine.remote.port";
+  public static final String THRIFT_SERVER_PORT_KEY = "flumebase.remote.port";
   public static final int DEFAULT_THRIFT_SERVER_PORT = 9292;
 
   /** Configuration info for the server. */

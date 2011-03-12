@@ -199,7 +199,7 @@ java.lang.IllegalStateException: EventSink LazyOpenDecorator not open
   at com.cloudera.flume.core.connector.DirectDriver$PumperThread.run(DirectDriver.java:93)
 85344 [logicalNode foo-54] ERROR com.cloudera.flume.core.connector.DirectDriver  - Driving src/sink failed! LazyOpenSource | LazyOpenDecorator because next() called before open()
 java.io.IOException: next() called before open()
-  at com.odiago.rtengine.flume.RtsqlSource.next(RtsqlSource.java:57)
+  at com.odiago.flumebase.flume.RtsqlSource.next(RtsqlSource.java:57)
   at com.cloudera.flume.handlers.debug.LazyOpenSource.next(LazyOpenSource.java:53)
   at com.cloudera.flume.core.connector.DirectDriver$PumperThread.run(DirectDriver.java:89)
 

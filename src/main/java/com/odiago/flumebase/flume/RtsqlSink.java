@@ -26,7 +26,7 @@ import com.odiago.flumebase.parser.TypedField;
 /**
  * EventSink that receives events from upstream in a Flume pipeline.
  * The EventSink then injects the events into a FlowElementContext
- * for delivery in an rtengine flow.
+ * for delivery in an flumebase flow.
  */
 public class RtsqlSink extends EventSink.Base {
   private static final Logger LOG = LoggerFactory.getLogger(RtsqlSink.class.getName());

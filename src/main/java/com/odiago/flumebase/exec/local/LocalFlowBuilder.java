@@ -251,7 +251,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
         }
         String flumeSource = streamSymbol.getSource();
         long flowIdNum = mFlowId.getId();
-        String flowSourceId = "rtengine-flow-" + flowIdNum + "-" + streamSymbol.getName();
+        String flowSourceId = "flumebase-flow-" + flowIdNum + "-" + streamSymbol.getName();
         newElem = new LocalFlumeSourceElement(newContext, flowSourceId,
             mFlumeConfig, flumeSource, (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),
             namedInput.getFields(), streamSymbol);
@@ -268,7 +268,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
             namedInput.getFields(), (InMemStreamSymbol) streamSymbol);
         break;
       case Node:
-        String nodeSourceId = "rtengine-flow-" + mFlowId.getId() + "-" + streamSymbol.getName();
+        String nodeSourceId = "flumebase-flow-" + mFlowId.getId() + "-" + streamSymbol.getName();
         newElem = new FlumeNodeElement(newContext, nodeSourceId,
             mFlumeConfig, streamSymbol.getSource(),
             (Schema) namedInput.getAttr(PlanNode.OUTPUT_SCHEMA_ATTR),

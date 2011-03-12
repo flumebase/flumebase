@@ -133,7 +133,7 @@ $ <userinput>tar vzxf rtsql-(version).tar.gz</userinput>
       <title>Server configuration</title>
       <para>
         Install rtsql on a server where the query execution engine should
-        be run. Then edit the <filename>etc/rtengine-site.xml</filename> file
+        be run. Then edit the <filename>etc/flumebase-site.xml</filename> file
         to contain the following values:
       </para>
       <table>
@@ -144,18 +144,18 @@ $ <userinput>tar vzxf rtsql-(version).tar.gz</userinput>
         <tbody>
           <tr><td><constant>flume.home</constant></td>
             <td>The path to $FLUME_HOME on your server.</td></tr>
-          <tr><td><constant>rtengine.remote.port</constant></td>
+          <tr><td><constant>flumebase.remote.port</constant></td>
             <td>The port where the rtsql server listens for clients.</td></tr>
           <tr><td><constant>embedded.flume.master</constant></td>
             <td>This should be set to <constant>false</constant> if a Flume
             master is available. A value of <constant>true</constant> means
             that the rtsql environment acts as its own Flume master, separate
             from an existing Flume network.</td></tr>
-          <tr><td><constant>rtengine.flume.master.host</constant></td>
+          <tr><td><constant>flumebase.flume.master.host</constant></td>
             <td>The hostname of the foreign Flume master to connect to.</td></tr>
-          <tr><td><constant>rtengine.flume.master.port</constant></td>
+          <tr><td><constant>flumebase.flume.master.port</constant></td>
             <td>The port the foreign Flume master listens on.</td></tr>
-          <tr><td><constant>rtengine.flume.collector.port.min/max</constant></td>
+          <tr><td><constant>flumebase.flume.collector.port.min/max</constant></td>
             <td>rtsql uses Flume collectors to receive data from the broader
             Flume network. set <constant>...port.min</constant> and
             <constant>...port.max</constant> to the range of ports on the
@@ -173,7 +173,7 @@ $ <userinput>tar vzxf rtsql-(version).tar.gz</userinput>
         back to the client.
       </para>
       <para>
-        Set the following settings in <filename>etc/rtengine-site.xml</filename>
+        Set the following settings in <filename>etc/flumebase-site.xml</filename>
         on the client machine:
       </para>
       <table>
@@ -184,19 +184,19 @@ $ <userinput>tar vzxf rtsql-(version).tar.gz</userinput>
         <tbody>
           <tr><td><constant>flume.home</constant></td>
             <td>The path to $FLUME_HOME on the client.</td></tr>
-          <tr><td><constant>rtengine.autoconnect</constant></td>
+          <tr><td><constant>flumebase.autoconnect</constant></td>
             <td>The host:port of the rtsql server to connect to. If set
             to <constant>local</constant>, this will use an in-process server.
             If set to <constant>none</constant>, the user must explicitly open
             a server connection with <userinput>\open</userinput> in the
             console.</td></tr>
-          <tr><td><constant>rtengine.flow.autowatch</constant></td>
+          <tr><td><constant>flumebase.flow.autowatch</constant></td>
             <td>Defaults to <constant>true</constant>; this boolean property
             specifies whether you want every query to automatically send its
             output to the console when submitted. If false, you must explicitly
             watch flow output with the <userinput>\watch</userinput> command.
             </td></tr>
-          <tr><td><constant>rtengine.console.port</constant></td>
+          <tr><td><constant>flumebase.console.port</constant></td>
             <td>rtsql uses a Thrift RPC connection to relay query output back to
             the client. The client listens on the port specified by this
             property.</td></tr>
@@ -1259,7 +1259,7 @@ rtsql&gt; <userinput>\w 3</userinput>
         You can configure your session to not automatically watch flows as you
         create them; you will then need to explicitly watch any flows you create
         if you want to inspect their output. This property is controlled by
-        the <constant>rtengine.flow.autowatch</constant> key in the session
+        the <constant>flumebase.flow.autowatch</constant> key in the session
         configuration (see <xref linkend="session.configuration"/>).
       </para>
 
@@ -1328,25 +1328,25 @@ fs.checkpoint.size = '67108864'
         by typing <literal>\set <userinput>prefix.</userinput></literal>:
 
         <screen>
-rtsql&gt; <userinput>\set rtengine.</userinput>
-rtengine.flume.master.port = '35873'
-rtengine.flume.master.host = 'localhost'
-rtengine.autoconnect = 'local'
+rtsql&gt; <userinput>\set flumebase.</userinput>
+flumebase.flume.master.port = '35873'
+flumebase.flume.master.host = 'localhost'
+flumebase.autoconnect = 'local'
         </screen>
       </para>
 
       <para>
         You can also view any specific key:
         <screen>
-rtsql&gt; <userinput>\set rtengine.autoconnect</userinput>
-rtengine.autoconnect = 'local'
+rtsql&gt; <userinput>\set flumebase.autoconnect</userinput>
+flumebase.autoconnect = 'local'
         </screen>
       </para>
       <para>
         This command may also be used to set the value of any key:
         <screen>
-rtsql&gt; <userinput>\set rtengine.flume.master.port=12345</userinput>
-rtengine.flume.master.port = '12345'
+rtsql&gt; <userinput>\set flumebase.flume.master.port=12345</userinput>
+flumebase.flume.master.port = '12345'
         </screen>
       </para>
 

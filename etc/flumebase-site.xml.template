@@ -18,7 +18,7 @@
     the value "none" will disable queries until the user explicitly connects
     to a server with \open.
   <property>
-    <name>rtengine.autoconnect</name>
+    <name>flumebase.autoconnect</name>
     <value>local</value>
   </property>
   -->
@@ -26,13 +26,13 @@
   <!-- By default, submitted flows output their results to the console. Set
        this to false to override this behavior.
   <property>
-    <name>rtengine.flow.autowatch</name>
+    <name>flumebase.flow.autowatch</name>
     <value>true</value>
   </property>
   -->
 
   <!--
-     By default, rtengine will start a local embedded flume master for
+     By default, flumebase will start a local embedded flume master for
      managing a completely self-contained instance. For production use,
      disable the embedded master and identify the remote FlumeMaster
      instance to connect to:
@@ -42,11 +42,11 @@
     <value>false</value>
   </property>
   <property>
-    <name>rtengine.flume.master.host</name>
+    <name>flumebase.flume.master.host</name>
     <value>localhost</value>
   </property>
   <property>
-    <name>rtengine.flume.master.port</name>
+    <name>flumebase.flume.master.port</name>
     <value>35873</value>
   </property>
   -->
@@ -56,11 +56,11 @@
        of ports to be used for this purpose with these properties:
 
   <property>
-    <name>rtengine.flume.collector.port.min</name>
+    <name>flumebase.flume.collector.port.min</name>
     <value>45000</value>
   </property>
   <property>
-    <name>rtengine.flume.collector.port.max</name>
+    <name>flumebase.flume.collector.port.max</name>
     <value>46000</value>
   </property>
   -->
@@ -68,7 +68,7 @@
   <!-- The port where the server listens. On a client, the default
        port used to connect to.
   <property>
-    <name>rtengine.remote.port</name>
+    <name>flumebase.remote.port</name>
     <value>9292</value>
   </property>
   -->
@@ -76,7 +76,7 @@
 
   <!-- the port where the client's console callback listens.
   <property>
-    <name>rtengine.console.port</name>
+    <name>flumebase.console.port</name>
     <value>9293</value>
   </property>
   -->
