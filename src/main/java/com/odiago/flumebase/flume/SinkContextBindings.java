@@ -16,7 +16,10 @@ import java.util.Map;
  */
 public final class SinkContextBindings {
   /** The singleton instance of this. */
-  private static SinkContextBindings mBindings;
+  private static final SinkContextBindings mBindings;
+  static {
+    mBindings = new SinkContextBindings();
+  }
 
   /** The actual mapping of names to SinkContexts. */
   private Map<String, SinkContext> mContextMap;
@@ -26,10 +29,6 @@ public final class SinkContextBindings {
   }
 
   public static SinkContextBindings get() {
-    if (null == mBindings) {
-      mBindings = new SinkContextBindings();
-    }
-
     return mBindings;
   }
 

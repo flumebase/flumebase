@@ -224,6 +224,7 @@ public class LocalEnvironment extends ExecEnvironment {
             }
 
             try {
+              LOG.debug("Opening flow element of class: " + flowElem.getClass().getName());
               flowElem.open();
             } catch (IOException ioe) {
               throw new DAGOperatorException(ioe);

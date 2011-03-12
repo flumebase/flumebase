@@ -64,7 +64,7 @@ public class RtsqlSink extends EventSink.Base {
   /** {@inheritDoc} */
   @Override
   public void open() throws IOException {
-    LOG.info("Opening Flume sink for flow/source: " + mContextSourceName);
+    LOG.debug("Opening Flume sink for flow/source: " + mContextSourceName);
     mSinkContext = SinkContextBindings.get().getContext(mContextSourceName);
     if (null == mSinkContext) {
       throw new IOException("No context binding available for flow/source: "
@@ -100,7 +100,7 @@ public class RtsqlSink extends EventSink.Base {
   /** {@inheritDoc) */
   @Override
   public void close() throws IOException {
-    LOG.info("Closing Flume sink for flow/source: " + mContextSourceName);
+    LOG.debug("Closing Flume sink for flow/source: " + mContextSourceName);
     try {
       mWriteContext.notifyCompletion();
     } catch (InterruptedException ie) {

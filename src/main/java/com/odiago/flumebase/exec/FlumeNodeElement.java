@@ -69,7 +69,9 @@ public class FlumeNodeElement extends FlowElementImpl {
   }
 
   @Override
-  public void open() throws IOException {
+  public void open() throws IOException, InterruptedException {
+    super.open();
+    LOG.debug("Opening Flume node element; binding sink context id=" + mFlowSourceId);
     SinkContextBindings.get().bindContext(mFlowSourceId,
         new SinkContext(getContext(), mOutputSchema, mFieldTypes, mStreamSym));
     mFlumeConfig.addFlowToForeignNode(mUpstreamNode, mFlowSourceId);

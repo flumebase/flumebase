@@ -17,7 +17,11 @@ import java.util.Map;
  */
 public final class SourceContextBindings {
   /** The singleton instance of this. */
-  private static SourceContextBindings mBindings;
+  private static final SourceContextBindings mBindings;
+  static {
+    mBindings = new SourceContextBindings();
+  }
+
 
   /** The actual mapping of names to SourceContexts. */
   private Map<String, SourceContext> mContextMap;
@@ -27,10 +31,6 @@ public final class SourceContextBindings {
   }
 
   public static SourceContextBindings get() {
-    if (null == mBindings) {
-      mBindings = new SourceContextBindings();
-    }
-
     return mBindings;
   }
 

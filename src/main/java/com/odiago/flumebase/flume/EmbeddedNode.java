@@ -10,6 +10,9 @@ import org.apache.avro.Schema;
 
 import org.apache.thrift.TException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.odiago.flumebase.exec.FlowElementContext;
 import com.odiago.flumebase.exec.StreamSymbol;
 
@@ -21,6 +24,8 @@ import com.odiago.flumebase.parser.TypedField;
  * deliver data to a processing flow.
  */
 public class EmbeddedNode {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      EmbeddedNode.class.getName());
 
   /**
    * Name of the flow and source we're providing data for; this is used as
@@ -70,6 +75,7 @@ public class EmbeddedNode {
    * Start the embedded node instance.
    */
   public void open() throws IOException {
+    LOG.debug("Opening sink binding for: " + mFlowSourceId);
     SinkContextBindings.get().bindContext(mFlowSourceId,
         new SinkContext(mFlowElemContext, mOutputSchema, mFieldTypes, mStreamSym));
     try {
@@ -83,6 +89,7 @@ public class EmbeddedNode {
    * Stop the embedded node instance.
    */
   public void close() throws IOException {
+    LOG.debug("Closing embedded node: " + mFlowSourceId);
     try {
       mFlumeConfig.stopFlowSink(mFlowSourceId);
     } catch (TException te) {

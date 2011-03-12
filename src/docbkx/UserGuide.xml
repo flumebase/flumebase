@@ -5,7 +5,7 @@
   <section>
     <title>Introduction</title>
     <para>
-      FlumeBase is a database-like stream processing system built on top
+      FlumeBase is a database-inspired stream processing system built on top
       of <productname>Flume</productname>. This system allows users to
       dynamically insert queries into a data collection environment and
       inspect the stream of events being collected by Flume. These
@@ -54,6 +54,109 @@
     </para>
   </section>
   <section>
+    <title>Quick Start</title>
+    <para>
+      For those who understand Flume, SQL, and want to just see a demo of what
+      can be done with FlumeBase, follow the steps in this section. This is a
+      five minute tour of the FlumeBase world.
+    </para>
+    <para>
+      First, copy the following text into a file named <filename>data.txt</filename>.
+    </para>
+    <programlisting>
+1,aaron,purple,42
+2,bob,blue,11
+3,cindy,green,312
+    </programlisting>
+    <para>
+      Install Flume 0.9.3, Hadoop 0.20, and Java 6. If you are running Cloudera's
+      Distribution of Hadoop 3 beta 4 (CDH3B4), you have already installed all
+      of these. Users of older versions of these products will need to upgrade.
+      See <xref linkend="installation" /> for more thorough installation
+      instructions.
+    </para>
+    <para>
+      Unzip the FlumeBase installation:
+    </para>
+    <programlisting>
+$ <userinput>tar vzxf flumebase-(version)-release.tar.gz</userinput>
+    </programlisting>
+    <para>
+      Start the FlumeBase shell:
+    </para>
+    <programlisting>
+$ <userinput>cd flumebase-(version)/</userinput>
+$ <userinput>bin/flumebase shell</userinput>
+    </programlisting>
+    <para>
+      By default, FlumeBase is configured with a self-contained environment that
+      embeds the FlumeBase server and Flume itself within the same process as
+      the shell. Now let's define a stream over the file, and query it.
+    </para>
+    <programlisting>
+rtsql&gt; <userinput>CREATE STREAM data(id int, name string, favcolor string,</userinput>
+    -&gt; <userinput>luckynumber int) FROM LOCAL SOURCE 'tail("/path/to/data.txt")';</userinput>
+CREATE STREAM
+
+rtsql&gt; <userinput>SELECT * FROM data;</userinput>
+    </programlisting>
+    <para>
+      You created stream which operates over a local (self-hosted) Flume logical node
+      which reads all the lines from <filename>data.txt</filename>. You then ran
+      a query that extracts all fields from each event in the stream. Each line
+      of the file corresponds to a different event.
+    </para>
+    <para>
+      In another terminal, now execute the following:
+    </para>
+    <programlisting>
+$ <userinput>echo 4,dave,orange,611 &gt;&gt; /path/to/data.txt</userinput>    
+    </programlisting>
+    <para>
+      You should observe that as soon as Flume detects the new record (about a second's
+      delay), it will be passed along to FlumeBase and emitted on your console.
+    </para>
+    <para>
+      The submitted query has created a "flow," which runs as long as we allow it.
+      If more data were to enter Flume via that file, we would continue to process
+      it. Now, let's cancel that flow:
+    </para>
+    <programlisting>
+rtsql&gt; <userinput>\d 1</userinput>
+    </programlisting>
+    <para>
+      (As FlumeBase decommissions the internal logical node, there may be an error
+      emitted by Flume itself; this is normal. In general, running in a single
+      process will be "noisy" because of both client and server activity condensed
+      to a single console. For a cleaner session experience, run the server and
+      client in separate processes; see <xref linkend="installation"/> for
+      instructions.)
+    </para>
+    <para>
+      And now let's run another query:
+    </para>
+    <programlisting>
+rtsql&gt; <userinput>SELECT favcolor FROM data WHERE luckynumber = 42;</userinput>    
+    </programlisting>
+    <para>
+      After a few seconds, this flow is initialized with the data in the Flume
+      logical node. Note that we only get one row out from our original data set.
+      If you add more lines to the file which add events where the <literal>luckynumber</literal>
+      column is <constant>42</constant>, you'll see them appear in the FlumeBase
+      console.
+    </para>
+    <para>
+      This concludes our tour. To quit the FlumeBase shell, run:
+    </para>
+    <programlisting>
+rtsql&gt; <userinput>\q</userinput>    
+    </programlisting>
+    <para>
+      The remaining sections of this user guide will describe multi-process configuration,
+      the rtsql language, and shell operation in greater detail. Good luck!
+    </para>
+  </section>
+  <section id="installation">
     <title>Installation</title>
     <section>
       <title>Prerequisites</title>
@@ -104,7 +207,7 @@
         FlumeBase itself is distributed as a tar file. Install FlumeBase by unzipping
         the tar file:
         <screen>
-$ <userinput>tar vzxf flumebase-(version).tar.gz</userinput>      
+$ <userinput>tar vzxf flumebase-(version)-release.tar.gz</userinput>      
         </screen>
       </para>
       <para>
@@ -166,10 +269,28 @@ $ <userinput>tar vzxf flumebase-(version).tar.gz</userinput>
         </tbody>
       </table>
       <para>
+        Finally, to run in distributed mode, the Flume master node needs to
+        register the FlumeBase plugin. You should copy the
+        <filename>flumebase-(version).jar</filename> file from the FlumeBase
+        installation into <filename>/usr/lib/flume/lib</filename> on the Flume
+        master machine. Then edit <filename>flume-site.xml</filename> on
+        the master to include the setting:
+        <programlisting>
+&lt;property&gt;
+  &lt;name&gt;flume.plugin.classes&lt;/name&gt;
+  &lt;value&gt;com.odiago.flumebase.flume.FlumePlugin&lt;/value&gt;
+&lt;/property&gt;
+        </programlisting>
+      </para>
+      <para>
+        You may need to restart the Flume master process for this to take effect.
+      </para>
+      <para>
         After a server is configured, you may start a server instance by running:
         <literal>bin/flumebase server</literal> from the directory where FlumeBase
         was installed. To shut down a running server, see <xref
-        linkend="flumebase.client.connecting" />.
+        linkend="flumebase.client.connecting" />. Killing a server process with
+        <literal>^C</literal> is not recommended.
       </para>
     </section>
     <section>

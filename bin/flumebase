@@ -86,6 +86,13 @@ else
   exit 1
 fi
 
+# If pulling Flume from a development repository, its jar is in build/, not lib/.
+if [ ! -z "${FLUME_HOME}" -a -d "${FLUME_HOME}/build" ]; then
+  flumejar=`ls -1 ${FLUME_HOME}/build/flume-*-core.jar | head -1`
+  FLUMEBASE_CLASSPATH="${FLUMEBASE_CLASSPATH}:${flumejar}"
+fi
+
+
 if [ -d "${MVN_TARGET_DIR}/classes" ]; then
   # If there's a target/classes/ dir, then we want to put this ahead of any
   # jars on the classpath; use the most recently compiled bits.

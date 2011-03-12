@@ -69,7 +69,8 @@ public class LocalFlumeSourceElement extends FlowElementImpl {
   }
 
   @Override
-  public void open() throws IOException {
+  public void open() throws IOException, InterruptedException {
+    super.open();
     mEmbeddedFlumeNode = new EmbeddedNode(mFlowSourceId, getContext(), mFlumeConfig,
         mDataSource, mOutputSchema, mFieldTypes, mStreamSym);
     mEmbeddedFlumeNode.open();
