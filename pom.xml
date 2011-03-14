@@ -151,6 +151,7 @@
           <tocSectionDepth>3</tocSectionDepth>
           <generateHtmlTitle>0</generateHtmlTitle>
           <targetDirectory>${docbook.target.dir}</targetDirectory>
+          <htmlStylesheet>./UserGuide.css</htmlStylesheet>
         </configuration>
         
         <executions>  

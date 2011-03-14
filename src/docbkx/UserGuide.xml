@@ -2,6 +2,7 @@
 <article xmlns="http://docbook.org/ns/docbook" version="4.5" xml:lang="en"
     xmlns:xlink="http://www.w3.org/1999/xlink">
   <title>FlumeBase User Guide</title>  
+  <subtitle>version <?eval ${project.version} ?></subtitle>
   <section>
     <title>Introduction</title>
     <para>

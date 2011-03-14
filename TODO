@@ -61,7 +61,8 @@ Joins:
   SelectStmt should support WINDOW clauses at the end.
   ^-- need to eval them to WindowSpecs and store these bindings for use in joinedsrc
       evaluation to hashjoinnodes.
-
+  ^-- actually, I think this already works (it does for GROUP BY). Add a unit test
+      to ensure that they work with joins, too.
 
   .. what happens if we use the same stream alias in two different subtrees of
   a compound select stmt?

@@ -53,6 +53,16 @@
       <useDefaultExcludes>true</useDefaultExcludes>
       <fileMode>0644</fileMode>
     </fileSet>
+    <fileSet>
+      <!-- stylesheets for documentation -->
+      <directory>${project.basedir}/src/docbkx</directory>
+      <outputDirectory>/docs</outputDirectory>
+      <useDefaultExcludes>true</useDefaultExcludes>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>*.css</include>
+      </includes>
+    </fileSet>
   </fileSets>
   <files>
     <file>
