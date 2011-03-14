@@ -82,7 +82,7 @@ add_to_classpath "${LIB_DIR}"
 if [ ! -z "${FLUME_HOME}" -a -d "${FLUME_HOME}/lib" ]; then
   add_to_classpath "${FLUME_HOME}/lib"
 else
-  echo "Warning: Couldn't find Flume installation. Make sure $$FLUME_HOME is set."
+  echo "Warning: Couldn't find Flume installation. Make sure \$FLUME_HOME is set."
   exit 1
 fi
 

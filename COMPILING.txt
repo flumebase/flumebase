@@ -6,7 +6,7 @@
 FlumeBase is a Java application with a maven-based build process.
 
 BUILD SYSTEM REQUIREMENTS:
-  * Maven 2.0+
+  * Maven 2.0.9+
   * Java 1.6+
   * git
   * Linux, or other POSIX-like environment (e.g. cygwin)
@@ -27,27 +27,43 @@ Apache Thrift can be downloaded from http://incubator.apache.org/thrift.
 Download the 0.5.0 release of Thrift, untar it, and build it with
 ./configure && make && sudo make install.
 
+
+You may need to download some of Thrift's build dependencies first. See
+http://wiki.apache.org/thrift/ThriftRequirements (and the links at the
+bottom of that page) for instructions on installing all Thrift build
+requirements.
+
 Correct installation can be verified with the following commands:
 
-  aaron@sailboat:~$ which thrift
+  $ which thrift
   /usr/local/bin/thrift
-  aaron@sailboat:~$ thrift -version
+  $ thrift -version
   Thrift version 0.5.0
+
+  If you run 'thrift --help', you should verify that 'java'
+  is listed in the "Available generators" section.
 
 
   Installing the maven-thrift-plugin:
 
 To integrate thrift in the Maven build, a specific plugin must be
 downloaded from github.com/odiago/maven-thrift-plugin. Clone the
-repository (git clone http://github.com/odiago/maven-thrift-plugin)
-and run:
+repository, build, and install the plugin by running the following:
 
-  cd path/to/maven-thrift-plugin
+  git clone git://github.com/odiago/maven-thrift-plugin.git
+  cd maven-thrift-plugin
   git checkout maven-thrift-plugin-0.1.10
   mvn package
   mvn install:install-file -Dfile=target/maven-thrift-plugin-0.1.10.jar \
       -DpomFile=./pom.xml -Dpackaging=maven-plugin -Dversion=0.1.10
 
+
+RUNTIME PREREQUISITES:
+
+  FlumeBase requires Cloudera Flume 0.9.3 and Hadoop 0.20. These can
+be installed from Cloudera's Distribution for Hadoop version 3b4 (CDH3B4).
+Installation instructions for CDH are available at
+http://archive.cloudera.com.
 
 
 BUILDING FLUMEBASE:
@@ -60,6 +76,8 @@ Finally, build FlumeBase itself by changing to the FlumeBase source directory
 Unit tests can be executed by running:
 
   mvn test
+
+(This is done as a sub-step of 'mvn package'.)
 
 More thorough (longer-running) integration tests are available at:
 
