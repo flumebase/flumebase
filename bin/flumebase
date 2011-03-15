@@ -11,6 +11,7 @@ MVN_BUILD_DEPS_DIR="${MVN_TARGET_DIR}/dependency"
 
 # CDH installation default
 FLUME_HOME=${FLUME_HOME:-/usr/lib/flume}
+ZOOKEEPER_HOME=${ZOOKEEPER_HOME:-/usr/lib/zookeeper}
 
 function usage() {
   echo "Usage: flumebase <command> [args...]"
@@ -84,6 +85,12 @@ if [ ! -z "${FLUME_HOME}" -a -d "${FLUME_HOME}/lib" ]; then
 else
   echo "Warning: Couldn't find Flume installation. Make sure \$FLUME_HOME is set."
   exit 1
+fi
+
+# Flume depends on Zookeeper, add this too. Source installations of Flume
+# actually bundle zk, so it is not a failure if this is not present.
+if [ ! -z "${ZOOKEEPER_HOME}" -a -d "${ZOOKEEPER_HOME}" ]; then
+  add_to_classpath "${ZOOKEEPER_HOME}"
 fi
 
 # If pulling Flume from a development repository, its jar is in build/, not lib/.
