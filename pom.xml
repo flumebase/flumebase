@@ -288,10 +288,14 @@
   </repositories>
   <distributionManagement>
     <repository>
-      <id>odiago-snapshots</id>
-      <name>Odiago Snapshots</name>
-      <url>scp://maven.odiago.com/var/maven/odiago-snapshots/maven2</url>
-      <uniqueVersion>false</uniqueVersion>
+        <id>odiago-maven</id>
+        <name>odiago-maven-releases</name>
+        <url>http://maven.odiago.com:8081/artifactory/odiago-releases</url>
     </repository>
+    <snapshotRepository>
+        <id>odiago-maven</id>
+        <name>odiago-maven-snapshots</name>
+        <url>http://maven.odiago.com:8081/artifactory/odiago-snapshots</url>
+    </snapshotRepository>
   </distributionManagement>
 </project>
