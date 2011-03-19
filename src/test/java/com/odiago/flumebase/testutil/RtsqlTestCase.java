@@ -27,6 +27,8 @@ import com.odiago.flumebase.exec.local.MemoryOutputElement;
 
 import static org.testng.AssertJUnit.*;
 
+import com.odiago.flumebase.flume.EmbeddedFlumeConfig;
+
 /**
  * Base class for tests that connect to a LocalEnvironment and execute RTSQL
  * queries against in-memory streams.
@@ -37,13 +39,15 @@ public class RtsqlTestCase {
   private SymbolTable mSymbolTable;
   private Configuration mConf;
   private Map<String, MemoryOutputElement> mOutputs;
+  private EmbeddedFlumeConfig mFlumeConfig;
 
   @BeforeMethod
   public void setUp() {
     mSymbolTable = new HashSymbolTable(new BuiltInSymbolTable());
     mConf = new Configuration();
     mOutputs = Collections.synchronizedMap(new HashMap<String, MemoryOutputElement>());
-    mEnvironment = new LocalEnvironment(mConf, mSymbolTable, mOutputs);
+    mFlumeConfig = new EmbeddedFlumeConfig(mConf);
+    mEnvironment = new LocalEnvironment(mConf, mSymbolTable, mOutputs, mFlumeConfig);
   }
 
   @BeforeMethod(groups = { "slow" })
@@ -55,6 +59,10 @@ public class RtsqlTestCase {
   public void tearDown() throws IOException, InterruptedException {
     if (null != mEnvironment && mEnvironment.isConnected()) {
       mEnvironment.shutdown();
+    }
+
+    if (mFlumeConfig.isRunning()) {
+      mFlumeConfig.stop();
     }
   }
 
@@ -78,6 +86,10 @@ public class RtsqlTestCase {
 
   protected Configuration getConf() {
     return mConf;
+  }
+
+  protected EmbeddedFlumeConfig getFlumeConfig() {
+    return mFlumeConfig;
   }
 
   protected Map<String, MemoryOutputElement> getOutputs() {

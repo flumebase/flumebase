@@ -703,7 +703,8 @@ public class LocalEnvironment extends ExecEnvironment {
   public LocalEnvironment(Configuration conf) {
     this(conf,
         new HashSymbolTable(new BuiltInSymbolTable()),
-        new HashMap<String, MemoryOutputElement>());
+        new HashMap<String, MemoryOutputElement>(),
+        new EmbeddedFlumeConfig(conf));
   }
 
   /**
@@ -711,7 +712,8 @@ public class LocalEnvironment extends ExecEnvironment {
    */
   public LocalEnvironment(Configuration conf,
       SymbolTable rootSymbolTable,
-      Map<String, MemoryOutputElement> memoryOutputMap) {
+      Map<String, MemoryOutputElement> memoryOutputMap,
+      EmbeddedFlumeConfig flumeConfig) {
     mConf = conf;
     mRootSymbolTable = rootSymbolTable;
     mMemoryOutputMap = memoryOutputMap;
@@ -719,7 +721,7 @@ public class LocalEnvironment extends ExecEnvironment {
     mGenerator = new ASTGenerator();
     mNextFlowId = 0;
     mControlQueue = new ArrayBoundedSelectableQueue<Object>(MAX_QUEUE_LEN);
-    mFlumeConfig = new EmbeddedFlumeConfig(mConf);
+    mFlumeConfig = flumeConfig;
     mLocalThread = this.new LocalEnvThread();
   }
 

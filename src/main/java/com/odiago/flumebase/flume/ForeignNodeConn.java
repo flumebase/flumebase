@@ -4,8 +4,6 @@ package com.odiago.flumebase.flume;
 
 import java.io.IOException;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
@@ -16,8 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudera.util.Pair;
-
-import com.odiago.flumebase.util.StringUtils;
 
 /**
  * Manages the connection of a foreign node which is listed as a source of data,
@@ -45,6 +41,15 @@ import com.odiago.flumebase.util.StringUtils;
 public class ForeignNodeConn {
   private static final Logger LOG = LoggerFactory.getLogger(
       ForeignNodeConn.class.getName());
+
+  // TODO(aaron): Make these next two constants configurable.
+
+  /** Maximum time we wait for Flume to allocate our local node. */
+  public static final int MAX_WAIT_TIME_MILLIS = 10000;
+
+  /** Check every 100 milliseconds for an update. */
+  public static final int SLEEP_INTERVAL_MILLIS = 100;
+
 
   public static final String LOCAL_COLLECTOR_MIN_PORT_KEY = "flumebase.flume.collector.port.min";
   public static final int DEFAULT_MIN_COLLECTOR_PORT = 45000;
@@ -77,9 +82,6 @@ public class ForeignNodeConn {
   /** Configuration for this foreign node. */
   private Configuration mConf;
 
-  /** List of sinks in the fan-out associated with the local receiver node. */ 
-  private List<String> mLocalSinks; 
-
   /** The manager of the embedded Flume node and connections. */
   private EmbeddedFlumeConfig mFlumeConf;
 
@@ -92,7 +94,6 @@ public class ForeignNodeConn {
     mConf = conf;
     mFlumeConf = flumeConf;
 
-    mLocalSinks = new ArrayList<String>();
     mIsConnected = false;
     mInitialForeignSink = null;
     mOpenedForeignSink = null;
@@ -115,16 +116,12 @@ public class ForeignNodeConn {
     mCollectorPort = getAvailablePort(this);
 
     String localSource = "collectorSource(" + mCollectorPort + ")";
-    mLocalSinks.clear();
-    mLocalSinks.add("null");
-
-    // Format mLocalSinks into a stringified list for fanout.
-    String localSinks = formatFanoutSinks(mLocalSinks);
+    String localSink = "rtsqlmultisink(\"" + mCollectorPort + "\")";
 
     try {
       // Spawn the local source.
       mLocalNodeName = mForeignNodeName + "-receiver";
-      mFlumeConf.spawnLogicalNode(mLocalNodeName, localSource, localSinks);
+      mFlumeConf.spawnLogicalNode(mLocalNodeName, localSource, localSink);
 
       // Configure the foreign logical node to connect to our node.
       Pair<String, String> curNodeConfig = mFlumeConf.getNodeConfig(mForeignNodeName);
@@ -160,18 +157,6 @@ public class ForeignNodeConn {
     }
 
     mIsConnected = true;
-  }
-
-  /**
-   * Given a set of sink specifications, return the specification for a fanout
-   * sink that encompasses all of them.
-   */
-  private String formatFanoutSinks(List<String> sinks) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("[");
-    StringUtils.formatList(sb, sinks);
-    sb.append("]");
-    return sb.toString();
   }
 
   /**
@@ -216,12 +201,52 @@ public class ForeignNodeConn {
   }
 
   /**
+   * Wait for this ForeignNodeConn's RtsqlMultiSink instance to get created
+   * by Flume. (Waits until a timeout)
+   *
+   * @return true if the sink is available, false otherwise.
+   */
+  private boolean waitForMultiSink() {
+    long startTime = System.currentTimeMillis();
+    long endTime = startTime + MAX_WAIT_TIME_MILLIS;
+
+    String id = "" + mCollectorPort;
+
+    do {
+      RtsqlMultiSink multiSink = RtsqlMultiSink.getMultiSinkInstance(id);
+      if (null != multiSink) {
+        // It's instantiated.
+        return true;
+      }
+
+      try {
+        Thread.sleep(SLEEP_INTERVAL_MILLIS);
+      } catch (InterruptedException ie) {
+        return false; // couldn't find it before interrupt.
+      }
+    } while (System.currentTimeMillis() < endTime);
+
+    // Couldn't find it before timeout.
+    return false;
+  }
+
+  /**
    * Add a sink to the local endpoint node. This adds a sink for the specified flowSourceId.
    */
   public void addLocalSink(String flowSourceId) throws IOException {
-    String sinkStr = "rtsqlsink(\"" + flowSourceId + "\")";
-    mLocalSinks.add(sinkStr);
-    reconfigureLocalNode();
+    RtsqlSink rtsqlSink = new RtsqlSink(flowSourceId);
+
+    if (!waitForMultiSink()) {
+      throw new IOException("Could not get local RtsqlMultiSink to attach flow");
+    }
+    RtsqlMultiSink multiSink = RtsqlMultiSink.getMultiSinkInstance("" + mCollectorPort);
+    if (null == multiSink) {
+      LOG.warn("Cannot add flow source " + flowSourceId
+          + " to multi sink for collector " + mCollectorPort + "; no such RtsqlMultiSink");
+      return;
+    }
+
+    multiSink.addChildSink(flowSourceId, rtsqlSink);
   }
 
   /**
@@ -231,22 +256,14 @@ public class ForeignNodeConn {
     // TODO(aaron): If there are no local sinks left, should this auto-close?
     // Maybe after a timeout? (Maybe do this in EmbeddedFlumeConfig instead?)
     // If we auto-close, we need to update the map in EmbeddedFlumeConfig.
-    String sinkStr = "rtsqlsink(\"" + flowSourceId + "\")";
-    mLocalSinks.remove(sinkStr);
-    reconfigureLocalNode();
-  }
-
-  /**
-   * Update the configuration of the local endpoint node to reflect the current set of sinks.
-   */
-  private void reconfigureLocalNode() throws IOException {
-    String localSource = "collectorSource(" + mCollectorPort + ")";
-    String localSinks = formatFanoutSinks(mLocalSinks);
-    try {
-      mFlumeConf.configureLogicalNode(mLocalNodeName, localSource, localSinks);
-    } catch (TException te) {
-      throw new IOException(te);
+    RtsqlMultiSink multiSink = RtsqlMultiSink.getMultiSinkInstance("" + mCollectorPort);
+    if (null == multiSink) {
+      LOG.warn("Cannot remove flow source " + flowSourceId
+          + " from multi sink for collector " + mCollectorPort + "; no such RtsqlMultiSink");
+      return;
     }
+
+    multiSink.removeChildSink(flowSourceId);
   }
 
   @Override

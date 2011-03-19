@@ -19,8 +19,6 @@ import com.odiago.flumebase.exec.FlowElementContext;
 import com.odiago.flumebase.exec.ParsingEventWrapper;
 import com.odiago.flumebase.exec.StreamSymbol;
 
-import com.odiago.flumebase.io.DelimitedEventParser;
-
 import com.odiago.flumebase.parser.TypedField;
 
 /**
@@ -85,6 +83,8 @@ public class RtsqlSink extends EventSink.Base {
       throw new IOException("append() called before open()");
     }
 
+    //LOG.debug("Delivering to " + mContextSourceName + ": Input event in rtsqlsink: "
+    //    + new String(e.getBody()));
     try {
       e.set(FlowElement.STREAM_NAME_ATTR, mStreamSymbol.getName().getBytes());
       EventWrapper wrapper = new ParsingEventWrapper(mStreamSymbol.getEventParser(),

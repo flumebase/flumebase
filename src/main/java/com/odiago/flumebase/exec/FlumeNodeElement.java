@@ -16,7 +16,6 @@ import com.odiago.flumebase.exec.FlowElementContext;
 import com.odiago.flumebase.exec.FlowElementImpl;
 
 import com.odiago.flumebase.flume.EmbeddedFlumeConfig;
-import com.odiago.flumebase.flume.EmbeddedNode;
 import com.odiago.flumebase.flume.SinkContext;
 import com.odiago.flumebase.flume.SinkContextBindings;
 

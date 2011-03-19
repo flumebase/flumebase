@@ -3,8 +3,6 @@
 package com.odiago.flumebase.flume;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -180,6 +178,11 @@ public class EmbeddedFlumeConfig {
     return mIsRunning;
   }
 
+  /** Submit a command to the Flume master and wait for it to finish executing. */
+  private void submitCommand(FlumeMasterCommandThrift cmd) throws TException {
+    mMasterClient.submit(cmd);
+  }
+
   /**
    * Starts a Flume PhysicalNode that manages our data flows.
    */
@@ -236,7 +239,7 @@ public class EmbeddedFlumeConfig {
     args.add(mPhysicalNodeName);
     args.add(logicalNode);
     FlumeMasterCommandThrift cmd = new FlumeMasterCommandThrift("spawn", args);
-    mMasterClient.submit(cmd);
+    submitCommand(cmd);
   }
 
   /**
@@ -249,15 +252,16 @@ public class EmbeddedFlumeConfig {
     args.add(logicalNode);
     args.add(source);
     args.add(sink);
+    LOG.info("Configuring logical node: " + logicalNode + " : " + source + " -> " + sink);
     FlumeMasterCommandThrift cmd = new FlumeMasterCommandThrift("config", args);
-    mMasterClient.submit(cmd);
+    submitCommand(cmd);
   }
 
   public void decommissionLogicalNode(String logicalNode) throws TException {
     List<String> args = new ArrayList<String>();
     args.add(logicalNode);
     FlumeMasterCommandThrift cmd = new FlumeMasterCommandThrift("decommission", args);
-    mMasterClient.submit(cmd);
+    submitCommand(cmd);
   }
 
   /**
@@ -355,6 +359,9 @@ public class EmbeddedFlumeConfig {
   /**
    * Connect to a foreign logical node 'nodeName' and open a local tap to deliver
    * events into the flow with the specified flowSourceId.
+   *
+   * <p>This actually opens a RtsqlMultiSink which fans out; we then add a local
+   * RtsqlSink instance inside to receive events from it.</p>
    */
   public void addFlowToForeignNode(String nodeName, String flowSourceId) throws IOException {
     ForeignNodeConn conn = connectToForeignNode(nodeName);
