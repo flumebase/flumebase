@@ -1,8 +1,4 @@
 
-Release blockers:
-  Change copyright notice at top of all files to mimic Apache / sqoop headers.
-
-
 Types:
   -- BIGINT should really be LONG. We should have a proper BIGINT type that
      is actuall a BigInteger. We should also have BIGNUM that uses BigDecimal.
