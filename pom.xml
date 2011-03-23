@@ -27,6 +27,7 @@
   <version>0.1.0-SNAPSHOT</version>
   <properties>
     <docbook.target.dir>${project.build.directory}/docbkx/html</docbook.target.dir>
+    <test.timeout>300</test.timeout>
   </properties>
   <build>
     <plugins>
@@ -59,7 +60,7 @@
           <excludedGroups>slow</excludedGroups>
           <redirectTestOutputToFile>true</redirectTestOutputToFile>
           <forkMode>once</forkMode>
-          <forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>
+          <forkedProcessTimeoutInSeconds>${test.timeout}</forkedProcessTimeoutInSeconds>
         </configuration>
         <executions>
           <execution>
