@@ -29,7 +29,11 @@ from source.  FlumeBase is licensed to you under the terms of the
 Apache Software License version 2.0. See the LICENSE.txt and
 NOTICE.txt files for more specific information about this license.
 
-FlumeBase's "home" is at http://github.com/odiago/flumebase. See this
-site for the most recent source code, binary releases, wiki, bug
-tracking, and other resources.
+FlumeBase's home is at http://www.flumebase.org. Documentation,
+releases, announcements, etc. will be posted there. Check out
+the FlumeBase Developer Blog at http://blog.flumebase.org, too.
+
+The development home is at http://github.com/flumebase/flumebase.
+See this site for the most recent source code, wiki, and other
+resources.
 

@@ -47,10 +47,10 @@ Correct installation can be verified with the following commands:
   Installing the maven-thrift-plugin:
 
 To integrate thrift in the Maven build, a specific plugin must be
-downloaded from github.com/odiago/maven-thrift-plugin. Clone the
+downloaded from github.com/flumebase/maven-thrift-plugin. Clone the
 repository, build, and install the plugin by running the following:
 
-  git clone git://github.com/odiago/maven-thrift-plugin.git
+  git clone git://github.com/flumebase/maven-thrift-plugin.git
   cd maven-thrift-plugin
   git checkout maven-thrift-plugin-0.1.10
   mvn package
