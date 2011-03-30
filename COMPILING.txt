@@ -27,6 +27,7 @@ Apache Thrift can be downloaded from http://incubator.apache.org/thrift.
 Download the 0.5.0 release of Thrift, untar it, and build it with
 ./configure && make && sudo make install.
 
+Make sure that 'configure' indicates that Java libraries will be built.
 
 You may need to download some of Thrift's build dependencies first. See
 http://wiki.apache.org/thrift/ThriftRequirements (and the links at the
@@ -64,6 +65,14 @@ RUNTIME PREREQUISITES:
 be installed from Cloudera's Distribution for Hadoop version 3b4 (CDH3B4).
 Installation instructions for CDH are available at
 http://archive.cloudera.com.
+  Installing from yum or apt-get is the most straightforward method. If
+you install from release tar.gz files, then you will need to set
+$HADOOP_HOME and $FLUME_HOME in your environment.
+
+  You can also run FlumeBase with a Cloudera Flume git repository. Clone
+a copy of github.com/cloudera/flume, build it (run 'ant'), and set
+FLUME_HOME to the path to your repository. You do not need to separately
+install Hadoop in this case.
 
 
 BUILDING FLUMEBASE:
