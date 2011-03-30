@@ -2,7 +2,19 @@
 Types:
   -- BIGINT should really be LONG. We should have a proper BIGINT type that
      is actuall a BigInteger. We should also have BIGNUM that uses BigDecimal.
+
+     ... in fairness, Hive has "INT" and "BIGINT" corresponding to Integer and
+     Long, so there is something to be said for consistency across similar products.
+
+     I think a better option is to specify a new type called PRECISE(n). PRECISE
+     would be held in a BigDecimal, which can hold arbitrarily large numbers, and
+     has a configurable 'scale', which corresponds to the significant figures
+     to the right of the decimal place. The user should be able to specify scale
+     as an argument to the type constructor (e.g., PRECISE(30) keeps thirty sigfigs.)
+     PRECISE(0) actually is completely precise, and retains all digits.
+
   -- Add CHARACTER type which is a single char.
+
   -- need List<T>, Map<T1, T2> types
 
 Aggregation:
