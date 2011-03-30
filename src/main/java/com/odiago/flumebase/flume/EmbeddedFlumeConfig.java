@@ -21,9 +21,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 
@@ -107,14 +109,24 @@ public class EmbeddedFlumeConfig {
   private boolean mIsRunning;
 
   /**
-   * Set of connections to external logical nodes acting as stream sources, keyed by
-   * logical node name.
+   * Set of connections to external logical nodes acting as stream sources,
+   * keyed by logical node name.
    */
   private Map<String, ForeignNodeConn> mForeignNodeConnections;
+
+  /**
+   * Set of logical nodes created by OutputElements; these are physically hosted
+   * in our own process, and have an RtsqlMultiSink as their sink; the
+   * RtsqlMultiSink's id matches the logical node name. When we are trying
+   * to open a ForeignNodeConn, we'll consult this set first and use a
+   * LocalNodeConn if the RtsqlMultiSink is already live locally.
+   */
+  private Set<String> mLocalMultiSinks;
 
   public EmbeddedFlumeConfig(Configuration conf) {
     mConf = conf;
     mForeignNodeConnections = new HashMap<String, ForeignNodeConn>();
+    mLocalMultiSinks = new HashSet<String>();
     mFlumeNodes = new LinkedList<FlumeNode>();
     getHostName(); // resolve the hostname and cache the result.
     mIsRunning = false;
@@ -280,6 +292,22 @@ public class EmbeddedFlumeConfig {
   }
 
   /**
+   * Add a logical node name to the set of logical nodes we know are local
+   * and have an RtsqlMultiSink in their output sink(s).
+   */
+  public void addLocalMultiSink(String nodeName) {
+    mLocalMultiSinks.add(nodeName);
+  }
+
+  /**
+   * Remove a logical node name from the set of nodes we know are local w/
+   * RtsqlMultiSink output. This does not decommission the node itself.
+   */
+  public void dropLocalMultiSink(String nodeName) {
+    mLocalMultiSinks.remove(nodeName);
+  }
+
+  /**
    * Starts an embedded instance of the FlumeMaster service.  Used when
    * flumebase is running in a "standalone" mode.
    */
@@ -356,8 +384,17 @@ public class EmbeddedFlumeConfig {
       // Check if this is already a thing.
       existingConn = mForeignNodeConnections.get(nodeName);
       if (null == existingConn) {
-        // Nope, do it.
-        newConn = new ForeignNodeConn(nodeName, mConf, this);
+        // We do not have an existing connection to this node.
+        // Check to see if this node is actually the output of a CREATE STREAM AS SELECT.
+        // If so, it's already hosting an RtsqlMultiSink; we don't need to create a receiver.
+        if (mLocalMultiSinks.contains(nodeName)) {
+          // Don't create a receiver, connect directly to the node.
+          newConn = new LocalNodeConn(nodeName, mConf, this, nodeName);
+        } else {
+          // Create a new remote connection.
+          newConn = new ForeignNodeConn(nodeName, mConf, this);
+        }
+
         mForeignNodeConnections.put(nodeName, newConn);
       }
     }

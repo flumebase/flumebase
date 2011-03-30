@@ -38,13 +38,14 @@ import com.cloudera.util.Pair;
  * execution environment, and possibly involved in live flows within that
  * environment.</p>
  *
- * <p>When the connect() call is made, the foreign node's destination is modified
- * to use a fan-out of its current sink and an AgentDFOSink. The AgentDFOSink will
- * send data to a logical node running locally within the ExecutionEnvironment.
- * The local endpoint node will host a CollectorSource and a fanout containing
- * a dynamic number of RtsqlSink instances. Each time a flow is added by the user,
- * it results in a new RtsqlSink. Closing a flow removes the corresponding RtsqlSink
- * from this logical node.</p>
+ * <p>When the connect() call is made, the foreign node's destination is
+ * modified to use a fan-out of its current sink and an AgentDFOSink. The
+ * AgentDFOSink will send data to a logical node running locally within the
+ * ExecutionEnvironment.  The local endpoint node will host a CollectorSource
+ * and an RtsqlMultiSink--an internally-managed fanout containing a dynamic
+ * number of RtsqlSink instances. Each time a flow is added by the user, it
+ * results in a new RtsqlSink. Closing a flow removes the corresponding
+ * RtsqlSink from this logical node.</p>
  *
  * <p>Closing a ForeignNodeConn will restore the original sink configuration to
  * the node.</p>
@@ -215,17 +216,22 @@ public class ForeignNodeConn {
     mIsConnected = false;
   }
 
+  /** @return the id of the RtsqlMultiSink we manage/interface with. */
+  protected String getMultiSinkId() {
+    return "" + mCollectorPort;
+  }
+
   /**
    * Wait for this ForeignNodeConn's RtsqlMultiSink instance to get created
    * by Flume. (Waits until a timeout)
    *
    * @return true if the sink is available, false otherwise.
    */
-  private boolean waitForMultiSink() {
+  protected boolean waitForMultiSink() {
     long startTime = System.currentTimeMillis();
     long endTime = startTime + MAX_WAIT_TIME_MILLIS;
 
-    String id = "" + mCollectorPort;
+    String id = getMultiSinkId();
 
     do {
       RtsqlMultiSink multiSink = RtsqlMultiSink.getMultiSinkInstance(id);
@@ -254,10 +260,10 @@ public class ForeignNodeConn {
     if (!waitForMultiSink()) {
       throw new IOException("Could not get local RtsqlMultiSink to attach flow");
     }
-    RtsqlMultiSink multiSink = RtsqlMultiSink.getMultiSinkInstance("" + mCollectorPort);
+    RtsqlMultiSink multiSink = RtsqlMultiSink.getMultiSinkInstance(getMultiSinkId());
     if (null == multiSink) {
       LOG.warn("Cannot add flow source " + flowSourceId
-          + " to multi sink for collector " + mCollectorPort + "; no such RtsqlMultiSink");
+          + " to multi sink with id " + getMultiSinkId() + "; no such RtsqlMultiSink");
       return;
     }
 
@@ -271,10 +277,10 @@ public class ForeignNodeConn {
     // TODO(aaron): If there are no local sinks left, should this auto-close?
     // Maybe after a timeout? (Maybe do this in EmbeddedFlumeConfig instead?)
     // If we auto-close, we need to update the map in EmbeddedFlumeConfig.
-    RtsqlMultiSink multiSink = RtsqlMultiSink.getMultiSinkInstance("" + mCollectorPort);
+    RtsqlMultiSink multiSink = RtsqlMultiSink.getMultiSinkInstance(getMultiSinkId());
     if (null == multiSink) {
       LOG.warn("Cannot remove flow source " + flowSourceId
-          + " from multi sink for collector " + mCollectorPort + "; no such RtsqlMultiSink");
+          + " from multi sink with id " + getMultiSinkId() + "; no such RtsqlMultiSink");
       return;
     }
 

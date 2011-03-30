@@ -193,7 +193,6 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       if (null != logicalFlumeNode) {
         mLocalFlow.setFlumeRequired(true);
       }
-
     } else if (node instanceof MemoryOutputNode) {
       MemoryOutputNode memoryNode = (MemoryOutputNode) node;
       newElem = new MemoryOutputElement(newContext, memoryNode.getFields());

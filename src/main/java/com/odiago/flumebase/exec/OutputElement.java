@@ -167,7 +167,8 @@ public class OutputElement extends FlowElementImpl {
       try {
         mFlumeConfig.spawnLogicalNode(mFlumeNodeName,
             "rtsqlsource(\"" + mFlumeNodeName + "\")",
-            "null");
+            "rtsqlmultisink(\"" + mFlumeNodeName + "\")");
+        mFlumeConfig.addLocalMultiSink(mFlumeNodeName);
 
         if (mRootSymbolTable.resolve(mFlumeNodeName) != null) {
           // TODO(aaron): This should make it back to the UserSession who submitted
@@ -241,6 +242,7 @@ public class OutputElement extends FlowElementImpl {
         mOwnsSymbol = false;
       }
       try {
+        mFlumeConfig.dropLocalMultiSink(mFlumeNodeName);
         mFlumeConfig.decommissionLogicalNode(mFlumeNodeName);
       } catch (TException te) {
         throw new IOException(te);

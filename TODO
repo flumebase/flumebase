@@ -126,8 +126,9 @@ Bug in CREATE STREAM AS SELECT and Flume node management:
        then reappears, we re-configure it to again connect down to our x-receiver
        in addition to whatever new downstream source it has.
 
-  - CSAS is currently modeled as creating a local output node for the stream; it has
-    no connection to the downstream -receiver node and associated flows.
+  - CSAS creates a local output node for the stream. If the stream gets renamed
+    using \dname, or dropped (via DROP STREAM), any dependent running flows will
+    terminate.
     ** We should not allow dropping a flow associated with CSAS as long as any flows
        require that flow to exist upstream.
     ** More broadly: We should not allow DROP STREAM if any running flows depend on
@@ -182,44 +183,3 @@ Optimizations:
     we can dispense with the stored Type instances inside Exprs being required at
     run time.
 
-
-NOTABUG, but saved for future reference:
-  A weird thing happens with AvroEventParser reading flows we generate in avro:
-  ... This has been confirmed as a bug in Flume, not rtsql.
-
-  # Create a bona fide source.
-  create stream x (a string) from local source 'tail("/tmp/meep")';
-
-  # Create a flow that reads all of this and emits it to a node 'foo'.
-  create stream foo as select a from x;
-
-  # Check its output schema syntax with an 'explain,' then create a stream named bar:
-  create stream bar (a string) from node 'foo' event format 'avro' properties ('schema' =
-  '{"type":"record","name":"foo","fields":[{"name":"a","type":["string","null"]}]}' );
-
-  # Then finally, read from that:
-  select * from bar;
-
-  This chain of events causes Flume to configure a logical node, then reconfigure it.
-
-  A bug:
-  The first record that gets pushed through after the node is reconfigured to send
-  its output to a new ephemeral logical node causes a big cascade of exceptions:
-
-85342 [logicalNode foo-28] ERROR com.cloudera.flume.agent.LogicalNode  - Driver on foo closed LazyOpenSource | LazyOpenDecorator because of EventSink LazyOpenDecorator not open
-java.lang.IllegalStateException: EventSink LazyOpenDecorator not open
-  at com.google.common.base.Preconditions.checkState(Preconditions.java:145)
-  at com.cloudera.flume.core.EventSinkDecorator.append(EventSinkDecorator.java:56)
-  at com.cloudera.flume.handlers.debug.LazyOpenDecorator.append(LazyOpenDecorator.java:71)
-  at com.cloudera.flume.core.connector.DirectDriver$PumperThread.run(DirectDriver.java:93)
-85344 [logicalNode foo-54] ERROR com.cloudera.flume.core.connector.DirectDriver  - Driving src/sink failed! LazyOpenSource | LazyOpenDecorator because next() called before open()
-java.io.IOException: next() called before open()
-  at com.odiago.flumebase.flume.RtsqlSource.next(RtsqlSource.java:57)
-  at com.cloudera.flume.handlers.debug.LazyOpenSource.next(LazyOpenSource.java:53)
-  at com.cloudera.flume.core.connector.DirectDriver$PumperThread.run(DirectDriver.java:89)
-
-  so, there's an open() call maybe missing in flume after a reconfigure?
-  The first record is lost. The second record works.
-
-  LogicalNode is known to not be thread-safe. It may call next() before open() with
-  an unsynchronized race.
