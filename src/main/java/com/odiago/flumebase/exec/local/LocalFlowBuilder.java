@@ -121,7 +121,7 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
     if (node instanceof NamedSourceNode) {
       return true;
     } else {
-      // Non-source nodes are all single-threaded.
+      // To date, all non-source nodes are all single-threaded.
       return false;
     }
   }

@@ -101,6 +101,12 @@ Technical debt:
   - Select.join() will consult its underlying Selectables in a stable order,
     which means we might starve later Selectables in the list. We need to
     perturb this to ensure fairness.
+  - The various dag operators all type-parameterized by what sort of nodes
+    they expect to exist in the dag. They're invoked by calling theDag.reverseBfs(operator),
+    etc. This is backwards. Each operator is intended to be run in a specific fashion
+    (bfs, dfs, etc). We should have several operator subclasses; the base specifies
+    an abstract exec(theDag) method; the subclasses BfsOperator, DfsOperator, etc. then
+    invoke the right dag.reverseBfs(this), dag.dfs(this), etc.
 
 SQL Features (in rough priority order):
   - Filtering (HAVING)
