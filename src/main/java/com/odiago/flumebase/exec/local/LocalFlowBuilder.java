@@ -46,6 +46,7 @@ import com.odiago.flumebase.flume.EmbeddedFlumeConfig;
 
 import com.odiago.flumebase.parser.EntityTarget;
 import com.odiago.flumebase.parser.Expr;
+import com.odiago.flumebase.parser.StreamSourceType;
 
 import com.odiago.flumebase.plan.AggregateNode;
 import com.odiago.flumebase.plan.OutputNode;
@@ -218,6 +219,18 @@ public class LocalFlowBuilder extends DAG.Operator<PlanNode> {
       } else {
         mRootSymbolTable.addSymbol(streamSym);
         mSubmitterSession.sendInfo("CREATE STREAM");
+      }
+
+      if (createStream.getType().equals(StreamSourceType.File)
+          && streamSym.getFormatSpec().getParam(FileSourceElement.TIMESTAMP_COL_KEY) == null) {
+        // We're reading from a file, and making up timestamps based on read time.
+        // Warn the user that timestamps will change between queries.
+        StringBuilder sb = new StringBuilder();
+        sb.append("Warning: File-based streams will set event timestamps based on read time.\n");
+        sb.append("To specify timestamps explictly, set the ");
+        sb.append(FileSourceElement.TIMESTAMP_COL_KEY);
+        sb.append(" event format property.");
+        mSubmitterSession.sendInfo(sb.toString());
       }
     } else if (node instanceof DescribeNode) {
       // Look up the referenced object in the symbol table and describe it immediately.

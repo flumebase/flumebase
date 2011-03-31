@@ -135,12 +135,6 @@ Bug in CREATE STREAM AS SELECT and Flume node management:
        that stream.
 
 
-UX Improvement:
-  - If a stream is created FROM [LOCAL] FILE and timestamp.col is not specified,
-    we should print a warning (when we create the stream) that timestamps are
-    going to be based on file read time, and suggest that the user specify
-    timestamp.col.
-
 Bugs:
   - Quitting is very slow due to the Flume shutdown. Can we improve this?
     ... it also emits a scary looking error message, that we should suppress for
