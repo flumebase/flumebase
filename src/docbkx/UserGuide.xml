@@ -260,7 +260,7 @@ $ <userinput>tar vzxf flumebase-(version)-release.tar.gz</userinput>
         to contain the following values:
       </para>
       <table>
-        <caption>Configuration settings for FlumeBase servers.</caption>
+        <caption>Configuration settings for FlumeBase servers</caption>
         <thead>
           <tr><td>Property</td><td>Value</td></tr>
         </thead>
@@ -324,7 +324,7 @@ $ <userinput>tar vzxf flumebase-(version)-release.tar.gz</userinput>
         on the client machine:
       </para>
       <table>
-        <caption>Configuration settings for FlumeBase clients.</caption>
+        <caption>Configuration settings for FlumeBase clients</caption>
         <thead>
           <tr><td>Property</td><td>Value</td></tr>
         </thead>
@@ -718,7 +718,9 @@ sum ((var('a, constraints={TYPECLASS_NUMERIC})) -> var('a, constraints={TYPECLAS
 
         <para>
           The output argument is the same type variable "alpha;" whatever type
-          is used for the input, will also be used as the output type.
+          is used for the input, will also be used as the output type. For
+          more information on polymorphic types, see <xref
+          linkend="polymorphic" />.
         </para>
       </section>
       <section>
@@ -1277,6 +1279,134 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
           <xref linkend="stream.timestamp.col" />) will associate only the
           milliseconds part of a timestamp with the event itself.
         </para>
+      </section>
+
+      <section>
+        <title>Type coercion</title>
+        <para>
+          Values of some types may be <emphasis>coerced</emphasis> to act as
+          another type. This is performed automatically as necessary; no
+          explicit type-casting operators are used (nor are they provided by
+          the language). Coercion may only occur
+          when moving to a "broader" type; this is called
+          <emphasis>promotion</emphasis> in rtsql.  The value itself may be
+          modified to conform to the specific domain of the target type, but
+          this is only performed if the modification would not lose data.
+        </para>
+        <para>
+          For example, an expression adding an <type>INT</type> value with a
+          <type>BIGINT</type> value will provide a <type>BIGINT</type> result.
+          The <type>INT</type> argument will be promoted to
+          <type>BIGINT</type> and then added to the other <type>BIGINT</type>.
+          Similarly, concatenating a <type>STRING</type> and an
+          <type>INT</type> will coerce the integer into a string
+          representation, and then concatenate it with the string.
+        </para>
+        <para>
+          Numeric values may be promoted to any broader numeric type. From
+          narrowest to broadest, the numeric types are <type>INT</type>,
+          <type>BIGINT</type>, <type>FLOAT</type>, and <type>DOUBLE</type>.
+        </para>
+        <para>
+          All types may be promoted to <type>STRING</type>. The result
+          of coercing a value to <type>STRING</type> is the string
+          representation of the value, as defined in the previous subsections.
+        </para>
+        <para>
+          Any type <type><emphasis>X</emphasis> NOT NULL</type> may be promoted
+          to its nullable counterpart.
+        </para>
+      </section>
+      <section id="polymorphic">
+        <title>Polymorphic types and type classes</title>
+        <para>
+          Some functions may operate over a variety of types. For example,
+          the <function>sum</function> function will add values of any
+          numeric type. Since <type>DOUBLE</type> is the widest numeric
+          type available, the type of the argument column for
+          <function>sum</function> could be marked as <type>DOUBLE</type>.
+          But that would promote every input to <function>sum</function>
+          to a <type>DOUBLE</type> value, and the output would also be
+          <type>DOUBLE</type>. This is not the case; using the
+          <literal>DESCRIBE</literal> statement, we can see the type of
+          the <function>sum</function> function is:
+        </para>
+          <screen>
+rtsql&gt; <userinput>DESCRIBE sum;</userinput>
+sum ((var('a, constraints={TYPECLASS_NUMERIC})) -> var('a, constraints={TYPECLASS_NUMERIC}))
+          </screen>
+        <para>
+          In order to allow the <function>sum</function> function to accept
+          a variety of input types, its input type is specified as
+          a type variable with a <emphasis>universal type</emphasis>; this
+          is denoted by the <literal>var('a)</literal> type. The name of
+          this type variable is <literal>'a</literal> and pronounced "alpha." Type
+          variables are bound to concrete types (e.g., <type>INT</type>) when
+          the rtsql statement is compiled. The same type variable specifies
+          the argument and return types of the <function>sum</function>; this way,
+          it will return the same type as it receives as input. (This can be
+          verified by observing that <literal>'a</literal> is also the name of
+          the output type.)
+        </para>
+        <para>
+          The <function>sum</function> function cannot sum a set of strings,
+          however. Nor can it sum boolean values. Type variables may be
+          specified with a set of constraints; the type it is bound to must
+          conform to these constraints. The sum function can operate only
+          over numeric values. To allow this constraint specification,
+          rtsql provides a set of <emphasis>type
+          classes</emphasis> which are sets of types. Type classes are not
+          themselves concrete types; a column cannot be specified with
+          a type class. The set of type classes are listed in
+          <xref linkend="typeclass-table" />.
+        </para>
+        <table id="typeclass-table">
+          <caption>Type classes and constraints in rtsql</caption>
+          <thead>
+            <tr><td>Type class</td><td>Concrete types included</td>
+            <td>Example use</td></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>TYPECLASS_NUMERIC</td>
+              <td>INT, BIGINT, FLOAT, DOUBLE</td>
+              <td>Input to and output of the <function>sum</function> function</td>
+            </tr>
+            <tr>
+              <td>TYPECLASS_COMPARABLE</td>
+              <td>All numeric types, STRING, and BOOLEAN</td>
+              <td>The <function>max</function> and <function>min</function>
+              functions</td>
+            </tr>
+            <tr>
+              <td>TYPECLASS_ANY</td>
+              <td>All concrete types</td>
+              <td>The <function>count</function> function</td>
+            </tr>
+            <tr>
+              <td>(any typeclass) NOT NULL</td>
+              <td>
+                Each typeclass may be further specified as NOT NULL.
+              </td>
+              <td/>
+            </tr>
+          </tbody>
+          <para>
+            In a function with multiple arguments, the same type variable may
+            be used to specify one or more argument types, in addition to its
+            return type. The type variable will take only one concrete type.
+            Consider a (hypothetical) function <function>mul(x, y)</function> which
+            returns the product of its arguments. The same type variable will
+            be used for both arguments and the return type. It would be
+            constrained to TYPECLASS_NUMERIC. If <function>mul()</function>
+            were called on an <type>INT</type> and a <type>BIGINT</type>, the
+            type variable would be bound to the narrowest concrete type which
+            satisfies all arguments; in this case, <type>BIGINT</type>. Only
+            the concrete types of the arguments are considered when binding a
+            type variable; the context of the return type of the function is
+            not considered.
+          </para>
+        </table>
       </section>
     </section>
   </section>
