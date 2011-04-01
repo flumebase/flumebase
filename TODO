@@ -11,10 +11,10 @@ most important new features:
   -- multi-threading, distribution, scalability
   -- selectable attributes
 
-
 Types:
+
   -- BIGINT should really be LONG. We should have a proper BIGINT type that
-     is actuall a BigInteger. We should also have BIGNUM that uses BigDecimal.
+     is actually a BigInteger. We should also have BIGNUM that uses BigDecimal.
 
      ... in fairness, Hive has "INT" and "BIGINT" corresponding to Integer and
      Long, so there is something to be said for consistency across similar products.

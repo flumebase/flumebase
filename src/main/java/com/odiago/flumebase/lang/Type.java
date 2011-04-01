@@ -47,6 +47,8 @@ public class Type {
     BIGINT,
     FLOAT,
     DOUBLE,
+    PRECISE, // A numeric type which allows the user to specify an arbitrary
+             // degree of precision.
     STRING,
     TIMESTAMP,
     TIMESPAN,
@@ -84,7 +86,7 @@ public class Type {
    * Map containing nullable versions of the primitive types instance, by TypeName.
    * Used by getNullable().
    */
-  private static final Map<TypeName, Type> NULLABLE_TYPES;
+  private static final Map<TypeName, NullableType> NULLABLE_TYPES;
 
   static {
     PRIMITIVE_TYPES = new HashMap<TypeName, Type>();
@@ -102,7 +104,7 @@ public class Type {
     // Window is in primitive types, but is not allowed to be nullable.
     PRIMITIVE_TYPES.put(TypeName.WINDOW, new Type(TypeName.WINDOW));
 
-    NULLABLE_TYPES = new HashMap<TypeName, Type>();
+    NULLABLE_TYPES = new HashMap<TypeName, NullableType>();
     NULLABLE_TYPES.put(TypeName.BOOLEAN, new NullableType(TypeName.BOOLEAN));
     NULLABLE_TYPES.put(TypeName.INT, new NullableType(TypeName.INT));
     NULLABLE_TYPES.put(TypeName.BIGINT, new NullableType(TypeName.BIGINT));
@@ -146,6 +148,19 @@ public class Type {
       return null;
     }
     return mTypeName;
+  }
+
+  /**
+   * @return a type object describing the nullable form of this type.
+   */
+  public NullableType asNullable() {
+    // If we've got a single representation instance, use that.
+    NullableType premade = NULLABLE_TYPES.get(mTypeName);
+    if (null != premade) {
+      return null;
+    }
+
+    return new NullableType(this);
   }
 
   /**
@@ -354,9 +369,17 @@ public class Type {
     }
   }
 
+  public String toString(boolean isNullable) {
+    if (isNullable) {
+      return mTypeName.name();
+    } else {
+      return mTypeName.name() + " NOT NULL";
+    }
+  }
+
   @Override
   public String toString() {
-    return mTypeName.name() + " NOT NULL";
+    return toString(false);
   }
 
   @Override

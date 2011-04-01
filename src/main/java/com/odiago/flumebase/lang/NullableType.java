@@ -27,12 +27,30 @@ import org.apache.avro.Schema;
  */
 public class NullableType extends Type {
   
-  /** the type name of the non-null type being wrapped. */
-  private TypeName mNullableType;
+  /** the type of the non-null type being wrapped. */
+  private Type mType;
 
+  /**
+   * Constructor used by Type's static initializer to create singleton
+   * instances for primitive types.
+   */
   protected NullableType(TypeName name) {
     super(TypeName.NULLABLE);
-    mNullableType = name;
+    mType = new Type(name);
+  }
+
+  /** Primary constructor; allows this to wrap any type, including
+   * complex types (e.g., PRECISE(n), LIST(t), etc.).
+   */
+  protected NullableType(Type type) {
+    super(TypeName.NULLABLE);
+    mType = type;
+    assert null != mType;
+  }
+
+  @Override
+  public NullableType asNullable() {
+    return this; // Already nullable.
   }
 
   @Override
@@ -42,23 +60,12 @@ public class NullableType extends Type {
 
   @Override
   public boolean isNumeric() {
-    switch (mNullableType) {
-    case ANY: // Pure null can be any type-class, including numeric.
-    case INT:
-    case BIGINT:
-    case FLOAT:
-    case DOUBLE:
-      return true;
-    default:
-      return false;
-    }
+    return mType.isNumeric();
   }
 
   @Override
   public boolean isComparable() {
-    return isNumeric() || this.equals(Type.getNullable(TypeName.BOOLEAN))
-        || this.equals(Type.getNullable(TypeName.STRING))
-        || this.equals(Type.getNullable(TypeName.TYPECLASS_COMPARABLE));
+    return mType.isComparable();
   }
 
   @Override
@@ -66,41 +73,38 @@ public class NullableType extends Type {
    * @return the TypeName of the non-null type being wrapped.
    */
   public TypeName getPrimitiveTypeName() {
-    return mNullableType;
+    assert mType.isPrimitive();
+    return mType.getTypeName();
   }
 
   @Override
   public Schema getAvroSchema() {
     // Our schema is a union of our ordinary type, or null.
     List<Schema> unionTypes = new ArrayList<Schema>();
-    unionTypes.add(getAvroSchema(mNullableType));
+    unionTypes.add(getAvroSchema(mType.getTypeName()));
     unionTypes.add(Schema.create(Schema.Type.NULL));
     return Schema.createUnion(unionTypes);
   }
 
   @Override
   public Type widen() {
-    if (TypeName.INT.equals(mNullableType)) {
-      return Type.getNullable(TypeName.BIGINT);
-    } else if (TypeName.BIGINT.equals(mNullableType)) {
-      return Type.getNullable(TypeName.FLOAT);
-    } else if (TypeName.FLOAT.equals(mNullableType)) {
-      return Type.getNullable(TypeName.DOUBLE);
+    Type widenedInner = mType.widen();
+    if (null == widenedInner) {
+      return null; // Cannot widen.
+    } else {
+      return mType.asNullable();
     }
-
-    // Cannot widen this type.
-    return null;
   }
 
   @Override
   public String toString() {
-    return "" + mNullableType;
+    return mType.toString(true);
   }
 
   @Override
   public int hashCode() {
     // Return a different position than its basic type counterpart.
-    return 3 * super.hashCode() + 7;
+    return 3 * mType.hashCode() + 7;
   }
 
   @Override
@@ -114,7 +118,7 @@ public class NullableType extends Type {
     }
 
     NullableType otherType = (NullableType) other;
-    if (mNullableType.equals(otherType.mNullableType)) {
+    if (mType.equals(otherType.mType)) {
       return true;
     }
 
