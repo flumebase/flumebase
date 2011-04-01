@@ -37,9 +37,10 @@ FLUMEBASE_CONF_DIR=${FLUMEBASE_CONF_DIR:-"${projectroot}/etc"}
 function usage() {
   echo "Usage: flumebase <command> [args...]"
   echo "Commands include:"
-  echo "  classpath   Print the classpath used by Java executables and exit"
   echo "  shell       Start the FlumeBase shell"
-  echo "  server      Start a server to run background queries"
+  echo "  server      Start a server to run persistent queries"
+  echo ""
+  echo "  classpath   Print the classpath used by Java executables and exit"
   echo "  version     Print FlumeBase version information and exit"
 }
 

@@ -136,8 +136,6 @@ Bug in CREATE STREAM AS SELECT and Flume node management:
 
 
 Bugs:
-  - Streams created FROM FILE do not treat empty lines as records; they're just
-    ignored. An empty line should be an event with all fields null.
   - Quitting is very slow due to the Flume shutdown. Can we improve this?
     ... it also emits a scary looking error message, that we should suppress for
     hygeine's sake.

@@ -147,11 +147,6 @@ public class FileSourceElement extends FlowElementImpl {
             break;
           }
 
-          if (line.length() == 0) {
-            // Ignore empty lines.
-            continue;
-          }
-
           try {
             FileSourceEvent event = new FileSourceEvent(line.getBytes());
             event.set(STREAM_NAME_ATTR, mStream.getName().getBytes());
