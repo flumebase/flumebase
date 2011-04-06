@@ -22,7 +22,7 @@
   <groupId>com.odiago.flumebase</groupId>
   <artifactId>flumebase</artifactId>
   <name>FlumeBase</name>
-  <url>http://www.odiago.com</url>
+  <url>http://www.flumebase.org</url>
   <packaging>jar</packaging>
   <version>0.1.0-SNAPSHOT</version>
   <properties>
