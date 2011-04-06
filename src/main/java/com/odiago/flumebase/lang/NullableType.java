@@ -56,7 +56,9 @@ public class NullableType extends Type {
 
   @Override
   public boolean isComparable() {
-    return isNumeric() || this.equals(Type.getNullable(Type.TypeName.STRING));
+    return isNumeric() || this.equals(Type.getNullable(TypeName.BOOLEAN))
+        || this.equals(Type.getNullable(TypeName.STRING))
+        || this.equals(Type.getNullable(TypeName.TYPECLASS_COMPARABLE));
   }
 
   @Override
