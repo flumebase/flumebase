@@ -19,6 +19,8 @@ package com.odiago.flumebase.exec;
 
 import java.io.IOException;
 
+import java.math.BigDecimal;
+
 import java.util.List;
 
 import org.apache.avro.Schema;
@@ -55,7 +57,7 @@ public class EvaluationElement extends AvroOutputElementImpl {
     // their results into the output record.
     for (AliasedExpr aliasedExpr : mExprs) {
       Expr expr = aliasedExpr.getExpr();
-      Object result = expr.eval(e);
+      Object result = nativeToAvro(expr.eval(e));
       String fieldName = aliasedExpr.getAvroLabel();
       record.put(fieldName, result);
     }

@@ -42,10 +42,15 @@ public class NullableType extends Type {
   /** Primary constructor; allows this to wrap any type, including
    * complex types (e.g., PRECISE(n), LIST(t), etc.).
    */
-  protected NullableType(Type type) {
+  public NullableType(Type type) {
     super(TypeName.NULLABLE);
     mType = type;
     assert null != mType;
+  }
+
+  /** Return the inner type that we're making nullable. */
+  public Type getInnerType() {
+    return mType;
   }
 
   @Override
@@ -81,7 +86,7 @@ public class NullableType extends Type {
   public Schema getAvroSchema() {
     // Our schema is a union of our ordinary type, or null.
     List<Schema> unionTypes = new ArrayList<Schema>();
-    unionTypes.add(getAvroSchema(mType.getTypeName()));
+    unionTypes.add(mType.getAvroSchema());
     unionTypes.add(Schema.create(Schema.Type.NULL));
     return Schema.createUnion(unionTypes);
   }

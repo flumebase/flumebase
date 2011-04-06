@@ -19,6 +19,8 @@ package com.odiago.flumebase.parser;
 
 import java.io.IOException;
 
+import java.math.BigDecimal;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -205,6 +207,8 @@ public class BinExpr extends Expr {
         return Float.valueOf(((Number) lhs).floatValue() * ((Number) rhs).floatValue());
       case DOUBLE:
         return Double.valueOf(((Number) lhs).doubleValue() * ((Number) rhs).doubleValue());
+      case PRECISE:
+        return ((BigDecimal) lhs).multiply((BigDecimal) rhs);
       default:
         LOG.error("Cannot multiply with non-number type " + mArgType);
         return null;
@@ -219,6 +223,8 @@ public class BinExpr extends Expr {
         return Float.valueOf(((Number) lhs).floatValue() / ((Number) rhs).floatValue());
       case DOUBLE:
         return Double.valueOf(((Number) lhs).doubleValue() / ((Number) rhs).doubleValue());
+      case PRECISE:
+        return ((BigDecimal) lhs).divide((BigDecimal) rhs);
       default:
         LOG.error("Cannot divide with non-number type " + mArgType);
         return null;
@@ -233,6 +239,8 @@ public class BinExpr extends Expr {
         return Float.valueOf(((Number) lhs).floatValue() % ((Number) rhs).floatValue());
       case DOUBLE:
         return Double.valueOf(((Number) lhs).doubleValue() % ((Number) rhs).doubleValue());
+      case PRECISE:
+        return ((BigDecimal) lhs).remainder((BigDecimal) rhs);
       default:
         LOG.error("Cannot divide with non-number type " + mArgType);
         return null;
@@ -247,6 +255,8 @@ public class BinExpr extends Expr {
         return Float.valueOf(((Number) lhs).floatValue() + ((Number) rhs).floatValue());
       case DOUBLE:
         return Double.valueOf(((Number) lhs).doubleValue() + ((Number) rhs).doubleValue());
+      case PRECISE:
+        return ((BigDecimal) lhs).add((BigDecimal) rhs);
       case STRING:
         // String concatenation.
         StringBuilder sb = new StringBuilder();
@@ -267,6 +277,8 @@ public class BinExpr extends Expr {
         return Float.valueOf(((Number) lhs).floatValue() - ((Number) rhs).floatValue());
       case DOUBLE:
         return Double.valueOf(((Number) lhs).doubleValue() - ((Number) rhs).doubleValue());
+      case PRECISE:
+        return ((BigDecimal) lhs).subtract((BigDecimal) rhs);
       default:
         LOG.error("Cannot divide with non-number type " + mArgType);
         return null;

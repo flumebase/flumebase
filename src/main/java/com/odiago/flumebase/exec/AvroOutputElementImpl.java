@@ -20,6 +20,8 @@ package com.odiago.flumebase.exec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import java.math.BigDecimal;
+
 import org.apache.avro.Schema;
 
 import org.apache.avro.generic.GenericData;
@@ -96,5 +98,23 @@ public abstract class AvroOutputElementImpl extends FlowElementImpl {
 
   protected Schema getOutputSchema() {
     return mOutputSchema;
+  }
+
+  /**
+   * Given a native Java object, return the object that represents this
+   * value in an Avro GenericRecord where we control the schema.
+   *
+   * @see AvroEventParser.avroToNative().
+   */
+  protected Object nativeToAvro(Object val) {
+    if (null == val) {
+      return null;
+    } else if (val instanceof BigDecimal) {
+      return val.toString();
+    } else {
+      // For all other value types, we use the same type internally
+      // as Avro does.
+      return val;
+    }
   }
 }

@@ -17,6 +17,8 @@
 
 package com.odiago.flumebase.exec.builtins;
 
+import java.math.BigDecimal;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -24,6 +26,7 @@ import com.odiago.flumebase.exec.Bucket;
 
 import com.odiago.flumebase.lang.AggregateFunc;
 import com.odiago.flumebase.lang.EvalException;
+import com.odiago.flumebase.lang.PreciseType;
 import com.odiago.flumebase.lang.Type;
 import com.odiago.flumebase.lang.UniversalType;
 
@@ -71,6 +74,12 @@ public class avg extends AggregateFunc<AvgState> {
     } else if (type.getPrimitiveTypeName().equals(Type.TypeName.DOUBLE)) {
       state.mCount++;
       state.mSum = state.mSum.doubleValue() + num.doubleValue();
+    } else if (type.getPrimitiveTypeName().equals(Type.TypeName.PRECISE)) {
+      state.mCount++;
+      if (state.mSum instanceof Integer) {
+        state.mSum = PreciseType.toPreciseType(type).parseStringInput("0");
+      }
+      state.mSum = ((BigDecimal) state.mSum).add((BigDecimal) num);
     } else {
       throw new EvalException("Cannot take sum over type: " + num.getClass().getName());
     }
@@ -144,6 +153,26 @@ public class avg extends AggregateFunc<AvgState> {
         return Double.valueOf(totalWeight / (double) totalCount);
       } else {
         return null; // Only null values in buckets.
+      }
+    } else if (type.getPrimitiveTypeName().equals(Type.TypeName.PRECISE)) {
+      BigDecimal totalWeight = PreciseType.toPreciseType(type).parseStringInput("0");
+      for (Bucket<AvgState> bucket : buckets) {
+        AvgState state = bucket.getState();
+        if (null != state) {
+          totalCount += state.mCount;
+          if (state.mSum instanceof Integer) {
+            totalWeight = totalWeight.add(BigDecimal.valueOf(((Integer) state.mSum).intValue()));
+          } else {
+            totalWeight = totalWeight.add((BigDecimal) state.mSum);
+          }
+          nonNull = true;
+        }
+      }
+
+      if (nonNull) {
+        return totalWeight.divide(BigDecimal.valueOf(totalCount));
+      } else {
+        return null;
       }
     } else {
       throw new EvalException("Don't know how to aggregate with type: " + type);

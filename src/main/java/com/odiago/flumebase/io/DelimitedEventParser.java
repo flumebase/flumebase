@@ -31,6 +31,7 @@ import com.cloudera.flume.core.Event;
 
 import com.odiago.flumebase.exec.StreamSymbol;
 
+import com.odiago.flumebase.lang.PreciseType;
 import com.odiago.flumebase.lang.Timestamp;
 import com.odiago.flumebase.lang.Type;
 
@@ -282,6 +283,10 @@ public class DelimitedEventParser extends EventParser {
       // fields. We need to work on this... it should not just be a 'long'
       // representation.
       out = CharBufferUtils.parseLong(chars);
+      break;
+    case PRECISE:
+      PreciseType preciseType = PreciseType.toPreciseType(expectedType);
+      out = preciseType.parseStringInput(chars.toString());
       break;
     default:
       throw new ColumnParseException("Cannot parse recursive types");

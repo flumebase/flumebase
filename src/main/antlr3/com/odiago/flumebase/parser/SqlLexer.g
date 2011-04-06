@@ -64,6 +64,7 @@ ON : O N ;
 L_OR : O R ;
 OVER : O V E R ;
 PRECEDING: P R E C E D I N G ;
+PRECISE: P R E C I S E ;
 PROPERTIES : P R O P E R T I E S ;
 RANGE : R A N G E ;
 SECONDS : S E C O N D S ;

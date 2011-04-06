@@ -29,6 +29,8 @@ options {
   package com.odiago.flumebase.parser;
 
   import com.odiago.flumebase.lang.Type;
+  import com.odiago.flumebase.lang.NullableType;
+  import com.odiago.flumebase.lang.PreciseType;
 }
 
 top returns [SQLStatement val]:
@@ -218,7 +220,8 @@ typed_field_list returns [TypedFieldList val]:
 field_spec returns [TypedField val] :
   f=field_sel t=field_type { $val = new TypedField($f.val, $t.val); };
 
-// Types users can apply to a field can be a primitive type with or without a "NOT NULL".
+// Types users can apply to a field can be a primitive type with or without a "NOT NULL",
+// or a PRECISE type (w/ or w/o NOT NULL).
 field_type returns [Type val] :
     prim=primitive_field_type nonnul=non_nul_qualifier
     {
@@ -231,7 +234,9 @@ field_type returns [Type val] :
       } catch (NullPointerException npe) {
         $val = Type.getPrimitive(Type.TypeName.TYPECLASS_ANY);
       }
-    };
+    }
+  | precise=precise_type { $val = $precise.val; }
+  ;
 
 // A non-recursive field type.
 primitive_field_type returns [String val]:
@@ -242,6 +247,13 @@ primitive_field_type returns [String val]:
   | DOUBLE { $val = "DOUBLE"; }
   | STRING_KW { $val = "STRING"; }
   | TIMESTAMP { $val = "TIMESTAMP"; };
+
+// Defines a PRECISE(n) type.
+precise_type returns [Type val] :
+    PRECISE LPAREN precision=integer RPAREN
+    { $val = new NullableType(new PreciseType($precision.val)); }
+    (NOT NULL { $val = ((NullableType) $val).getInnerType(); })?
+  ;
 
 
 // boolean flag indicating whether "..NOT NULL" was appended to a type spec.
@@ -356,4 +368,8 @@ optional_format_spec returns [FormatSpec val] :
         $val.setParam(unescape($k2.text), unescape($v2.text)); } )*
     )? RPAREN)?
   ;
+
+
+integer returns [Integer val]:
+    i=INT { $val = Integer.valueOf($i.text); };
 

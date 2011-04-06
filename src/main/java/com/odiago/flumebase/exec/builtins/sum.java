@@ -17,6 +17,8 @@
 
 package com.odiago.flumebase.exec.builtins;
 
+import java.math.BigDecimal;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -24,6 +26,7 @@ import com.odiago.flumebase.exec.Bucket;
 
 import com.odiago.flumebase.lang.AggregateFunc;
 import com.odiago.flumebase.lang.EvalException;
+import com.odiago.flumebase.lang.PreciseType;
 import com.odiago.flumebase.lang.Type;
 import com.odiago.flumebase.lang.UniversalType;
 
@@ -38,10 +41,15 @@ public class sum extends AggregateFunc<Number> {
     mArgType.addConstraint(Type.getNullable(Type.TypeName.TYPECLASS_NUMERIC));
   }
 
-  private Number getState(Bucket<Number> bucket) {
+  private Number getState(Bucket<Number> bucket, Type type) {
     Number state = bucket.getState();
     if (null == state) {
-      state = Integer.valueOf(0);
+      if (type.getPrimitiveTypeName().equals(Type.TypeName.PRECISE)) {
+        PreciseType pt = PreciseType.toPreciseType(type);
+        state = pt.parseStringInput("0");
+      } else {
+        state = Integer.valueOf(0);
+      }
     }
 
     return state;
@@ -52,7 +60,7 @@ public class sum extends AggregateFunc<Number> {
     throws EvalException {
 
     Number num = (Number) arg;
-    Number state = getState(bucket);
+    Number state = getState(bucket, type);
     if (null == num) {
       // Don't add anything to the sum.
     } else if (type.getPrimitiveTypeName().equals(Type.TypeName.INT)) {
@@ -63,6 +71,8 @@ public class sum extends AggregateFunc<Number> {
       bucket.setState(state.floatValue() + num.floatValue());
     } else if (type.getPrimitiveTypeName().equals(Type.TypeName.DOUBLE)) {
       bucket.setState(state.doubleValue() + num.doubleValue());
+    } else if (type.getPrimitiveTypeName().equals(Type.TypeName.PRECISE)) {
+      bucket.setState(((BigDecimal) state).add((BigDecimal) num));
     } else {
       throw new EvalException("Cannot take sum over type: " + num.getClass().getName());
     }
@@ -131,6 +141,21 @@ public class sum extends AggregateFunc<Number> {
         return Double.valueOf(total);
       } else {
         return null; // Only null values in buckets.
+      }
+    } else if (type.getPrimitiveTypeName().equals(Type.TypeName.PRECISE)) {
+      BigDecimal total = PreciseType.toPreciseType(type).parseStringInput("0");
+      for (Bucket<Number> bucket : buckets) {
+        BigDecimal state = (BigDecimal) bucket.getState();
+        if (null != state) {
+          total = total.add(state);
+          nonNull = true;
+        }
+      }
+
+      if (nonNull) {
+        return total;
+      } else {
+        return null;
       }
     } else {
       throw new EvalException("Don't know how to aggregate with type: " + type);

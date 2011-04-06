@@ -38,6 +38,7 @@ import com.cloudera.flume.core.Event;
 
 import com.odiago.flumebase.exec.StreamSymbol;
 
+import com.odiago.flumebase.lang.PreciseType;
 import com.odiago.flumebase.lang.Type;
 
 import com.odiago.flumebase.parser.TypedField;
@@ -109,7 +110,8 @@ public class AvroEventParser extends EventParser {
       mRecord = mDatumReader.read(mRecord, mDecoder);
       mIsDecoded = true;
     }
-    return mRecord.get(colIdx);
+
+    return avroToNative(mRecord.get(colIdx), expectedType);
   }
 
   @Override
@@ -131,8 +133,9 @@ public class AvroEventParser extends EventParser {
       }
 
       // Given a schema -- does it match the expected column types?
-      // TODO -- note that we can induce the field defs from the schema..
+      // TODO -- can we induce the field defs from the schema?
       // we should be able to say something like: CREATE STREAM foo (auto) FROM SCHEMA '....'
+      // (Currently no, since PRECISE values are held as strings in avro.)
       List<Schema.Field> schemaFields = null;
       try {
         schemaFields = mSchema.getFields();
@@ -174,5 +177,22 @@ public class AvroEventParser extends EventParser {
     return true;
   }
 
-
+  /**
+   * @return a Java object in the native Java type that FlumeBase expects to
+   * work with.
+   * @param in the object returned from the Avro generic record.
+   * @param expectedType the expected FlumeBase type of the returned object.
+   * @see AvroOutputElementImpl.nativeToAvro()
+   */
+  private Object avroToNative(Object in, Type expectedType) {
+    if (null == in) {
+      return null;
+    } else if (expectedType.getPrimitiveTypeName().equals(Type.TypeName.PRECISE)) {
+      // Convert string input to precise type.
+      PreciseType preciseType = PreciseType.toPreciseType(expectedType);
+      return preciseType.parseStringInput((String) in);
+    } else {
+      return in; // All other types map to themselves.
+    }
+  }
 }

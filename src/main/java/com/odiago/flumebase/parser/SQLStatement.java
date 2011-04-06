@@ -25,6 +25,9 @@ import java.util.Set;
 
 import org.apache.avro.Schema;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.odiago.flumebase.lang.Type;
 import com.odiago.flumebase.lang.VisitException;
 import com.odiago.flumebase.lang.Visitor;
@@ -35,6 +38,9 @@ import com.odiago.flumebase.plan.PlanContext;
  * Abstract base class for statements in the SQL statement AST
  */
 public abstract class SQLStatement {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      SQLStatement.class.getName());
+
   /**
    * The Avro record type used to communicate any entities from one stage of a
    * logical plan pipeline to another is always called the same thing, to make
@@ -125,6 +131,7 @@ public abstract class SQLStatement {
     List<Schema.Field> avroFields = new ArrayList<Schema.Field>();
     Schema record = Schema.createRecord(recordName, null, null, false);
     for (TypedField field : requiredFields) {
+      LOG.info("Considering field: " + field);
       String fieldName = field.getAvroName();
       Type t = field.getType();
       Schema fieldSchema = t.getAvroSchema();

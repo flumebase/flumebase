@@ -182,6 +182,7 @@ public class Type {
     case BIGINT:
     case FLOAT:
     case DOUBLE:
+    case PRECISE:
     case TYPECLASS_NUMERIC:
       return true;
     default:

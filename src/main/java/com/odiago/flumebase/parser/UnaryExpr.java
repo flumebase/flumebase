@@ -19,6 +19,8 @@ package com.odiago.flumebase.parser;
 
 import java.io.IOException;
 
+import java.math.BigDecimal;
+
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -152,6 +154,8 @@ public class UnaryExpr extends Expr {
         return -((Float) childObj).floatValue();
       case DOUBLE:
         return -((Double) childObj).doubleValue();
+      case PRECISE:
+        return ((BigDecimal) childObj).negate();
       default:
         // Type error; ignore this field.
         LOG.debug("Typechecker failed; got type " + childType);

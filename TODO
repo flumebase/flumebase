@@ -13,6 +13,13 @@ most important new features:
 
 Types:
 
+  -- work on PRECISE:
+
+      need to add this to the Type.promotesTo() function.
+        -- work out strategy for PRECISE(n) promotesTo PRECISE(m)
+      need to add this to Type.widen().
+
+
   -- BIGINT should really be LONG. We should have a proper BIGINT type that
      is actually a BigInteger. We should also have BIGNUM that uses BigDecimal.
 

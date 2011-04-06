@@ -17,6 +17,8 @@
 
 package com.odiago.flumebase.exec.builtins;
 
+import java.math.BigDecimal;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -53,6 +55,9 @@ public class square extends ScalarFunc {
     } else if (arg0 instanceof Double) {
       double d = arg0.doubleValue();
       return Double.valueOf(d * d);
+    } else if (arg0 instanceof BigDecimal) {
+      BigDecimal bd = (BigDecimal) arg0;
+      return bd.multiply(bd);
     } else {
       throw new EvalException("Cannot square value of type : " + arg0.getClass().getName());
     }
