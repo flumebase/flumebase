@@ -218,6 +218,14 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.1</version>
+        <configuration>
+          <pushChanges>false</pushChanges>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <dependencies>
@@ -318,4 +326,10 @@
         <url>http://maven.odiago.com:8081/artifactory/odiago-snapshots</url>
     </snapshotRepository>
   </distributionManagement>
+  <scm>
+    <connection>scm:git:git@github.com:flumebase/flumebase.git</connection>
+    <url>git@github.com:flumebase/flumebase.git</url>
+    <developerConnection>scm:git:git@github.com:flumebase/flumebase.git</developerConnection>
+  </scm>
+
 </project>
