@@ -751,6 +751,7 @@ public class LocalEnvironment extends ExecEnvironment {
 
   @Override
   public SessionId connect() throws IOException {
+    Runtime.getRuntime().addShutdownHook(new ShutdownThread());
     mLocalThread.start();
     mConnected = true;
     return new SessionId(0); // Local user is always session 0.
@@ -960,6 +961,29 @@ public class LocalEnvironment extends ExecEnvironment {
   @Override
   protected UserSession getSession(SessionId id) {
     return LOCAL_SESSION;
+  }
+
+  /**
+   * Thread that closes the server impl and cleans up if the server itself is shut down.
+   */
+  private class ShutdownThread extends Thread {
+    public ShutdownThread() {
+      super("RemoteServerImpl-shutdown");
+    }
+
+    @Override
+    public void run() {
+      if (LocalEnvironment.this.mConnected) {
+        LOG.info("Stopping exec environment due to service shutdown...");
+        try {
+          LocalEnvironment.this.shutdown();
+          LOG.info("Exec environment completely stopped.");
+        } catch (Exception e) {
+          LOG.error("Exception shutting down LocalEnvironment in shutdown thread: "
+              + StringUtils.stringifyException(e));
+        }
+      }
+    }
   }
 }
 

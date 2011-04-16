@@ -3,6 +3,8 @@
 /.settings
 /target
 /TAGS
+/logs
+/pids
 /.taglist
 /etc/rtengine-site.xml
 

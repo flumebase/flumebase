@@ -50,6 +50,7 @@ public class ServerMain {
 
   /** Configuration info for the server. */
   private Configuration mConf;
+  private PidFile mPidFile;
 
   public ServerMain() {
     this(new Configuration());
@@ -57,10 +58,35 @@ public class ServerMain {
 
   public ServerMain(Configuration conf) {
     mConf = conf;
+    mPidFile = new PidFile();
+  }
+
+  /** Shutdown hook that prints a farewell message. */
+  private class ShutdownLogger extends Thread {
+    public ShutdownLogger() {
+      super("shutdown-logmsg");
+    }
+
+    public void run() {
+      LOG.info("==================================");
+      LOG.info("  Stopping FlumeBase service");
+      LOG.info("==================================");
+    }
+    
   }
 
   public int run(String [] args) throws Exception {
-    LOG.info("Server is starting");
+    LOG.info("A new server is trying to start...");
+    if (!mPidFile.acquire()) {
+      LOG.error("Could not acquire pid file lock. Another FlumeBase running?");
+      return 1;
+    }
+
+    LOG.info("==================================");
+    LOG.info("  Starting FlumeBase service");
+    LOG.info("==================================");
+
+    Runtime.getRuntime().addShutdownHook(new ShutdownLogger());
 
     RemoteServerImpl remoteImpl = new RemoteServerImpl(mConf);
 
@@ -76,7 +102,6 @@ public class ServerMain {
     LOG.info("Starting processing thread");
     remoteImpl.setServer(server);
     remoteImpl.start();
-
     try {
       LOG.info("Serving on port " + port);
       server.serve();
