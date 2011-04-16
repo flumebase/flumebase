@@ -53,10 +53,7 @@ repository, build, and install the plugin by running the following:
 
   git clone git://github.com/flumebase/maven-thrift-plugin.git
   cd maven-thrift-plugin
-  git checkout maven-thrift-plugin-0.1.10
-  mvn package
-  mvn install:install-file -Dfile=target/maven-thrift-plugin-0.1.10.jar \
-      -DpomFile=./pom.xml -Dpackaging=maven-plugin -Dversion=0.1.10
+  mvn package install
 
 
 RUNTIME PREREQUISITES:
