@@ -104,9 +104,15 @@ export FLUMEBASE_HOME=${FLUMEBASE_HOME:-${projectroot}}
 export FLUMEBASE_CONF_DIR=${FLUMEBASE_CONF_DIR:-"${FLUMEBASE_HOME}/etc"}
 
 if [ ! -f ${FLUMEBASE_CONF_DIR}/flumebase-env.sh ]; then
-  echo "Could not find flumebase-env.sh"
-  echo "Make sure \$FLUMEBASE_HOME or \$FLUMEBASE_CONF_DIR is set correctly."
-  exit 1
+  if [ -f ${FLUMEBASE_CONF_DIR}/flumebase-env.sh.template ]; then
+    echo "First time using FlumeBase? Let me do a bit of setup..."
+    echo "Copying ${FLUMEBASE_CONF_DIR}/flumebase-env.sh.template to flumebase-env.sh"
+    cp ${FLUMEBASE_CONF_DIR}/flumebase-env.sh.template ${FLUMEBASE_CONF_DIR}/flumebase-env.sh
+  else
+    echo "Could not find flumebase-env.sh"
+    echo "Make sure \$FLUMEBASE_HOME or \$FLUMEBASE_CONF_DIR is set correctly."
+    exit 1
+  fi
 fi
 
 source ${FLUMEBASE_CONF_DIR}/flumebase-env.sh

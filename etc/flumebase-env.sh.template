@@ -35,6 +35,9 @@ export FLUMEBASE_PID_DIR=${FLUMEBASE_PID_DIR:-${FLUMEBASE_HOME}/pids}
 # Location of Flume? Default to CDH installation target.
 export FLUME_HOME=${FLUME_HOME:-/usr/lib/flume}
 
+# Location of Hadoop, and its configuration files
+# export HADOOP_HOME=${HADOOP_HOME:-/usr/lib/hadoop}
+# export HADOOP_CONF_DIR=${HADOOP_CONF_DIR:-/etc/hadoop/conf}
 
 
 ####################################################################
