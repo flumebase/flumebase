@@ -1,4 +1,17 @@
 
+
+most important new features:
+
+  -- HAVING
+  -- JSON event input format
+  -- range intervals over rows, not just time
+  -- chunking on the fly (not rolling windows)
+    -- ability to have these intervals start exactly on the hour/minute/etc
+  -- persistent flow metastore
+  -- multi-threading, distribution, scalability
+  -- selectable attributes
+
+
 Types:
   -- BIGINT should really be LONG. We should have a proper BIGINT type that
      is actuall a BigInteger. We should also have BIGNUM that uses BigDecimal.

@@ -3,8 +3,11 @@
 /.settings
 /target
 /TAGS
+/logs
+/pids
 /.taglist
-/etc/rtengine-site.xml
+/etc/flumebase-site.xml
+/etc/flumebase-env.sh
 
 *.swp
 *~

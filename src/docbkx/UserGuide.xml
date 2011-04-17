@@ -96,7 +96,7 @@
       Unzip the FlumeBase installation:
     </para>
     <programlisting>
-$ <userinput>tar vzxf flumebase-(version)-release.tar.gz</userinput>
+$ <userinput>tar vzxf flumebase-(version).tar.gz</userinput>
     </programlisting>
     <para>
       Start the FlumeBase shell:
@@ -224,7 +224,7 @@ rtsql&gt; <userinput>\q</userinput>
         FlumeBase itself is distributed as a tar file. Install FlumeBase by unzipping
         the tar file:
         <screen>
-$ <userinput>tar vzxf flumebase-(version)-release.tar.gz</userinput>      
+$ <userinput>tar vzxf flumebase-(version).tar.gz</userinput>      
         </screen>
       </para>
       <para>

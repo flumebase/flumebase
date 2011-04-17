@@ -39,6 +39,8 @@
         <exclude>TAGS</exclude>
         <exclude>lib</exclude>
         <exclude>docs</exclude>
+        <exclude>pids</exclude>
+        <exclude>logs</exclude>
       </excludes>
       <fileMode>0644</fileMode>
     </fileSet>
@@ -53,6 +55,7 @@
       <fileMode>0644</fileMode>
       <excludes>
         <exclude>flumebase-site.xml</exclude>
+        <exclude>flumebase-env.sh</exclude>
       </excludes>
     </fileSet>
     <fileSet>
@@ -84,6 +87,13 @@
       <source>${project.basedir}/etc/flumebase-site.xml.template</source>
       <outputDirectory>/etc</outputDirectory>
       <destName>flumebase-site.xml</destName>
+      <fileMode>0644</fileMode>
+    </file>
+    <file>
+      <!-- flumebase-env.sh.template is copied as flumebase-env.sh too. -->
+      <source>${project.basedir}/etc/flumebase-env.sh.template</source>
+      <outputDirectory>/etc</outputDirectory>
+      <destName>flumebase-env.sh</destName>
       <fileMode>0644</fileMode>
     </file>
   </files>
