@@ -31,7 +31,7 @@ import org.apache.avro.Schema;
  * the 'scale' associated with the BigDecimal.
  * </p>
  */
-public class PreciseType extends Type {
+public class PreciseType extends Type implements Comparable<PreciseType> {
 
   /** The BigDecimal scale associated with this type. */
   private int mScale;
@@ -105,6 +105,16 @@ public class PreciseType extends Type {
     }
 
     throw new RuntimeException("Cannot convert to PreciseType: " + t);
+  }
+
+  public int compareTo(PreciseType p) {
+    if (mScale == p.mScale) {
+      return 0;
+    } else if (mScale < p.mScale) {
+      return -1;
+    } else {
+      return 1;
+    }
   }
 }
 

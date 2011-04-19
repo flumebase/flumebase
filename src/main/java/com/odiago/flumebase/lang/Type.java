@@ -18,6 +18,7 @@
 package com.odiago.flumebase.lang;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.avro.Schema;
@@ -40,30 +41,73 @@ public class Type {
   /**
    * Every type in rtsql has a name specified here.
    */
-  public enum TypeName {
-    STREAM, // Collection (record) of named primitive or nullable types.
-    BOOLEAN,
-    INT,
-    BIGINT,
-    FLOAT,
-    DOUBLE,
-    PRECISE, // A numeric type which allows the user to specify an arbitrary
-             // degree of precision.
-    STRING,
-    TIMESTAMP,
-    TIMESPAN,
+  public enum TypeName implements Comparable<TypeName> {
+    BOOLEAN(1),
+    INT(1),
+    BIGINT(2),
+    FLOAT(3),
+    DOUBLE(4),
+    PRECISE(5), // A numeric type which allows the user to specify an arbitrary
+                // degree of precision.
+    STRING(8),
+    TIMESTAMP(6),
+    TIMESPAN(7),
+    ANY(0), // 'null' constant can be cast to any type. Only valid inside NULLABLE.
+            // This represents the "bottom" of the promotesTo type lattice.
     NULLABLE, // nullable instance of a primitive type (int, bigint, etc).
+    STREAM, // Collection (record) of named primitive or nullable types.
     FLOW, // An executing flow.
-    ANY, // 'null' constant can be cast to any type. Only valid inside NULLABLE.
-         // This represents the "bottom" of the promotesTo type lattice.
     SCALARFUNC, // Callable scalar function (FnType).
-    TYPECLASS_NUMERIC, // Typeclass representing all numeric types.
-    TYPECLASS_COMPARABLE, // Typeclass representing all comparable types.
-    TYPECLASS_ANY,     // Typeclass representing all types. This is the "top" of
-                       // the promotesTo lattice. (nothing promotesTo ANY, but
-                       // everything promotesTo TYPECLASS_ANY.)
+    TYPECLASS_NUMERIC(7), // Typeclass representing all numeric types.
+    TYPECLASS_COMPARABLE(8), // Typeclass representing all comparable types.
+    TYPECLASS_ANY(9),     // Typeclass representing all types. This is the "top" of
+                          // the promotesTo lattice. (nothing promotesTo ANY, but
+                          // everything promotesTo TYPECLASS_ANY.)
     UNIVERSAL, // Represents an unbound type variable in a UniversalType instance.
-    WINDOW, // A bounded window of time which collects records.
+               // (Note that UniversalType.getPrimitiveTypeName() returns null;
+               // this is not bound to any objects in practice.
+               // Use 't instanceof UniversalType' to check the sort of cast you can
+               // make. TODO: This is probably a bug.) 
+    WINDOW // A bounded window of time which collects records.
+    ;
+
+
+    /**
+     * Defines how "high up" in the lattice elements are. Used to quickly sort
+     * non-PRECISE NUMERIC and other primitive types.
+     */
+    private final int mMeetLevel;
+
+    private TypeName(int meetLevel) {
+      mMeetLevel = meetLevel;
+    }
+
+    private TypeName() {
+      mMeetLevel = -1; // "Invalid" meet-level for items that aren't in the "clean" lattice.
+    }
+
+    /**
+     * @return an integer specifying at what "level" of the ordering a type is.
+     * if t1.level &lt; t2.level, meet(t1, t2) MAY be t2. It WILL NEVER be t1.
+     * if t1.level = t2.level, meet(t1, t2) is undefined.
+     */
+    public int meetLevel() {
+      return mMeetLevel;
+    }
+    
+    /**
+     * @return a compareTo()-like value describing whether this type is lower on
+     * the lattice than t, based on the meetLevel.
+     */
+    private int meetCompareLevel(TypeName t) {
+      if (mMeetLevel < t.mMeetLevel) {
+        return -1;
+      } else if (mMeetLevel == t.mMeetLevel) {
+        return 0;
+      } else {
+        return 1;
+      }
+    }
   };
 
   
@@ -103,6 +147,7 @@ public class Type {
     PRIMITIVE_TYPES.put(TypeName.TYPECLASS_ANY, new Type(TypeName.TYPECLASS_ANY));
     // Window is in primitive types, but is not allowed to be nullable.
     PRIMITIVE_TYPES.put(TypeName.WINDOW, new Type(TypeName.WINDOW));
+    PRIMITIVE_TYPES.put(TypeName.ANY, new Type(TypeName.ANY));
 
     NULLABLE_TYPES = new HashMap<TypeName, NullableType>();
     NULLABLE_TYPES.put(TypeName.BOOLEAN, new NullableType(TypeName.BOOLEAN));
@@ -190,6 +235,33 @@ public class Type {
     }
   }
 
+  /** @return true if this is a concrete type that can actually be instantiated
+   * with values (i.e., not a typeclass). */
+  public boolean isConcrete() {
+    return isScalar();
+  }
+
+  /** @return true if this is a concrete, scalar-valued type (a concrete type
+   * that can hold one value.
+   */
+  public boolean isScalar() {
+    switch (mTypeName) {
+    case BOOLEAN:
+    case INT:
+    case BIGINT:
+    case FLOAT:
+    case DOUBLE:
+    case PRECISE:
+    case STRING:
+    case TIMESTAMP:
+    case TIMESPAN:
+    case WINDOW:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   /** @return true if there is an ordering over values of this type (i.e., it
    * supports operators &gt;, &lt;, &gt;=, &lt;=).
    */
@@ -205,144 +277,275 @@ public class Type {
   }
 
   /**
-   * @return true if a value of this type can be represented in the form of 'other'.
-   * For example, INT promotesTo NULLABLE(INT).
+   * The types available in FlumeBase form a lattice; the meet() function
+   * returns a type or type class which can hold all values of both t1 and t2.
+   *
+   * <p>If no type can form an umbrella over both t1 and t2, this returns
+   * null.</p>
+   *
+   * <p>meet() strives to return the least-upper-bound of t1 and t2, but
+   * programming errors may return a more permissive upper bound. These
+   * should be improved as they are identified.</p>
    *
    * <p>The general rules are as follows:</p>
    * <ul>
-   *   <li>X promotesTo X (reflexivity)</li>
-   *   <li>X promotesTo Y &amp;&amp; Y promotesTo Z =&gt; X promotesTo Z (transitivity)</li>
-   *   <li>X promotesTo NULLABLE(Y) for any scalar X if X promotesTo Y</li>
-   *   <li>NULLABLE(ANY) promotesTo NULLABLE(X) for any X</li>
-   *   <li>X promotesTo STRING for any scalar X</li>
-   *   <li>NULLABLE(X) promotesTo NULLABLE(STRING) for any scalar X</li>
-   *   <li>INT promotesTo BIGINT</li>
-   *   <li>BIGINT promotesTo FLOAT</li>
-   *   <li>FLOAT promotesTo DOUBLE</li>
-   *   <li>All numeric types promotesTo TYPECLASS_NUMERIC.</li>
-   *   <li>TYPECLASS_NUMERIC, STRING, and BOOLEAN promotesTo TYPECLASS_COMPARABLE.</li>
-   *   <li>Anything promotesTo TYPECLASS_ANY (including other typeclasses).</li>
-   *   <li>X promotesTo UniversalType(C1, C2...Cn) iff X promotesTo all constraints Ci</li>
+   *   <li>meet(X, X) = X (reflexivity)</li>
+   *   <li>meet(X, Y) = meet(Y, X) (commutativity)</li>
+   *   <li>meet(X, Y) = Y &amp;&amp; meet(Y, Z) =&gt; meet(X, Z) = Z (transitivity)</li>
+   *   <li>Nullativity "factors out": meet(X, NULLABLE Y) = meet(NULLABLE X, NULLABLE Y)
+   *     = NULLABLE meet(X, Y)</li>
+   *   <li>meet(ANY, X) = X for any X</li>
+   *   <li>meet(X, STRING) = STRING for any scalar X</li>
+   *   <li>The following lattice defines the scalar types:</li>
+   *                     TYPECLASS_ANY
+   *                           |
+   *       -----------TYPECLASS_COMPARABLE----------
+   *      /          /          \                   \
+   *     |      STRING     TYPECLASS_NUMERIC         |  (STRING)
+   *     |     /  |       /        |        \        | /
+   *  TIMESTAMP   |\      |        |        |     BOOLEAN
+   *    /         | ---PRECISE(n)  |        |
+   *   |          |\     /         |        |
+   *   |          | --PRECISE(53)  |        |
+   *   |          |\    |          |        |
+   *   |          | --DOUBLE   PRECISE(24)  |
+   *   |          |\    |       /           |
+   *   |          | --FLOAT-----            |
+   *   |          |\    |           PRECISE(0)
+   *   |          | ---BIGINT----------/         (STRING)
+   *   |           \    |                        /
+   *   |   (STRING) ---INT   (BOOLEAN)      TIMESPAN    ----------(TYPECLASS_ANY)-----
+   *    \       \       |    /               /         /    /        |        \       \
+   *     --------------ANY-------------------     STREAM  FLOW  UNIVERSAL SCALARFUNC WINDOW
+   *         ("ANY" must be a column type)         ("non-column" types exist in type
+   *                                                space but cannot unify with any column
+   *                                                types; they are also not concrete types,
+   *                                                with the exception of "WINDOW".)
+   *
+   *</pre></li>
+   *   <li>An additional rule governs meets over PRECISE(k) types:
+   *     meet(PRECISE(n), PRECISE(m)) = PRECISE(MAX(n, m))</li>
+   *   <li>The following lattice describes TYPECLASS_COMPARABLE and TYPECLASS_ANY:<pre>
+   *                 TYPECLASS_ANY
+   *                        |
+   *             TYPECLASS_COMPARABLE
+   *            /           |        \
+   * TYPECLASS_NUMERIC   STRING   BOOLEAN
+   *</pre></li>
+   *   <li>meet(X, UniversalType(C1, C2..Cn)) = X iff meet(X, Ci) = Ci for all constraints,
+   *     and TYPECLASS_ANY otherwise.</li>
    *
    *   <li>(TODO: unimplemented)
-   *       FLOW(t1, ..., tn) promotesTo FLOW(t'1, ..., t'n) iff t_i promotesTo t'_i.</li>
+   *       meet(FLOW(t1, ..., tn), FLOW(t'1, ..., t'n) = meet(FLOW(t''i) for t''i = MEET(ti,t'i)).
+   *   </li>
    * </ul>
+   * </ul>
+   *
+   */
+  public static Type meet(final Type t1, final Type t2) {
+    LOG.debug("Checking meet: " + t1 + " and " + t2);
+    assert t1 != null;
+    assert t2 != null;
+
+    // Reflexivity
+    if (t1.equals(t2)) {
+      return t1;
+    }
+
+    // Nullable factorization
+    if (t1.isNullable() || t2.isNullable()) {
+      // factor out nullability.
+      Type t1n = t1;
+      boolean genuine = false;
+      if (t1 instanceof NullableType) {
+        t1n = ((NullableType) t1).getInnerType();
+        genuine = true;
+      }
+
+      Type t2n = t2;
+      if (t2 instanceof NullableType) {
+        t2n = ((NullableType) t2).getInnerType();
+        genuine = true;
+      }
+
+      if (genuine) {
+        // In the case where one side is a Universal type that meets the properties
+        // for nullability, we won't be able to factor that out here. Buf if
+        // one of the two sides was in a proper NullableType wrapper, do this
+        // recursive step.
+        return new NullableType(meet(t1n, t2n));
+      }
+    }
+
+    // If one type is a Universal Type, then obey the universal type lattice.
+    if (t1 instanceof UniversalType || t2 instanceof UniversalType) {
+      return meetUniversal(t1, t2);
+    }
+
+    // If one type is TYPECLASS_ANY, then it wins. Always.
+    if (t1.equals(Type.getPrimitive(Type.TypeName.TYPECLASS_ANY))) {
+      return t1;
+    } else if (t2.equals(Type.getPrimitive(Type.TypeName.TYPECLASS_ANY))) {
+      return t2;
+    }
+
+    // Otherwise, if one type is TYPECLASS_COMPARABLE, then it takes everything too.
+    if (t1.equals(Type.getPrimitive(Type.TypeName.TYPECLASS_COMPARABLE))) {
+      return t1;
+    } else if (t2.equals(Type.getPrimitive(Type.TypeName.TYPECLASS_COMPARABLE))) {
+      return t2;
+    }
+
+    // If one type is ANY, then use the other type. ANY promotes to everything.
+    if (t1.equals(Type.getPrimitive(Type.TypeName.ANY))) {
+      return t2;
+    } else if (t2.equals(Type.getPrimitive(Type.TypeName.ANY))) {
+      return t1;
+    }
+
+    if (t1.isNumeric() && t2.isNumeric()) {
+      return meetNumeric(t1, t2);
+    }
+
+    // If one type is STRING, then any scalar type will promote to it.
+    if (t1.equals(Type.getPrimitive(Type.TypeName.STRING)) && t2.isScalar()) {
+      return t1;
+    } else if (t2.equals(Type.getPrimitive(Type.TypeName.STRING)) && t1.isScalar()) {
+      return t2;
+    }
+
+    // If we're down here, then we either had a weird type (FLOW, STREAM, etc.
+    // that doesn't fit with anything, or we had incomparable scalar types:
+    // BOOLEAN and TIMESTAMP, etc.
+    // Technically, all scalar types should all meet under 'STRING', but that
+    // would ruin any semblence of type-safety; it would toString() everything
+    // before use.
+    // I'm going to hold off before allowing that. We may later investigate
+    // the notion of a 'lazy' mode that allows those sorts of expressions, but
+    // not right now.
+
+    return Type.getPrimitive(TypeName.TYPECLASS_ANY);
+  }
+
+  /**
+   * @return the meet of two types where one is a universal type.
+   */
+  private static Type meetUniversal(final Type t1, final Type t2) {
+    // If one type is a UniversalType, and the other type is X, then:
+    // assert that for each specified constraint, meet(X, specified) == specified.
+    // If the assertion holds, return X. Otherwise, return TYPECLASS_ANY.
+    UniversalType universalType;
+    Type concreteType;
+
+    if (t1 instanceof UniversalType) {
+      universalType = (UniversalType) t1;
+      concreteType = t2;
+      
+      assert concreteType.isConcrete();
+    } else {
+      universalType = (UniversalType) t2;
+      concreteType = t1;
+    }
+
+    LOG.debug("meeting concrete " + concreteType + " vs universal " + universalType);
+
+    List<Type> constraints = universalType.getConstraints();
+    for (Type constraint : constraints) {
+      if (!meet(concreteType, constraint).equals(constraint)) {
+        LOG.debug("(no fit; returning TYPECLASS_ANY)");
+        return Type.getPrimitive(TypeName.TYPECLASS_ANY);
+      }
+    }
+    
+    LOG.debug("ok!");
+    return concreteType;
+  }
+
+  /**
+   * @return the meet of t1 and t2, assuming these are both under
+   * TYPECLASS_NUMERIC.
+   */
+  private static Type meetNumeric(final Type t1, final Type t2) {
+    if (t1.getPrimitiveTypeName().equals(TypeName.PRECISE)
+        && t2.getPrimitiveTypeName().equals(TypeName.PRECISE)) {
+      return meetPrecise(t1, t2);
+    }
+
+    // Sort the types;
+    int compare = t1.getPrimitiveTypeName().meetCompareLevel(t2.getPrimitiveTypeName());
+    Type lesserType;
+    Type greaterType;
+    if (compare == 0) {
+      return t1; // They're the same
+    } else if (compare > 0) {
+      lesserType = t2;
+      greaterType = t1;
+    } else {
+      lesserType = t1;
+      greaterType = t2;
+    }
+
+    if (greaterType.getPrimitiveTypeName().equals(TypeName.PRECISE)) {
+      // The other one is not precise, or it would have been meetPrecise'd above.
+      // Convert the lesser type into the lowest precise type that holds it,
+      // and meet that with the greaterType.
+      PreciseType lesserPrecise;
+
+      switch (lesserType.getPrimitiveTypeName()) {
+      case INT:
+      case BIGINT:
+        lesserPrecise = new PreciseType(0);
+        break;
+      case FLOAT:
+        lesserPrecise = new PreciseType(24); // JLS 4.2.3: 'float' holds 10^-24 precision
+        break;
+      case DOUBLE:
+        lesserPrecise = new PreciseType(53); // JLS 4.2.3: 'double' holds 10^-53 precision
+        break;
+      default:
+        assert lesserType.isNumeric();
+        throw new RuntimeException("meetNumeric called on non-numeric " + lesserType);
+      }
+
+      return meetPrecise(lesserPrecise, greaterType);
+    }
+
+    // For meets of the unparameterized numeric types, go with the greater ranked one.
+    return greaterType;
+  }
+
+  /**
+   * @return meet(PRECISE(n), PRECISE(m)) == PRECISE(MAX(n, m))
+   */
+  private static Type meetPrecise(final Type t1, final Type t2) {
+    final PreciseType p1 = PreciseType.toPreciseType(t1);
+    final PreciseType p2 = PreciseType.toPreciseType(t2);
+
+    if (p1.compareTo(p2) < 0) {
+      return p2;
+    } else {
+      return p1;
+    }
+  }
+
+  /**
+   * @return true if a value of this type can be represented in the form of 'other'.
+   * For example, INT promotesTo NULLABLE(INT).
+   *
+   * <p>X promotesTo Y iff meet(X, Y) == Y</p>
    */
   public boolean promotesTo(Type other) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Checking: " + this + " promotesTo " + other);
     }
 
-    if (null == other) {
-      return false; // invalid input.
-    } else if (this.equals(other)) {
-      return true; // reflexivity rule.
-    } else if (!isNullable() && other.equals(Type.getPrimitive(TypeName.TYPECLASS_ANY))) {
-      // Any non-null type promotes to non-null TYPECLASS_ANY.
-      return true;
-    } else if (isNullable() && other.equals(Type.getNullable(TypeName.TYPECLASS_ANY))) {
-      // Any nullable type promotes to nullable TYPECLASS_ANY.
-      return true;
-    } else if (isComparable() && !isNullable()
-        && other.equals(Type.getPrimitive(TypeName.TYPECLASS_COMPARABLE))) {
-      // Any comparable non-null type promotes to non-null TYPECLASS_COMPARABLE.
-      return true;
-    } else if (isComparable() && other.equals(Type.getNullable(TypeName.TYPECLASS_COMPARABLE))) {
-      // Any comparable type promotes to nullable TYPECLASS_COMPARABLE.
-      return true;
-    } else if (other instanceof UniversalType) {
-      // We can promote to a constrained universal type if we can promote
-      // to all constraints of that type.
-      for (Type constraint : ((UniversalType) other).getConstraints()) {
-        if (!promotesTo(constraint)) {
-          return false;
-        }
-      }
-
-      return true;
-    } else if (isPrimitive() && other.isNullable()) {
-      if (isNullable()) {
-        NullableType nullableThis = (NullableType) this;
-        NullableType nullableOther = (NullableType) other;
-
-        TypeName myTypeName = nullableThis.getPrimitiveTypeName();
-        TypeName otherTypeName = nullableOther.getPrimitiveTypeName();
-        if (TypeName.ANY.equals(myTypeName)) {
-          // NULLABLE(ANY) promotesTo any nullable other type.
-          return true;
-        } else if (Type.getPrimitive(myTypeName).promotesTo(Type.getPrimitive(otherTypeName))) {
-          // NULLABLE (X) promotesTo NULLABLE (Y) if X promotesTo Y.
-          return true;
-        } else {
-          return false;
-        }
-      } else {
-        // X promotesTo NULLABLE(Y) if X promotesTo Y.
-        NullableType nullableOther = (NullableType) other;
-        Type nonNullVer = Type.getPrimitive(nullableOther.getPrimitiveTypeName());
-        return promotesTo(nonNullVer);
-      }
-    } else if (isPrimitive() && !isNullable() && other.isPrimitive()) {
-      TypeName otherName = other.getTypeName();
-      if (TypeName.STRING.equals(otherName)) {
-        // any primitive type promotes to STRING.
-        return true;
-      } else if (numericPromotesTo(mTypeName, otherName)) {
-        // our numeric type promotes to the other type.
-        return true;
-      } else {
-        // Transitive widening case: If our numeric type can be widened, see
-        // if that promotes to the target type (recursively).
-        Type widerPrimitive = widen();
-        if (null != widerPrimitive) {
-          return widerPrimitive.promotesTo(other);
-        } else {
-          return false; // can't widen.
-        }
-      }
+    if (other instanceof UniversalType) {
+      // meet(X, universalType) is actually X in this case.
+      return meet(this, other).equals(this);
+    } else {
+      // Normal case: just check that the transitive rule applies
+      return meet(this, other).equals(other);
     }
-
-    return false;
-  }
-
-  /**
-   * @return true if smaller is a numeric TypeName, and smaller promotesTo larger.
-   */
-  private boolean numericPromotesTo(TypeName smaller, TypeName larger) {
-    return
-        (TypeName.INT.equals(smaller) &&
-            (TypeName.BIGINT.equals(larger)
-            || TypeName.FLOAT.equals(larger)
-            || TypeName.DOUBLE.equals(larger)
-            || TypeName.TYPECLASS_NUMERIC.equals(larger)))
-        || (TypeName.BIGINT.equals(smaller) &&
-            (TypeName.FLOAT.equals(larger)
-            || TypeName.DOUBLE.equals(larger)
-            || TypeName.TYPECLASS_NUMERIC.equals(larger)))
-        || (TypeName.FLOAT.equals(smaller) &&
-            (TypeName.DOUBLE.equals(larger)
-            || TypeName.TYPECLASS_NUMERIC.equals(larger)))
-        || smaller.equals(larger);
-  }
-
-  /**
-   * For numeric types, returns the next more permissive numeric type in the tower.
-   * <p>INT -&gt; BIGINT -&gt; FLOAT -&gt; DOUBLE.</p>
-   * <p>widen(DOUBLE) returns null.</p>
-   * <p>X widensTo Y =&gt; NULLABLE(X) widensTo NULLABLE(Y).
-   * (Handled in NullableType.widen())</p>
-   */
-  public Type widen() {
-    if (TypeName.INT.equals(mTypeName)) {
-      return Type.getPrimitive(TypeName.BIGINT);
-    } else if (TypeName.BIGINT.equals(mTypeName)) {
-      return Type.getPrimitive(TypeName.FLOAT);
-    } else if (TypeName.FLOAT.equals(mTypeName)) {
-      return Type.getPrimitive(TypeName.DOUBLE);
-    }
-
-    // Cannot widen this type.
-    return null;
   }
 
   /** @return an Avro schema describing the specified TypeName. */

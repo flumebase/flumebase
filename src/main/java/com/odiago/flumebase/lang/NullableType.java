@@ -74,6 +74,16 @@ public class NullableType extends Type {
   }
 
   @Override
+  public boolean isConcrete() {
+    return mType.isConcrete();
+  }
+
+  @Override
+  public boolean isScalar() {
+    return mType.isScalar();
+  }
+
+  @Override
   /** 
    * @return the TypeName of the non-null type being wrapped.
    */
@@ -89,16 +99,6 @@ public class NullableType extends Type {
     unionTypes.add(mType.getAvroSchema());
     unionTypes.add(Schema.create(Schema.Type.NULL));
     return Schema.createUnion(unionTypes);
-  }
-
-  @Override
-  public Type widen() {
-    Type widenedInner = mType.widen();
-    if (null == widenedInner) {
-      return null; // Cannot widen.
-    } else {
-      return mType.asNullable();
-    }
   }
 
   @Override

@@ -49,6 +49,7 @@ import com.odiago.flumebase.util.StringUtils;
  * </p>
  */
 public class UniversalType extends Type {
+
   /**
    * The set of type(classes) which constrain the set of values this type can
    * take on.
@@ -158,19 +159,12 @@ public class UniversalType extends Type {
     // Get the narrowest type that satisfies all the actualConstraints.
     Type candidate = actualConstraints.get(0);
     for (int i = 1; i < actualConstraints.size(); i++) {
-      Type constraint = actualConstraints.get(i);
-      boolean candidatePromotes = candidate.promotesTo(constraint);
-      boolean constraintPromotes = constraint.promotesTo(candidate);
-      if (candidatePromotes && !constraintPromotes) {
-        // candidate satisfies constraint, but not the other way around.
-        // Widen our type to the next constraint type.
-        candidate = constraint;
-      } else if (!candidatePromotes && !constraintPromotes) {
-        // We can't go in either direction.
-        throw new TypeCheckException("Actual constraints " + candidate + " and " + constraint
-            + " are incompatible.");
-      }
-      // In both other cases, we stay with the candidate constraint as-is.
+      candidate = Type.meet(candidate, actualConstraints.get(i));
+    }
+
+    // Ensure that a concrete candidate type exists.
+    if (!candidate.isConcrete()) {
+      throw new TypeCheckException("Actual constraints are incompatible."); 
     }
 
     // Now that we've found the narrowest real type we can use,

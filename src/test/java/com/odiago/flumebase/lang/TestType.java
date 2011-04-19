@@ -22,7 +22,6 @@ import org.testng.annotations.Test;
 import static org.testng.AssertJUnit.*;
 
 public class TestType {
-
   @Test
   public void testEquality() {
     assertTrue(Type.getPrimitive(Type.TypeName.INT).equals(Type.getPrimitive(Type.TypeName.INT)));
@@ -103,6 +102,7 @@ public class TestType {
         Type.getNullable(Type.TypeName.TYPECLASS_NUMERIC)));
     assertTrue(Type.getPrimitive(Type.TypeName.INT).promotesTo(
         Type.getPrimitive(Type.TypeName.TYPECLASS_NUMERIC)));
+
     assertTrue(Type.getPrimitive(Type.TypeName.INT).promotesTo(
         Type.getPrimitive(Type.TypeName.TYPECLASS_ANY)));
     assertTrue(Type.getPrimitive(Type.TypeName.STRING).promotesTo(
