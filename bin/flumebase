@@ -251,7 +251,7 @@ elif [ "$action" == "stop" ]; then
   tries=5
   while [ "$tries" -gt 0 ]; do
     tries=$(($tries - 1))
-    ps ef | grep "^$PID" 2>&1 > /dev/null
+    ps -e -o pid,args | grep "^$PID" 2>&1 > /dev/null
     ret=$?
     if [ "$ret" != 0 ]; then
       break
