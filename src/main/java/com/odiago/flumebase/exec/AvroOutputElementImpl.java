@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import org.apache.avro.Schema;
 
@@ -35,6 +36,9 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
+
+import com.odiago.flumebase.lang.PreciseType;
+import com.odiago.flumebase.lang.Type;
 
 /**
  * Abstract class that allows nodes to emit output records which
@@ -104,13 +108,30 @@ public abstract class AvroOutputElementImpl extends FlowElementImpl {
    * Given a native Java object, return the object that represents this
    * value in an Avro GenericRecord where we control the schema.
    *
+   * @param val the value (held in a native Java object), to convert to
+   * an object representing this same value in an Avro GenericRecord.
+   * @param outputType the rtsql type associated with the type we're
+   * converting this object to.
+   *
    * @see AvroEventParser.avroToNative().
    */
-  protected Object nativeToAvro(Object val) {
+  protected Object nativeToAvro(Object val, Type outputType) {
     if (null == val) {
       return null;
     } else if (val instanceof BigDecimal) {
-      return val.toString();
+      if (outputType.getPrimitiveTypeName().equals(Type.TypeName.PRECISE)) {
+        // If we know the scale associated with the result PRECISE object,
+        // make sure we use the appropriate scale (the scale used during
+        // computation may be overly precise as a result of math operations).
+        PreciseType preciseType = PreciseType.toPreciseType(outputType);
+        BigDecimal bigDec = (BigDecimal) val;
+        return bigDec.setScale(preciseType.getScale(), RoundingMode.HALF_EVEN).toString();
+      } else {
+        // Not sure what would cause a BigDecimal to be coerced to some
+        // non-PRECISE output type, but in any case, it will be represented
+        // as a string.
+        return val.toString();
+      }
     } else {
       // For all other value types, we use the same type internally
       // as Avro does.

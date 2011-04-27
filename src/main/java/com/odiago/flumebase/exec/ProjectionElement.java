@@ -54,7 +54,7 @@ public class ProjectionElement extends AvroOutputElementImpl {
       TypedField outField = mOutputFields.get(i);
 
       String outFieldName = outField.getAvroName();
-      record.put(outFieldName, nativeToAvro(e.getField(inField)));
+      record.put(outFieldName, nativeToAvro(e.getField(inField), outField.getType()));
     }
 
     emitAvroRecord(record, e.getEvent());

@@ -104,7 +104,7 @@ public class IdentifierExpr extends Expr {
   }
 
   @Override
-  Type getResolvedType() {
+  public Type getResolvedType() {
     return mType;
   }
 

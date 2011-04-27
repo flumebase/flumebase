@@ -11,10 +11,11 @@ most important new features:
   -- multi-threading, distribution, scalability
   -- selectable attributes
 
-Types:
+  -- documentation debt:
+    -- new PRECISE type
 
-  -- work on PRECISE:
-     -- Tests!
+
+Types:
 
   -- Add CHARACTER type which is a single char.
 

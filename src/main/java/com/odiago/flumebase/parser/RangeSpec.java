@@ -126,7 +126,7 @@ public class RangeSpec extends Expr {
   }
 
   @Override
-  protected Type getResolvedType() {
+  public Type getResolvedType() {
     return Type.getPrimitive(Type.TypeName.TIMESPAN);
   }
 

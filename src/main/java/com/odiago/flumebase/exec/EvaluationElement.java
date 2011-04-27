@@ -57,7 +57,7 @@ public class EvaluationElement extends AvroOutputElementImpl {
     // their results into the output record.
     for (AliasedExpr aliasedExpr : mExprs) {
       Expr expr = aliasedExpr.getExpr();
-      Object result = nativeToAvro(expr.eval(e));
+      Object result = nativeToAvro(expr.eval(e), expr.getResolvedType());
       String fieldName = aliasedExpr.getAvroLabel();
       record.put(fieldName, result);
     }

@@ -313,7 +313,7 @@ public class BinExpr extends Expr {
   }
 
   @Override
-  Type getResolvedType() {
+  public Type getResolvedType() {
     return mType;
   }
 

@@ -296,7 +296,7 @@ public class Type {
    *     = NULLABLE meet(X, Y)</li>
    *   <li>meet(ANY, X) = X for any X</li>
    *   <li>meet(X, STRING) = STRING for any scalar X</li>
-   *   <li>The following lattice defines the scalar types:</li>
+   *   <li>The following lattice defines the scalar types:<pre><tt>
    *                     TYPECLASS_ANY
    *                           |
    *       -----------TYPECLASS_COMPARABLE----------
@@ -322,16 +322,16 @@ public class Type {
    *                                                types; they are also not concrete types,
    *                                                with the exception of "WINDOW".)
    *
-   *</pre></li>
+   *</tt></pre></li>
    *   <li>An additional rule governs meets over PRECISE(k) types:
    *     meet(PRECISE(n), PRECISE(m)) = PRECISE(MAX(n, m))</li>
-   *   <li>The following lattice describes TYPECLASS_COMPARABLE and TYPECLASS_ANY:<pre>
+   *   <li>The following lattice describes TYPECLASS_COMPARABLE and TYPECLASS_ANY:<pre><tt>
    *                 TYPECLASS_ANY
    *                        |
    *             TYPECLASS_COMPARABLE
    *            /           |        \
    * TYPECLASS_NUMERIC   STRING   BOOLEAN
-   *</pre></li>
+   *</tt></pre></li>
    *   <li>meet(X, UniversalType(C1, C2..Cn)) = X iff meet(X, Ci) = Ci for all constraints,
    *     and TYPECLASS_ANY otherwise.</li>
    *

@@ -24,6 +24,7 @@ import java.util.List;
 import com.odiago.flumebase.exec.EventWrapper;
 import com.odiago.flumebase.exec.SymbolTable;
 
+import com.odiago.flumebase.lang.PreciseType;
 import com.odiago.flumebase.lang.Type;
 
 /**
@@ -56,7 +57,7 @@ public abstract class Expr extends SQLStatement {
    * The typechecker will set the type inside the node so it does not
    * need to rely on a symobl table at run time.
    */
-  abstract Type getResolvedType();
+  public abstract Type getResolvedType();
 
 
   /**
@@ -86,6 +87,9 @@ public abstract class Expr extends SQLStatement {
       return Float.valueOf(((Number) val).floatValue());
     } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.DOUBLE)) {
       return Double.valueOf(((Number) val).doubleValue());
+    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.PRECISE)) {
+      PreciseType preciseTarget = PreciseType.toPreciseType(targetType);
+      return preciseTarget.parseStringInput(val.toString());
     } else {
       throw new RuntimeException("Do not know how to coerce from " + valType
           + " to " + targetType);

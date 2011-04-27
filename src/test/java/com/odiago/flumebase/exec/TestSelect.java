@@ -36,6 +36,7 @@ import com.odiago.flumebase.exec.local.MemoryOutputElement;
 
 import com.odiago.flumebase.io.DelimitedEventParser;
 
+import com.odiago.flumebase.lang.PreciseType;
 import com.odiago.flumebase.lang.Type;
 
 import com.odiago.flumebase.parser.FormatSpec;
@@ -959,6 +960,98 @@ public class TestSelect extends RtsqlTestCase {
         Collections.singletonList("\\N,def"),
         "SELECT NOT a IS NOT NULL AS c, NOT b IS NOT NULL AS d, b FROM memstream",
         checks);
+  }
+
+  /**
+   * Run a test for PRECISE(1) types.
+   * This runs a test on a stream named 'f' with one column 'x', of type PRECISE(1).
+   */
+  private void runPreciseTest(List<String> eventStrings, String query, String outColName,
+      List<String> outStrings) throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("f");
+
+    streamBuilder.addField(new TypedField("x", new PreciseType(1)));
+    for (String eventStr : eventStrings) {
+      streamBuilder.addEvent(eventStr);
+    }
+    StreamSymbol stream = streamBuilder.build();
+    getSymbolTable().addSymbol(stream);
+
+    getConf().set(SelectStmt.CLIENT_SELECT_TARGET_KEY, "testSelect");
+
+    // With all configuration complete, connect to the environment.
+    LocalEnvironment env = getEnvironment();
+    env.connect();
+
+    // Run the query.
+    QuerySubmitResponse response = env.submitQuery(query, getQueryOpts());
+    FlowId id = response.getFlowId();
+    assertNotNull(response.getMessage(), id);
+    joinFlow(id);
+
+    // Examine the response records.
+    MemoryOutputElement output = getOutput("testSelect");
+    assertNotNull(output);
+
+    List<GenericData.Record> outRecords = output.getRecords();
+    synchronized (outRecords) {
+      assertEquals(outStrings.size(), outRecords.size());
+
+      for (int i = 0; i < outRecords.size(); i++) {
+        GenericData.Record record = outRecords.get(i);
+        Utf8 field = (Utf8) record.get(outColName);
+        assertNotNull(field);
+        assertEquals(outStrings.get(i), field.toString());
+      }
+    }
+  }
+
+  @Test
+  public void testBasicPrecise() throws IOException, InterruptedException {
+    // Test the identity function, rounded to 1 decimal place.
+    List<String> events = new ArrayList<String>();
+    events.add("1");
+    events.add("2.2");
+    events.add("3.35");
+
+    List<String> outputs = new ArrayList<String>();
+    outputs.add("1.0");
+    outputs.add("2.2");
+    outputs.add("3.4");
+
+    runPreciseTest(events, "SELECT x FROM f", "x", outputs);
+  }
+
+  @Test
+  public void testPreciseMath() throws IOException, InterruptedException {
+    // Test math operators on precise values.
+    List<String> events = new ArrayList<String>();
+    events.add("1");
+    events.add("2.2");
+    events.add("3.35");
+
+    List<String> outputs = new ArrayList<String>();
+    outputs.add("2.0");
+    outputs.add("4.4");
+    outputs.add("6.8");
+
+    runPreciseTest(events, "SELECT 2 * x AS y FROM f", "y", outputs);
+  }
+
+  @Test
+  public void testSquarePrecise() throws IOException, InterruptedException {
+    // Test the square function on PRECISE data.
+    List<String> events = new ArrayList<String>();
+    events.add("1");
+    events.add("2.2");
+    events.add("3.35"); // rounds up to 3.4
+
+    List<String> outputs = new ArrayList<String>();
+    outputs.add("1.0");
+    outputs.add("4.8");
+    outputs.add("11.6");
+
+    runPreciseTest(events, "SELECT square(x) AS y FROM f", "y", outputs);
   }
 
 

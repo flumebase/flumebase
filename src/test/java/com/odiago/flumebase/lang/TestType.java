@@ -147,6 +147,32 @@ public class TestType {
         Type.getPrimitive(Type.TypeName.STRING)));
   }
 
+  // Tests for promotion to/of PRECISE types.
+  @Test
+  public void testPrecise() {
+    // String doesn't promote to Precise
+    assertFalse(Type.getPrimitive(Type.TypeName.STRING).promotesTo(
+        new PreciseType(0)));
+
+    // But the other way around works.
+    assertTrue(new PreciseType(0).promotesTo(Type.getPrimitive(Type.TypeName.STRING)));
+
+    // Int types promote to PRECISE(0).
+    assertTrue(Type.getPrimitive(Type.TypeName.BIGINT).promotesTo(new PreciseType(0)));
+    assertTrue(Type.getPrimitive(Type.TypeName.INT).promotesTo(new PreciseType(0)));
+
+    // Floats promote to PRECISE(24) and above.
+    assertTrue(Type.getPrimitive(Type.TypeName.FLOAT).promotesTo(new PreciseType(24)));
+    assertTrue(Type.getPrimitive(Type.TypeName.FLOAT).promotesTo(new PreciseType(80)));
+
+    // but not this.
+    assertFalse(Type.getPrimitive(Type.TypeName.FLOAT).promotesTo(new PreciseType(6)));
+
+    // Instead, however, they will meet at PRECISE(24):
+    assertEquals(new PreciseType(24),
+        Type.meet(Type.getPrimitive(Type.TypeName.FLOAT), new PreciseType(6)));
+  }
+
   // Tests for the TYPECLASS_COMPARABLE typeclass.
   @Test
   public void testComparable() {
