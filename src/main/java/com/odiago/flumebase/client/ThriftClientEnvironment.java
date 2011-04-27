@@ -41,6 +41,7 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 
 import org.slf4j.Logger;
@@ -70,6 +71,10 @@ import com.odiago.flumebase.util.NetUtils;
 public class ThriftClientEnvironment extends ExecEnvironment {
   private static final Logger LOG = LoggerFactory.getLogger(
       ThriftClientEnvironment.class.getName());
+
+  // Allow up to 100 clients from this same server; this is the number
+  // of ports we will try to listen on locally, before giving up.
+  private static final int MAX_PORTS_TO_TRY = 100;
 
   private Configuration mConf;
 
@@ -116,8 +121,24 @@ public class ThriftClientEnvironment extends ExecEnvironment {
         ClientConsoleImpl consoleImpl = new ClientConsoleImpl();
         consolePort = mConf.getInt(ClientConsoleImpl.CONSOLE_SERVER_PORT_KEY,
             ClientConsoleImpl.DEFAULT_CONSOLE_SERVER_PORT);
-        LOG.debug("Starting ClientConsole service on port " + consolePort);
-        TServerTransport consoleTransport = new TServerSocket(consolePort);
+        TServerTransport consoleTransport = null;
+        int triesRemaining = MAX_PORTS_TO_TRY;
+        while (triesRemaining > 0) {
+          LOG.debug("Trying to start ClientConsole service on port " + consolePort);
+          try {
+            consoleTransport = new TServerSocket(consolePort);
+            break; // On successful bind, abort the loop.
+          } catch (TTransportException tte) {
+            // Couldn't create a socket on this port. Try the next port.
+            consolePort++;
+            triesRemaining--;
+          }
+        }
+
+        if (null == consoleTransport) {
+          throw new IOException("Could not create ServerSocket to listen for callback");
+        }
+
         TTransportFactory transportFactory = new TFramedTransport.Factory();
         TProtocolFactory protocolFactory = new TBinaryProtocol.Factory();
         TProcessor processor = new ClientConsole.Processor(consoleImpl);

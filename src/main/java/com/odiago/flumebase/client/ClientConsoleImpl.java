@@ -26,7 +26,11 @@ import com.odiago.flumebase.thrift.ClientConsole;
  * after the client first connects to the server.
  */
 public class ClientConsoleImpl implements ClientConsole.Iface {
-  /** Config key specifying the port where the console is hosted. */
+  /**
+   * Config key specifying the port where the console is hosted.
+   * If this port is occupied (e.g., by another client), then we start
+   * looking for ports sequentially until we find an open one.
+   */
   public static final String CONSOLE_SERVER_PORT_KEY = "flumebase.console.port";
 
   public static final int DEFAULT_CONSOLE_SERVER_PORT = 9293;

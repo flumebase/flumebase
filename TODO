@@ -2,12 +2,17 @@
 
 most important new features:
 
+  -- regex eventformat
+    -- refactor DelimitedEventParser: give it a parent abstract class called
+       TextEventParser that has parseAndCache() in it, and the associated fields.
+    -- Then RegexEventParser extends this, and has its own getColumn() definition.
   -- HAVING
-  -- JSON event input format
+    -- This is not hard. Just do it.
   -- range intervals over rows, not just time
   -- chunking on the fly (not rolling windows)
     -- ability to have these intervals start exactly on the hour/minute/etc
   -- persistent flow metastore
+  -- JSON event input format
   -- multi-threading, distribution, scalability
   -- selectable attributes
 
@@ -57,12 +62,6 @@ Remote environment stuff:
 RPC Testing:
   ... test what happens with multiple clients listening to the same flow
   and what happens when one ^C's, etc.
-
-  This requires being able to set the 'callback RPC port'. Really the best way to do
-  this is to have a configurable default callback RPC port (so a sysadmin can bust a
-  specific port open), but if that's busy/fails, pick a random port and send that to
-  the server.
-
   
 
 Joins:

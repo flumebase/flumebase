@@ -256,6 +256,7 @@ public class CmdLineClient {
       mSessionId = mExecEnv.connect();
     } catch (Exception e) {
       LOG.error("Could not connect to environment: " + e);
+      LOG.debug("Full trace: " + StringUtils.stringifyException(e));
     }
   }
 
