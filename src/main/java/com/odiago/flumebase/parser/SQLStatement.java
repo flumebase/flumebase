@@ -131,7 +131,7 @@ public abstract class SQLStatement {
     List<Schema.Field> avroFields = new ArrayList<Schema.Field>();
     Schema record = Schema.createRecord(recordName, null, null, false);
     for (TypedField field : requiredFields) {
-      LOG.info("Considering field: " + field);
+      LOG.debug("Considering field: " + field);
       String fieldName = field.getAvroName();
       Type t = field.getType();
       Schema fieldSchema = t.getAvroSchema();

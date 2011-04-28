@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.odiago.flumebase.io.AvroEventParser;
 import com.odiago.flumebase.io.DelimitedEventParser;
 import com.odiago.flumebase.io.EventParser;
+import com.odiago.flumebase.io.RegexEventParser;
 
 /**
  * Specifies how events in a given stream are parsed and what parameters
@@ -42,6 +43,9 @@ public class FormatSpec extends SQLStatement {
 
   /** Binary Avro encoding format. Requires an input schema. */
   public static final String FORMAT_AVRO = "avro";
+
+  /** Regular-expression selection event format. Requires a user-supplied regex. */
+  public static final String FORMAT_REGEX = "regex";
 
   /** The name of the event format, which dictates the EventParser implementation to use. */
   private String mFormat;
@@ -86,6 +90,8 @@ public class FormatSpec extends SQLStatement {
       return new DelimitedEventParser(mParams);
     } else if (FORMAT_AVRO.equals(mFormat)) {
       return new AvroEventParser(mParams);
+    } else if (FORMAT_REGEX.equals(mFormat)) {
+      return new RegexEventParser(mParams);
     }
 
     LOG.error("No EventParser with format name: " + mFormat);

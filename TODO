@@ -2,10 +2,6 @@
 
 most important new features:
 
-  -- regex eventformat
-    -- refactor DelimitedEventParser: give it a parent abstract class called
-       TextEventParser that has parseAndCache() in it, and the associated fields.
-    -- Then RegexEventParser extends this, and has its own getColumn() definition.
   -- HAVING
     -- This is not hard. Just do it.
   -- range intervals over rows, not just time
