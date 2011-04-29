@@ -255,7 +255,7 @@ public class TestJoin extends RtsqlTestCase {
     synchronized (results) {
       assertEquals(2, results.size());
 
-      assertRecordFields(results, "a", Integer.valueOf(2), "c", Integer.valueOf(0));
+      assertRecordFields(results, "a", Integer.valueOf(0), "c", Integer.valueOf(0));
       assertRecordFields(results, "a", Integer.valueOf(1), "c", Integer.valueOf(1));
 
       // Assert the join fields are present.

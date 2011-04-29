@@ -146,11 +146,14 @@ public class RtsqlTestCase {
 
   /**
    * Asserts that for all records in 'records' such that the value of referenceField
-   * is referenceValue, testField has value testValue.
+   * is referenceValue, testField has value testValue. Also asserts that there is
+   * at least one record i nrecords such that referenceField==referenceValue.
    */
   protected void assertRecordFields(List<GenericData.Record> records,
       String referenceField, Object referenceValue,
       String testField, Object testValue) {
+
+    assertRecordExists(records, referenceField, referenceValue);
     for (GenericData.Record record : records) {
       if (null == referenceValue) {
         if (null == record.get(referenceField)) {
