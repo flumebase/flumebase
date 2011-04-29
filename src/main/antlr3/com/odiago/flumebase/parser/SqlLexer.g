@@ -49,6 +49,7 @@ FORMAT : F O R M A T ;
 FROM : F R O M ;
 FUNCTIONS : F U N C T I O N S ;
 GROUP : G R O U P ;
+HAVING : H A V I N G ;
 HOURS : H O U R S ;
 INTERVAL : I N T E R V A L ;
 INT_KW : I N T ;

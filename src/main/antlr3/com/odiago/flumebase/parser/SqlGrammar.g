@@ -69,8 +69,9 @@ stmt_explain returns [ExplainStmt val]:
 stmt_select returns [SelectStmt val]:
   SELECT e=aliased_expr_list FROM s=source_definition w=optional_where_conditions
   g=optional_group_by over=optional_window_over
+  h=optional_having
   wins=optional_window_defs
-  { $val = new SelectStmt($e.val, $s.val, $w.val, $g.val, $over.val, $wins.val); };
+  { $val = new SelectStmt($e.val, $s.val, $w.val, $g.val, $over.val, $h.val, $wins.val); };
 
 stmt_show returns [ShowStmt val]:
     SHOW FLOWS {$val = new ShowStmt(EntityTarget.Flow);}
@@ -305,6 +306,14 @@ src_type returns [StreamSourceType val]:
 optional_where_conditions returns [Expr val] :
     { $val=null; }
   | WHERE e=expr { $val=$e.val; }
+  ;
+
+
+// HAVING conditions for a SELECT statement. May be omitted.
+// Returns an expression to be evaluated, or null if it is omitted.
+optional_having returns [Expr val] :
+    { $val=null; }
+  | HAVING e=expr { $val=$e.val; }
   ;
 
 // GROUP BY clause for a SELECT statement. May be omitted.

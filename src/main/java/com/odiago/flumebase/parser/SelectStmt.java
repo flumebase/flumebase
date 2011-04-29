@@ -72,6 +72,7 @@ public class SelectStmt extends RecordSource {
   private SQLStatement mSource;
 
   // Expression that must evaluate to true in the WHERE clause to accept records.
+  // (may be null)
   private Expr mWhereExpr;
 
   // GROUP BY clause (may be null).
@@ -83,6 +84,10 @@ public class SelectStmt extends RecordSource {
   // Expressions in the SELECT statement that are produced by aggregate functions.
   // (provided by IdentifyAggregates visitor pass).
   private List<AliasedExpr> mAggregateExprs;
+
+  // Expression that must evaluate to true in the HAVING clause to accept records.
+  // (may be null)
+  private Expr mHaving;
 
   // List of window definitions; bindings from identifiers to WindowSpecs
   // in the scope of this SELECT statement.
@@ -105,12 +110,13 @@ public class SelectStmt extends RecordSource {
   private SymbolTable mFieldSymbols;
 
   public SelectStmt(List<AliasedExpr> selExprs, SQLStatement source, Expr where,
-      GroupBy groupBy, Expr aggregateOver, List<WindowDef> windowDefs) {
+      GroupBy groupBy, Expr aggregateOver, Expr having, List<WindowDef> windowDefs) {
     mSelectExprs = selExprs;
     mSource = source;
     mWhereExpr = where;
     mGroupBy = groupBy;
     mAggregateOver = aggregateOver;
+    mHaving = having;
     mWindowDefs = windowDefs;
   }
 
@@ -132,6 +138,14 @@ public class SelectStmt extends RecordSource {
 
   public void setWhereConditions(Expr where) {
     mWhereExpr = where;
+  }
+
+  public Expr getHaving() {
+    return mHaving;
+  }
+
+  public void setHaving(Expr having) {
+    mHaving = having;
   }
 
   public GroupBy getGroupBy() {
@@ -238,6 +252,12 @@ public class SelectStmt extends RecordSource {
       mAggregateOver.format(sb, depth + 2);
     }
 
+    if (null != mHaving) {
+      pad(sb, depth + 1);
+      sb.append("HAVING\n");
+      mHaving.format(sb, depth + 2);
+    }
+
     if (mWindowDefs.size() > 0) {
       pad(sb, depth + 1);
       sb.append("Windows:\n");
@@ -317,6 +337,12 @@ public class SelectStmt extends RecordSource {
     ProjectionNode projectionNode = new ProjectionNode(projectionInputs, projectionOutputs);
     projectionNode.setAttr(PlanNode.OUTPUT_SCHEMA_ATTR, projectedSchema);
     flowSpec.attachToLastLayer(projectionNode);
+
+    if (mHaving != null) {
+      // Non-null HAVING conditions; apply another filter to our output.
+      PlanNode havingNode = new FilterNode(mHaving);
+      flowSpec.attachToLastLayer(havingNode);
+    }
 
     return createReturnedContext(planContext, consoleFields);
   }

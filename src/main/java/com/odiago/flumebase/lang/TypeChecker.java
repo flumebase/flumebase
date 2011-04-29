@@ -327,6 +327,20 @@ public class TypeChecker extends Visitor {
       mSymTableContext.push(outTable);
       s.setFieldSymbols(outTable.cloneLevel());
     }
+
+    // HAVING clause uses the output symbol names. It can only operate on
+    // fields already explicitly selected by the user -- if these are not
+    // already present, this will fail.
+    Expr having = s.getHaving();
+    if (null != having) {
+      having.accept(this);
+      // The having clause must evaluate to a boolean value.
+      Type havingType = having.getType(outTable);
+      if (!havingType.promotesTo(Type.getNullable(Type.TypeName.BOOLEAN))) {
+        throw new TypeCheckException("Expected having clause with boolean type, not "
+            + havingType);
+      }
+    }
   }
 
   @Override

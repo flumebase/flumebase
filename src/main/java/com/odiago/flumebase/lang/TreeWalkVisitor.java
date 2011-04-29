@@ -103,6 +103,13 @@ public abstract class TreeWalkVisitor extends Visitor {
       after(s, aggregateOver);
     }
 
+    Expr having = s.getHaving();
+    if (null != having) {
+      before(s, having);
+      having.accept(this);
+      after(s, having);
+    }
+
     List<WindowDef> windowDefs = s.getWindowDefs();
     if (null != windowDefs) {
       for (int i = 0; i < windowDefs.size(); i++) {

@@ -24,6 +24,9 @@ import java.util.List;
 
 import org.apache.avro.generic.GenericData;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.testng.annotations.Test;
 
 import com.odiago.flumebase.exec.local.LocalEnvironment;
@@ -41,8 +44,11 @@ import static org.testng.AssertJUnit.*;
 
 /**
  * Test that SELECT statements with GROUP BY and OVER clauses operate like we expect them to.
+ * Also verify that HAVING clauses can operate on aggregates, as well as scalar outputs.
  */
 public class TestGroupBy extends RtsqlTestCase {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      TestGroupBy.class.getName());
 
   /**
    * Create a stream with two columns which have configurable names. The first column
@@ -67,6 +73,17 @@ public class TestGroupBy extends RtsqlTestCase {
    */
   private List<GenericData.Record> submitQuery(StreamSymbol stream,
       String query) throws IOException, InterruptedException {
+    return submitQuery(stream, query, false);
+  }
+
+  /**
+   * Run the test, where we submit the query to the processing engine.
+   * If expectFailure is true, this will throw an IOException if we
+   * successfully submitted the query.
+   * @return The set of output record from the query.
+   */
+  private List<GenericData.Record> submitQuery(StreamSymbol stream,
+      String query, boolean expectFailure) throws IOException, InterruptedException {
 
     getSymbolTable().addSymbol(stream);
 
@@ -79,7 +96,20 @@ public class TestGroupBy extends RtsqlTestCase {
     // Run the query.
     QuerySubmitResponse response = env.submitQuery(query, getQueryOpts());
     FlowId id = response.getFlowId();
-    assertNotNull(response.getMessage(), id);
+    if (expectFailure) {
+      if (null == id) {
+        // Our work here is done: we expected submission of the query to fail,
+        // and it did. Return null for results.
+        return null;
+      } else {
+        throw new IOException("Expected query submission failure for [" + query
+            + "], but we got a flow back.");
+      }
+    } else {
+      // We expect this to successfully provide us with a flow id.
+      assertNotNull(response.getMessage(), id);
+    }
+
     joinFlow(id);
 
     // Examine the response records.
@@ -451,6 +481,97 @@ public class TestGroupBy extends RtsqlTestCase {
       assertRecordExists(Collections.singletonList(results.get(0)), "c", Integer.valueOf(1));
       assertRecordExists(Collections.singletonList(results.get(1)), "c", Integer.valueOf(2));
       assertRecordExists(Collections.singletonList(results.get(2)), "c", Integer.valueOf(2));
+    }
+  }
+
+  @Test
+  public void testHavingScalar1() throws IOException, InterruptedException {
+    // Check that if we select some ordinary scalar fields, we can use the HAVING
+    // clause on them.
+    String [] records = { "0,10", "1,", "2,12" };
+    long [] times = { 35, 36, 200 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT a, b FROM s HAVING b IS NULL");
+
+    // We should have one output result: 1 at t=40.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(1, results.size());
+      assertRecordExists(results, "a", Integer.valueOf(1));
+      assertRecordExists(results, "b", null);
+    }
+  }
+
+  @Test
+  public void testHavingScalar2() throws IOException, InterruptedException {
+    // Check that we can't use b in the having clause unless we select it.
+    String [] records = { "0,10", "1,", "2,12" };
+    long [] times = { 35, 36, 200 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    // Submit this with expectFailure=true
+    submitQuery(stream, "SELECT a FROM s HAVING b IS NULL", true);
+  }
+
+  @Test
+  public void testHavingScalar3() throws IOException, InterruptedException {
+    // Check that if we select some ordinary scalar fields, we can use the HAVING
+    // clause on them -- but the HAVING clause uses the aliased name, not the
+    // input name.
+    String [] records = { "0,10", "1,", "2,12" };
+    long [] times = { 35, 36, 200 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT a, b as c FROM s HAVING c IS NULL");
+
+    // We should have one output result: 1 at t=40.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(1, results.size());
+      assertRecordExists(results, "a", Integer.valueOf(1));
+      assertRecordExists(results, "c", null);
+    }
+  }
+
+  @Test
+  public void testHavingScalar4() throws IOException, InterruptedException {
+    // Check that we can't use b in the having clause if we alias it to
+    // something else in the selection list.
+    String [] records = { "0,10", "1,", "2,12" };
+    long [] times = { 35, 36, 200 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    // Submit with expectFailure=true
+    submitQuery(stream, "SELECT a, b as c FROM s HAVING b IS NULL", true);
+  }
+
+  @Test
+  public void testHavingCount() throws IOException, InterruptedException {
+    // Test that we can use a HAVING clause to filter rows based on the
+    // values of aggregate functions.
+    
+    String [] records = { "0,0", "1,1", "1,1", "2,2", "2,2", "2,2" };
+    long [] times = { 1, 2, 3, 597, 598, 599 };
+
+    StreamSymbol stream = makeStream("s", "a", "b", records, times);
+
+    List<GenericData.Record> results = submitQuery(stream,
+        "SELECT a, COUNT(a) as c FROM s GROUP BY a OVER RANGE INTERVAL 1 SECONDS PRECEDING "
+        + "HAVING c > 1");
+
+    // Output should be {a=1,c=2}, {a=2,c=3}.
+    assertNotNull(results);
+    synchronized (results) {
+      assertEquals(2, results.size());
+      assertRecordFields(results, "a", Integer.valueOf(1), "c", Integer.valueOf(2));
+      assertRecordFields(results, "a", Integer.valueOf(2), "c", Integer.valueOf(3));
     }
   }
 }

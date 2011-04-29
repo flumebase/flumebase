@@ -2,8 +2,6 @@
 
 most important new features:
 
-  -- HAVING
-    -- This is not hard. Just do it.
   -- range intervals over rows, not just time
   -- chunking on the fly (not rolling windows)
     -- ability to have these intervals start exactly on the hour/minute/etc
@@ -14,6 +12,7 @@ most important new features:
 
   -- documentation debt:
     -- new PRECISE type
+    -- new HAVING clause
 
 
 Types:
@@ -108,7 +107,6 @@ Technical debt:
     invoke the right dag.reverseBfs(this), dag.dfs(this), etc.
 
 SQL Features (in rough priority order):
-  - Filtering (HAVING)
   - LIMIT (within a window?)
   - [windowed] ORDER BY -- how does this work for overlapping windows?
 
