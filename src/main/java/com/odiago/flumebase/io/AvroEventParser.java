@@ -166,8 +166,26 @@ public class AvroEventParser extends EventParser {
         
         // More important: are the schemas compatible?
         if (!schemaField.schema().equals(colType.getAvroSchema())) {
-          LOG.error("Column " + col.getUserAlias() + " has type " + colType + " but has "
-              + " an incompatible Avro schema: " + schemaField.schema());
+          boolean warned = false;
+
+          if (colType.isNullable() && colType.isPrimitive()) {
+            // A common error is that the rtsql type is nullable and the schema
+            // type isn't. Give a specific suggestion in this case.
+            Type nonNullVersion = Type.getPrimitive(colType.getPrimitiveTypeName());
+            if (schemaField.schema().equals(nonNullVersion.getAvroSchema())) {
+              LOG.error("Column " + col.getUserAlias() + " has type " + colType
+                  + ", but requires type " + nonNullVersion + " to match the Avro schema.");
+              warned = true;
+            }
+          }
+
+          if (!warned) {
+            // Give a generic error message.
+            LOG.error("Column " + col.getUserAlias() + " has type " + colType
+                + " with avro schema " + colType.getAvroSchema()
+                + " but the stream schema field " + schemaField.name() + " has "
+                + " an incompatible Avro schema: " + schemaField.schema());
+          }
           return false;
         }
       }
