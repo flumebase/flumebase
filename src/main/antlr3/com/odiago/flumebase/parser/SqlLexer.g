@@ -30,6 +30,7 @@ L_AND : A N D ;
 AS : A S ;
 BETWEEN : B E T W E E N ;
 BIGINT : B I G I N T ;
+BINARY : B I N A R Y ;
 BOOLEAN : B O O L E A N ;
 BY : B Y ;
 CREATE : C R E A T E ;

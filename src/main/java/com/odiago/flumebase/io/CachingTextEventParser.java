@@ -121,6 +121,9 @@ public abstract class CachingTextEventParser extends EventParser {
     // TODO(aaron): Test how this handles a field that is an empty string.
     Object out = null;
     switch (primitiveTypeName) {
+    case BINARY:
+      out = /* TODO: BASE64-decode the chars */ bla bla bla; 
+      break;
     case BOOLEAN:
       out = CharBufferUtils.parseBool(chars);
       break;

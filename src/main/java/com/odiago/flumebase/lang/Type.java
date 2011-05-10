@@ -50,6 +50,7 @@ public class Type {
     PRECISE(5), // A numeric type which allows the user to specify an arbitrary
                 // degree of precision.
     STRING(8),
+    BINARY(6),
     TIMESTAMP(6),
     TIMESPAN(7),
     ANY(0), // 'null' constant can be cast to any type. Only valid inside NULLABLE.
@@ -140,6 +141,7 @@ public class Type {
     PRIMITIVE_TYPES.put(TypeName.FLOAT, new Type(TypeName.FLOAT));
     PRIMITIVE_TYPES.put(TypeName.DOUBLE, new Type(TypeName.DOUBLE));
     PRIMITIVE_TYPES.put(TypeName.STRING, new Type(TypeName.STRING));
+    PRIMITIVE_TYPES.put(TypeName.BINARY, new Type(TypeName.BINARY));
     PRIMITIVE_TYPES.put(TypeName.TIMESTAMP, new Type(TypeName.TIMESTAMP));
     PRIMITIVE_TYPES.put(TypeName.TIMESPAN, new Type(TypeName.TIMESPAN));
     PRIMITIVE_TYPES.put(TypeName.TYPECLASS_NUMERIC, new Type(TypeName.TYPECLASS_NUMERIC));
@@ -156,6 +158,7 @@ public class Type {
     NULLABLE_TYPES.put(TypeName.FLOAT, new NullableType(TypeName.FLOAT));
     NULLABLE_TYPES.put(TypeName.DOUBLE, new NullableType(TypeName.DOUBLE));
     NULLABLE_TYPES.put(TypeName.STRING, new NullableType(TypeName.STRING));
+    NULLABLE_TYPES.put(TypeName.BINARY, new NullableType(TypeName.BINARY));
     NULLABLE_TYPES.put(TypeName.TIMESTAMP, new NullableType(TypeName.TIMESTAMP));
     NULLABLE_TYPES.put(TypeName.TIMESPAN, new NullableType(TypeName.TIMESPAN));
     NULLABLE_TYPES.put(TypeName.ANY, new NullableType(TypeName.ANY));
@@ -253,6 +256,7 @@ public class Type {
     case DOUBLE:
     case PRECISE:
     case STRING:
+    case BINARY:
     case TIMESTAMP:
     case TIMESPAN:
     case WINDOW:
@@ -268,6 +272,7 @@ public class Type {
   public boolean isComparable() {
     return isNumeric() || this.equals(Type.getPrimitive(TypeName.BOOLEAN))
         || this.equals(Type.getPrimitive(TypeName.STRING))
+        || this.equals(Type.getPrimitive(TypeName.BINARY))
         || this.equals(Type.getPrimitive(TypeName.TYPECLASS_COMPARABLE));
   }
 
@@ -323,6 +328,8 @@ public class Type {
    *                                                with the exception of "WINDOW".)
    *
    *</tt></pre></li>
+   *   <li>The lattice ANY -&gt; BINARY -&gt; STRING -&gt; ...  also holds.
+   *     Bytes are BASE64-encoded when converted to strings.</li>
    *   <li>An additional rule governs meets over PRECISE(k) types:
    *     meet(PRECISE(n), PRECISE(m)) = PRECISE(MAX(n, m))</li>
    *   <li>The following lattice describes TYPECLASS_COMPARABLE and TYPECLASS_ANY:<pre><tt>
@@ -563,6 +570,8 @@ public class Type {
       return Schema.create(Schema.Type.DOUBLE);
     case STRING:
       return Schema.create(Schema.Type.STRING);
+    case BINARY:
+      return Schema.create(Schema.Type.BYTES);
     case TIMESPAN:
       return TimeSpan.SCHEMA$;
     case TIMESTAMP:

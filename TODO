@@ -21,6 +21,8 @@ Types:
 
   -- need List<T>, Map<T1, T2> types
 
+  -- BINARY type should be able to specify encoding when converting to STRING.
+
 Aggregation:
 
   -- unit test, unit test, unit test, baby.

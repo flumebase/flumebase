@@ -75,6 +75,19 @@ public class TestType {
         Type.getNullable(Type.TypeName.FLOAT)));
     assertTrue(Type.getPrimitive(Type.TypeName.INT).promotesTo(
         Type.getNullable(Type.TypeName.STRING)));
+
+    // BINARY type
+    assertTrue(Type.getPrimitive(Type.TypeName.BINARY).promotesTo(
+        Type.getNullable(Type.TypeName.BINARY)));
+    assertTrue(Type.getPrimitive(Type.TypeName.BINARY).promotesTo(
+        Type.getNullable(Type.TypeName.STRING)));
+
+    assertFalse(Type.getPrimitive(Type.TypeName.BINARY).promotesTo(
+        Type.getPrimitive(Type.TypeName.INT)));
+    assertFalse(Type.getPrimitive(Type.TypeName.INT).promotesTo(
+        Type.getPrimitive(Type.TypeName.BINARY)));
+    assertFalse(Type.getPrimitive(Type.TypeName.BINARY).promotesTo(
+        Type.getNullable(Type.TypeName.INT)));
   
     // STRING to NULLABLE(STRING).
     assertTrue(Type.getPrimitive(Type.TypeName.STRING).promotesTo(
