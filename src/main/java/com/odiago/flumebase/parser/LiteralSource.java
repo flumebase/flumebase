@@ -135,7 +135,8 @@ public class LiteralSource extends RecordSource {
 
       // This field is available as 'streamName.fieldName'.
       String fullName = streamAlias + "." + fieldName;
-      AssignedSymbol sym = new AssignedSymbol(fullName, field.getType(), "__f_" + nextId + "_");
+      AssignedSymbol sym = new AssignedSymbol(fullName, field.getType(), "__f_" + nextId + "_",
+          IdentifierExpr.AccessType.FIELD);
       sym.setParentName(streamAlias);
       nextId++;
       outTable.addSymbol(sym);

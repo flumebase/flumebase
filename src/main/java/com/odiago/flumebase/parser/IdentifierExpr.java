@@ -19,23 +19,57 @@ package com.odiago.flumebase.parser;
 
 import java.io.IOException;
 
+import java.nio.ByteBuffer;
+
 import java.util.Collections;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.odiago.flumebase.exec.AssignedSymbol;
 import com.odiago.flumebase.exec.EventWrapper;
 import com.odiago.flumebase.exec.Symbol;
 import com.odiago.flumebase.exec.SymbolTable;
 
+import com.odiago.flumebase.lang.Timestamp;
 import com.odiago.flumebase.lang.Type;
 
 /**
  * Expression returning the value of a named field or alias.
  */
 public class IdentifierExpr extends Expr {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      IdentifierExpr.class.getName());
+
+  /** 'magic' identifier for the 'host' field of the event. */
+  public static final String HOST_IDENTIFIER = "#host";
+
+  /** magic identifier for the 'priority' field of the event. */
+  public static final String PRIORITY_IDENTIFIER = "#priority";
+
+  /** magic identifier for the 'timestamp' field of the event. */
+  public static final String TIMESTAMP_IDENTIFIER = "#timestamp";
+  
+  /**
+   * Enumeration that identifies the types of accesses an identifier
+   * can make into an event.
+   */
+  public static enum AccessType {
+    FIELD, // Ordinary named field
+    ATTRIBUTE, // Named #attribute
+    HOST,
+    PRIORITY,
+    TIMESTAMP,
+  }
 
   /** The field this represents. */
   private String mIdentifier;
+
+  /** The type of access to be performed during eval().
+   *  May use mAssignedName.
+   */
+  private AccessType mAccessType;
 
   /**
    * The assigned name of the object to retrieve within the query.
@@ -68,6 +102,10 @@ public class IdentifierExpr extends Expr {
     mAssignedName = assignedName;
   }
 
+  public void setAccessType(AccessType accessType) {
+    mAccessType = accessType;
+  }
+
   @Override
   public void format(StringBuilder sb, int depth) {
     pad(sb, depth);
@@ -87,6 +125,11 @@ public class IdentifierExpr extends Expr {
 
   @Override
   public Type getType(SymbolTable symTab) {
+    if (null != mType) {
+      LOG.debug("Returning cached type: " + mType);
+      return mType;
+    }
+
     Symbol sym = symTab.resolve(mIdentifier);
     if (null == sym) {
       return null;
@@ -123,21 +166,48 @@ public class IdentifierExpr extends Expr {
   @Override
   public List<TypedField> getRequiredFields(SymbolTable symTab) {
     Symbol sym = symTab.resolve(mIdentifier);
-    assert null != sym;
-
-    sym = sym.resolveAliases();
-    String canonicalName = sym.getName();
-    TypedField field = new TypedField(canonicalName, sym.getType(), mAssignedName, canonicalName);
-    return Collections.singletonList(field);
+    if (null == sym) {
+      // Magic field or attribute.
+      return Collections.singletonList(new TypedField("_" + mAssignedName, mType));
+    } else {
+      sym = sym.resolveAliases();
+      String canonicalName = sym.getName();
+      TypedField field = new TypedField(canonicalName, sym.getType(), mAssignedName, canonicalName);
+      return Collections.singletonList(field);
+    }
   }
 
   @Override
   public Object eval(EventWrapper e) throws IOException {
-    return e.getField(new TypedField(mAssignedName, mType));
+    switch (mAccessType) {
+    case FIELD:
+      return e.getField(new TypedField(mAssignedName, mType));
+    case ATTRIBUTE:
+      byte[] bytes = e.getEvent().getAttrs().get(mAssignedName);
+      if (null == bytes) {
+        return null;
+      } else {
+        return ByteBuffer.wrap(bytes);
+      }
+    case HOST:
+      return e.getEvent().getHost();
+    case PRIORITY:
+      return e.getEvent().getPriority().toString();
+    case TIMESTAMP:
+      return new Timestamp(e.getEvent().getTimestamp());
+    default:
+      throw new IOException("IdentifierExpr.eval() cannot understand mAccessType="
+         + mAccessType);
+    }
   }
 
   @Override
   public boolean isConstant() {
     return false;
+  }
+
+  @Override
+  public boolean requiresEval() {
+    return !mAccessType.equals(AccessType.FIELD);
   }
 }

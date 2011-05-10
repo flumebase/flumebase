@@ -19,15 +19,25 @@ package com.odiago.flumebase.exec;
 
 import java.io.IOException;
 
+import java.nio.ByteBuffer;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.avro.Schema;
 
 import org.apache.avro.generic.GenericData;
 
 import org.apache.avro.util.Utf8;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.testng.annotations.Test;
+
+import com.cloudera.flume.core.Event;
+import com.cloudera.flume.core.EventImpl;
 
 import com.cloudera.util.Pair;
 
@@ -52,6 +62,7 @@ import static org.testng.AssertJUnit.*;
  * Test that SELECT statements operate like we expect them to.
  */
 public class TestSelect extends RtsqlTestCase {
+  private static final Logger LOG = LoggerFactory.getLogger(TestSelect.class.getName());
 
   @Test
   public void testSelectOneCol() throws IOException, InterruptedException {
@@ -319,23 +330,14 @@ public class TestSelect extends RtsqlTestCase {
   }
 
   /**
-   * Run a test where a record of two integer-typed fields is selected.
-   * @param streamName the stream to create and populate with one record.
-   * @param leftFieldName the name to assign to the first field.
-   * @param rightFieldName the name to assign to the second field.
+   * Run a test over an arbitrary stream.
+   * @param stream the stream object to execute a query over.
    * @param query the query string to submit to the execution engine.
    * @param checkFields a list of (string, object) pairs naming an output field and
    * its value to verify.
    */
-  private void runFreeSelectTest(String streamName, String leftFieldName, String rightFieldName,
-      String query, List<Pair<String, Object>> checkFields)
-      throws IOException, InterruptedException {
-    MemStreamBuilder streamBuilder = new MemStreamBuilder(streamName);
-
-    streamBuilder.addField(new TypedField(leftFieldName, Type.getPrimitive(Type.TypeName.INT)));
-    streamBuilder.addField(new TypedField(rightFieldName, Type.getNullable(Type.TypeName.INT)));
-    streamBuilder.addEvent("1,2");
-    StreamSymbol stream = streamBuilder.build();
+  private void runFreeSelectTest(StreamSymbol stream, String query,
+      List<Pair<String, Object>> checkFields) throws IOException, InterruptedException {
     getSymbolTable().addSymbol(stream);
 
     getConf().set(SelectStmt.CLIENT_SELECT_TARGET_KEY, "testSelect");
@@ -355,12 +357,85 @@ public class TestSelect extends RtsqlTestCase {
     assertNotNull(output);
 
     List<GenericData.Record> outRecords = output.getRecords();
-    GenericData.Record firstRecord = outRecords.get(0);
-    for (Pair<String, Object> check : checkFields) {
-      String checkName = check.getLeft();
-      Object checkVal = check.getRight();
-      assertEquals(checkVal, firstRecord.get(checkName));
+    for (GenericData.Record r : outRecords) {
+      LOG.info("Printing record");
+      for (Schema.Field f : r.getSchema().getFields()) {
+        LOG.info(f.name() + " => " + r.get(f.name()));
+      }
     }
+    for (Pair<String, Object> check : checkFields) {
+      assertRecordExists(outRecords, check.getLeft(), check.getRight());
+    }
+  }
+  /**
+   * Run a test where a record of two integer-typed fields is selected.
+   * @param streamName the stream to create and populate with one record.
+   * @param leftFieldName the name to assign to the first field.
+   * @param rightFieldName the name to assign to the second field.
+   * @param query the query string to submit to the execution engine.
+   * @param checkFields a list of (string, object) pairs naming an output field and
+   * its value to verify.
+   */
+  private void runFreeSelectTest(String streamName, String leftFieldName, String rightFieldName,
+      String query, List<Pair<String, Object>> checkFields)
+      throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder(streamName);
+
+    streamBuilder.addField(new TypedField(leftFieldName, Type.getPrimitive(Type.TypeName.INT)));
+    streamBuilder.addField(new TypedField(rightFieldName, Type.getNullable(Type.TypeName.INT)));
+    streamBuilder.addEvent("1,2");
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, query, checkFields);
+  }
+
+  @Test
+  public void testPriorityAttr() throws IOException, InterruptedException {
+    // Test that the special "#priority" field works.
+
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.INT)));
+    streamBuilder.addEvent("1");
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT #priority AS p FROM s",
+        Collections.singletonList(new Pair<String, Object>("p", new Utf8("INFO"))));
+  }
+
+  @Test
+  public void testUserAttr() throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    // Select a user-attached "attribute" of the stream.
+
+    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.INT)));
+    Event e = new EventImpl("1".getBytes());
+    e.set("attr", "val".getBytes());
+    streamBuilder.addEvent(e);
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT #attr AS a  FROM s",
+        Collections.singletonList(new Pair<String, Object>(
+        "a", ByteBuffer.wrap("val".getBytes()))));
+  }
+
+  @Test
+  public void testMissingUserAttr() throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    // Select a (missing) user-attached "attribute" of the stream, verify
+    // we get null back.
+
+    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.INT)));
+    Event e = new EventImpl("1".getBytes());
+    e.set("attr", "val".getBytes());
+    streamBuilder.addEvent(e);
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT #attr2 AS a  FROM s",
+        Collections.singletonList(new Pair<String, Object>(
+        "a", null)));
   }
 
   @Test

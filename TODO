@@ -8,11 +8,11 @@ most important new features:
   -- persistent flow metastore
   -- JSON event input format
   -- multi-threading, distribution, scalability
-  -- selectable attributes
 
   -- documentation debt:
     -- new PRECISE type
     -- new HAVING clause
+    -- attrs/host/priority selection
 
 
 Types:
@@ -153,9 +153,6 @@ Features:
   - Should be able to CREATE STREAM AS FILE and then specify the file format. Right now
     we can't practically use avro data in files, because we parse the file itself as
     if it is \n-terminated text records.
-
-  - Would be nice to select arbitrary attributes from events with a syntax like
-    '#attrname'.
 
 Optimizations:
 

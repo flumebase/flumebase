@@ -19,6 +19,8 @@ package com.odiago.flumebase.exec;
 
 import com.odiago.flumebase.lang.Type;
 
+import com.odiago.flumebase.parser.IdentifierExpr.AccessType;
+
 /**
  * A symbol for a field or expression result within a statement. This symbol
  * includes an assigned internal name which is unique among all the fields
@@ -36,13 +38,21 @@ public class AssignedSymbol extends Symbol {
   // Name of the parent stream that contains this field.
   private String mParentName;
 
-  public AssignedSymbol(String name, Type type, String assignedName) {
+  // Method by which an IdentiferExpr should access the data represented by this symbol.
+  private AccessType mAccessType;
+
+  public AssignedSymbol(String name, Type type, String assignedName, AccessType accessType) {
     super(name, type);
     mAssignedName = assignedName;
+    mAccessType = accessType;
   }
 
   public String getAssignedName() {
     return mAssignedName;
+  }
+
+  public AccessType getAccessType() {
+    return mAccessType;
   }
 
   public String getParentName() {
@@ -55,7 +65,8 @@ public class AssignedSymbol extends Symbol {
 
   @Override
   public String toString() {
-    return getName() + "[" + mParentName + "." + mAssignedName + "] (" + getType() + ")";
+    return getName() + "[" + mParentName + "." + mAssignedName + ": "
+        + mAccessType + "] (" + getType() + ")";
   }
 
   @Override
@@ -66,6 +77,7 @@ public class AssignedSymbol extends Symbol {
 
     AssignedSymbol assigned = (AssignedSymbol) other;
     return mAssignedName.equals(assigned.mAssignedName)
+        && mAccessType.equals(assigned.mAccessType)
         && (   (mParentName == null && assigned.mParentName == null)
             || (mParentName != null && mParentName.equals(assigned.mParentName)));
   }
@@ -77,7 +89,7 @@ public class AssignedSymbol extends Symbol {
 
   @Override
   public Symbol withName(String name) {
-    AssignedSymbol out = new AssignedSymbol(name, getType(), mAssignedName);
+    AssignedSymbol out = new AssignedSymbol(name, getType(), mAssignedName, mAccessType);
     out.setParentName(mParentName);
     return out;
   }

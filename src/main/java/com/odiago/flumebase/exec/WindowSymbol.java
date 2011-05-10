@@ -19,6 +19,7 @@ package com.odiago.flumebase.exec;
 
 import com.odiago.flumebase.lang.Type;
 
+import com.odiago.flumebase.parser.IdentifierExpr;
 import com.odiago.flumebase.parser.WindowSpec;
 
 /**
@@ -28,7 +29,7 @@ public class WindowSymbol extends AssignedSymbol {
   private WindowSpec mWindowSpec;
 
   public WindowSymbol(String name, WindowSpec spec) {
-    super(name, Type.getPrimitive(Type.TypeName.WINDOW), name);
+    super(name, Type.getPrimitive(Type.TypeName.WINDOW), name, IdentifierExpr.AccessType.FIELD);
     mWindowSpec = spec;
   }
 

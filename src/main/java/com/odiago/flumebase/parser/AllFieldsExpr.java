@@ -72,4 +72,10 @@ public class AllFieldsExpr extends Expr {
   public boolean isConstant() {
     return false;
   }
+
+  @Override
+  public boolean requiresEval() {
+    return false;
+  }
+
 }

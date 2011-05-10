@@ -19,6 +19,7 @@ package com.odiago.flumebase.lang;
 
 import com.odiago.flumebase.parser.AliasedExpr;
 import com.odiago.flumebase.parser.AllFieldsExpr;
+import com.odiago.flumebase.parser.Expr;
 import com.odiago.flumebase.parser.IdentifierExpr;
 
 import com.odiago.flumebase.util.StringUtils;
@@ -67,10 +68,19 @@ public class AssignFieldLabelsVisitor extends TreeWalkVisitor {
    * Set the avro label by which we refer to the result of this expression.
    */
   private void setAvroLabel(AliasedExpr ae) {
-    //  Delay setting avro labels for IdentifierExprs; the type checking
-    //  phase will provide us with source labels that are set as the
-    //  avro labels for the encompassing AliasedExprs.
-    if (!(ae.getExpr() instanceof IdentifierExpr)) {
+    Expr e = ae.getExpr();
+    if (e instanceof IdentifierExpr) {
+      //  Delay setting avro labels for IdentifierExprs; the type checking
+      //  phase will provide us with source labels that are set as the
+      //  avro labels for the encompassing AliasedExprs.
+      //  The exception are '#idents' which are either magic keys or attributes.
+      IdentifierExpr ident = (IdentifierExpr) e;
+      if (ident.getIdentifier().startsWith("#")) {
+        // Attribute, etc. Use _foo instead.
+        String label = "_" + ident.getIdentifier().substring(1);
+        ae.setAvroLabel(label);
+      }
+    } else {
       // Use a generated name. Use "__e_" for "[e]xpression".
       String label = "__e_" + mNextId + "_";
       mNextId++;

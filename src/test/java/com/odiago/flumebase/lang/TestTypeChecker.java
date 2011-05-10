@@ -103,7 +103,8 @@ public class TestTypeChecker {
   public void testIdentifier() throws VisitException {
     // Test that we can look up an identifier in the symbol table.
     SymbolTable symbols = new HashSymbolTable();
-    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.INT), "x"));
+    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.INT), "x",
+        IdentifierExpr.AccessType.FIELD));
 
     Expr binopExpr = new BinExpr(
       new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(2)),
@@ -116,7 +117,8 @@ public class TestTypeChecker {
   public void testIdentifierPromotion() throws VisitException {
     // Test that an identifier's type can promote to a constant.
     SymbolTable symbols = new HashSymbolTable();
-    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.INT), "x"));
+    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.INT), "x",
+        IdentifierExpr.AccessType.FIELD));
 
     Expr binopExpr = new BinExpr(
       new ConstExpr(Type.getPrimitive(Type.TypeName.BIGINT), Integer.valueOf(2)),
@@ -129,7 +131,8 @@ public class TestTypeChecker {
   public void testIdentifierPromotion2() throws VisitException {
     // Test that a const's type can promote to an identifier's.
     SymbolTable symbols = new HashSymbolTable();
-    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.BIGINT), "x"));
+    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.BIGINT), "x",
+        IdentifierExpr.AccessType.FIELD));
 
     Expr binopExpr = new BinExpr(
       new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(2)),

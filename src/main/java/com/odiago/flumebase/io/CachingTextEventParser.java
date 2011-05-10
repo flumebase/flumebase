@@ -17,6 +17,8 @@
 
 package com.odiago.flumebase.io;
 
+import java.io.UnsupportedEncodingException;
+
 import java.nio.CharBuffer;
 
 import java.util.ArrayList;
@@ -122,7 +124,14 @@ public abstract class CachingTextEventParser extends EventParser {
     Object out = null;
     switch (primitiveTypeName) {
     case BINARY:
-      out = /* TODO: BASE64-decode the chars */ bla bla bla; 
+      try {
+        out = chars.toString().getBytes("UTF-8");
+      } catch (UnsupportedEncodingException uee) {
+        // Shouldn't ever be able to get here.
+        // (http://download.oracle.com/javase/6/docs/api/java/nio/charset/Charset.html)
+        LOG.error("Your JVM doesn't support UTF-8. This is really, really bad.");
+        throw new ColumnParseException(uee);
+      }
       break;
     case BOOLEAN:
       out = CharBufferUtils.parseBool(chars);

@@ -66,6 +66,14 @@ public abstract class Expr extends SQLStatement {
   public abstract boolean isConstant();
 
   /**
+   * @return true if this expr needs to be eval'd (in an EvaluateExprs step),
+   * false if it's a "normal" identifier that can be pulled.
+   */
+  public boolean requiresEval() {
+    return true;
+  }
+
+  /**
    * @return an object representing the same value as 'val' but coerced
    * from valType into targetType.
    */

@@ -183,12 +183,13 @@ public class TypeChecker extends Visitor {
       String assignedName, Type type) {
     if (null != streamName) {
       AssignedSymbol sym = new AssignedSymbol(streamName + "." + fieldName,
-          type, assignedName);
+          type, assignedName, IdentifierExpr.AccessType.FIELD);
       sym.setParentName(streamName);
       symtab.addSymbol(sym);
       symtab.addSymbol(new AliasSymbol(fieldName, sym));
     } else {
-      symtab.addSymbol(new AssignedSymbol(fieldName, type, assignedName));
+      symtab.addSymbol(new AssignedSymbol(fieldName, type, assignedName,
+          IdentifierExpr.AccessType.FIELD));
     }
   }
 
@@ -264,8 +265,10 @@ public class TypeChecker extends Visitor {
           String name = aliasedExpr.getUserAlias();
           String assignedName = ident.getAssignedName();
 
-          // Use the avro label of the identified field.
-          aliasedExpr.setAvroLabel(assignedName);
+          if (!ident.getIdentifier().startsWith("#")) {
+            // Use the avro label of the identified field.
+            aliasedExpr.setAvroLabel(assignedName);
+          }
 
           Type type = ident.getType(exprTable);
 
@@ -557,9 +560,32 @@ public class TypeChecker extends Visitor {
     // that we have a symbol table, and that this is a primitive value.
     Symbol fieldSym = fieldsSymTab.resolve(fieldName);
     if (null == fieldSym) {
-      // The identifier doesn't exist, or else it's an ambiguous alias.
-      // Return the appropriate error message.
-      if (isAmbiguousAlias(fieldName, fieldsSymTab)) {
+      // This isn't just a simple field. Check if it's a 'magic name' or an attribute.
+      if (fieldName.equals(IdentifierExpr.HOST_IDENTIFIER)) {
+        fieldSym = new AssignedSymbol(IdentifierExpr.HOST_IDENTIFIER,
+            Type.getPrimitive(Type.TypeName.STRING),
+            IdentifierExpr.HOST_IDENTIFIER,
+            IdentifierExpr.AccessType.HOST);
+      } else if (fieldName.equals(IdentifierExpr.PRIORITY_IDENTIFIER)) {
+        fieldSym = new AssignedSymbol(IdentifierExpr.PRIORITY_IDENTIFIER,
+            Type.getPrimitive(Type.TypeName.STRING),
+            IdentifierExpr.PRIORITY_IDENTIFIER,
+            IdentifierExpr.AccessType.PRIORITY);
+      } else if (fieldName.equals(IdentifierExpr.TIMESTAMP_IDENTIFIER)) {
+        fieldSym = new AssignedSymbol(IdentifierExpr.TIMESTAMP_IDENTIFIER,
+            Type.getPrimitive(Type.TypeName.TIMESTAMP),
+            IdentifierExpr.TIMESTAMP_IDENTIFIER,
+            IdentifierExpr.AccessType.TIMESTAMP);
+      } else if (fieldName.startsWith("#") && fieldName.length() > 1) {
+        // This is an attribute name.
+        String attrName = fieldName.substring(1);
+        fieldSym = new AssignedSymbol(attrName,
+            Type.getNullable(Type.TypeName.BINARY),
+            attrName, IdentifierExpr.AccessType.ATTRIBUTE);
+      } else if (isAmbiguousAlias(fieldName, fieldsSymTab)) {
+        // The identifier doesn't exist, or else it's an ambiguous alias.
+        // Return the appropriate error message.
+
         // This identifier is probably an alias for another identifier
         // but the alias is removed due to ambiguity in a JOIN.
         throw new TypeCheckException("Ambiguous identifier: \"" + fieldName + "\". "
@@ -606,6 +632,7 @@ public class TypeChecker extends Visitor {
     // EventWrapper.
     e.setType(fieldType);
     e.setAssignedName(fieldSym.getAssignedName());
+    e.setAccessType(fieldSym.getAccessType());
     e.setAssignedSymbol(fieldSym);
   }
 

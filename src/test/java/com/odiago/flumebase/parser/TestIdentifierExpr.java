@@ -45,7 +45,8 @@ public class TestIdentifierExpr extends ExprTestCase {
     TypeChecker checker;
     Object value;
     SymbolTable symbols = new HashSymbolTable();
-    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.INT), "x"));
+    symbols.addSymbol(new AssignedSymbol("x", Type.getPrimitive(Type.TypeName.INT), "x",
+        IdentifierExpr.AccessType.FIELD));
 
     ArrayList<String> symbolNames = new ArrayList<String>();
     symbolNames.add("x");

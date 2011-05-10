@@ -404,7 +404,7 @@ public class SelectStmt extends RecordSource {
         // Make sure our dependencies are pulled out of the source layer.
         List<TypedField> fieldsForExpr = e.getRequiredFields(fieldSymbols);
 
-        if (e instanceof IdentifierExpr) {
+        if (!e.requiresEval()) {
           // The aggregation and expression evaluation nodes need to
           // carry this field forward into the output.
           // Make sure to use the aliased name as the output of the
@@ -498,8 +498,7 @@ public class SelectStmt extends RecordSource {
     List<AliasedExpr> calculatedExprs = new ArrayList<AliasedExpr>();
     for (AliasedExpr expr : getSelectExprs()) {
       Expr subExpr = expr.getExpr();
-      if (!(subExpr instanceof AllFieldsExpr) && !(subExpr instanceof IdentifierExpr)
-          && !(mAggregateExprs.contains(expr))) {
+      if (subExpr.requiresEval() && !mAggregateExprs.contains(expr)) {
         calculatedExprs.add(expr);
       }
     }

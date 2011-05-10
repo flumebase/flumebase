@@ -55,6 +55,7 @@ public class TypedField {
     mType = type;
     mAvroName = avroName;
     mDisplayName = displayName;
+    assert mType != null;
   }
 
   public String getUserAlias() {
