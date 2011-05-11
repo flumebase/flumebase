@@ -1234,6 +1234,54 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
           </screen>
         </para>
       </section>
+      <section>
+        <title>Querying event properties and attributes</title>
+        <para>
+          The columns of a stream event are extracted from the event body. In Flume,
+          events have additional properties (the originating host, priority, and
+          timestamp). Each event may also be decorated with additional arbitrary
+          named attributes.
+        </para>
+        <para>
+          Pre-defined system columns allow you to access each of these:
+        </para>
+        <table><caption>System columns in rtsql streams</caption>
+          <thead>
+            <tr><td>column</td><td>accesses</td><td>type</td></tr>
+          </thead>
+          <tbody>
+            <tr><td><literal>#timestamp</literal></td><td>Event
+              timestamp</td><td>TIMESTAMP NOT NULL</td></tr>
+            <tr><td><literal>#host</literal></td><td>Event origin
+              host</td><td>STRING NOT NULL</td></tr>
+            <tr><td><literal>#priority</literal></td><td>Event priority</td>
+              <td>STRING NOT NULL</td></tr>
+            <tr><td><userinput>#attrname</userinput></td><td>An attribute
+              named <literal>attrname</literal></td>
+              <td>BINARY</td></tr>
+          </tbody>
+        </table>
+        <para>
+          For example, to select events only at the ERROR priority level:
+          <screen>
+rtsql&gt; <userinput>SELECT * FROM foo WHERE #priority = 'ERROR';</userinput>
+          </screen>
+        </para>
+        <para>
+          Or to select events with the <literal>interesting</literal> attribute:
+          <screen>
+rtsql&gt; <userinput>SELECT * FROM foo WHERE #interesting IS NOT NULL;</userinput>
+          </screen>
+        </para>
+        <para>
+          Event attributes are defined as a STRING key and a BINARY value. To
+          use these values as strings, use the <literal>bin2str()</literal>
+          function:
+          <screen>
+rtsql&gt; <userinput>SELECT * FROM foo WHERE bin2str(#x) = 'abc';</userinput>
+          </screen>
+        </para>
+      </section>
     </section>
     <section id="types">
       <title>Data types and value ranges</title>

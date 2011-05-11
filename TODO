@@ -15,9 +15,6 @@ most important new features:
   -- JSON event input format
   -- multi-threading, distribution, scalability
 
-  -- documentation debt:
-    -- attrs/host/priority selection
-
 
 Types:
 
