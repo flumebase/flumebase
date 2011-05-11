@@ -1,10 +1,5 @@
 
 
-  -- BINARY: Need tests for equality, comparison operators
-    -- What does ByteBuffer.equals() do? Should we be using a separate array
-       equality comparator? Ensure that we're not coercing all the way to string for this.
-
-
 most important new features:
 
   -- range intervals over rows, not just time
@@ -13,11 +8,6 @@ most important new features:
   -- persistent flow metastore
   -- JSON event input format
   -- multi-threading, distribution, scalability
-
-  -- documentation debt:
-       bin/flumebase start/stop for server
-       FLUMEBASE_PID_DIR, FLUMEBASE_LOG_DIR
-       etc/flumebase-env.sh
 
 Types:
 

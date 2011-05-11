@@ -252,7 +252,7 @@ $ <userinput>tar vzxf flumebase-(version).tar.gz</userinput>
        be reconfigured to point to an existing Flume deployment.
     </para>
 
-    <section>
+    <section id="server.conf">
       <title>Server configuration</title>
       <para>
         Install FlumeBase on a server where the query execution engine should
@@ -286,6 +286,17 @@ $ <userinput>tar vzxf flumebase-(version).tar.gz</userinput>
         </tbody>
       </table>
       <para>
+        A set of environment variables also govern how FlumeBase locates
+        various directories, and how FlumeBase instantiates its JVM. Default
+        values for these can be set in a file named <filename>etc/flumebase-env.sh</filename>.
+        A template version of this file is available for your convenience.
+        The FlumeBase server will use a pidfile to ensure that multiple instances
+        of the server do not contend for open ports, etc. The pidfile will be placed
+        in the directory identified by <constant>$FLUMEBASE_PID_DIR</constant>.
+        A FlumeBase server running in the background will write to a log file
+        in the directory identified by <constant>$FLUMEBASE_LOG_DIR</constant>.
+      </para>
+      <para>
         Finally, to run in distributed mode, the Flume master node needs to
         register the FlumeBase plugin. You should copy the
         <filename>flumebase-(version).jar</filename> file from the FlumeBase
@@ -303,11 +314,7 @@ $ <userinput>tar vzxf flumebase-(version).tar.gz</userinput>
         You may need to restart the Flume master process for this to take effect.
       </para>
       <para>
-        After a server is configured, you may start a server instance by running:
-        <literal>bin/flumebase server</literal> from the directory where FlumeBase
-        was installed. To shut down a running server, see <xref
-        linkend="flumebase.client.connecting" />. Killing a server process with
-        <literal>^C</literal> is not recommended.
+        To learn how to start the server, see <xref linkend="server" />.
       </para>
     </section>
     <section>
@@ -1571,6 +1578,50 @@ sum ((var('a, constraints={TYPECLASS_NUMERIC})) -> var('a, constraints={TYPECLAS
           </para>
         </table>
       </section>
+    </section>
+  </section>
+  <section id="server">
+    <title>The FlumeBase server</title>
+    <para>
+      The FlumeBase server allows a server process to handle the execution of
+      queries without requiring a long-lived shell session. FlumeBase shell
+      instances can connect to local or remote server instances to submit
+      queries. Before running a FlumeBase server, you should read 
+      <xref linkend="server.conf" />.
+    </para>
+    <section>
+      <title>Starting a foreground server</title>
+      <para>
+        The FlumeBase server can be started as a foreground process by
+        running <literal>bin/flumebase server</literal> from the directory
+        where FlumeBase was installed.
+      </para>
+    </section>
+    <section>
+      <title>Starting a daemon server</title>
+      <para>
+        A FlumeBase server can also be run in the background, by
+        running <literal>bin/flumebase start</literal>. Log output
+        will be captured in a log file in <literal>$FLUMEBASE_LOG_DIR</literal>
+        (default: <literal>$FLUMEBASE_HOME/logs</literal>). If the
+        server is acting problematic, running <literal>bin/flumebase start -debug</literal>
+        will enable debug logging.
+      </para>
+    </section>
+    <section>
+      <title>Stopping the server</title>
+      <para>
+        A running server may be stopped from within the FlumeBase shell.
+        To learn how, see <xref linkend="flumebase.client.connecting" />.
+      </para>
+      <para>
+        To shutdown the server from the command line, run
+        <literal>bin/flumebase stop</literal>. This may take a few seconds,
+        as FlumeBase will send a set of instructions to the Flume master
+        to restore its flows to their original state, and "unplug" the running
+        queries. A hard kill (e.g., <literal>kill -9</literal>) of the FlumeBase 
+        server is not recommended.
+      </para>
     </section>
   </section>
   <section>

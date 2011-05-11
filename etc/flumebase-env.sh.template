@@ -52,5 +52,8 @@ export FLUMEBASE_OPTS=${FLUMEBASE_OPTS:-}
 export FLUMEBASE_CLASSPATH=${FLUMEBASE_CLASSPATH:-}
 
 # Control maximum memory consumption of a FlumeBase server. Default 1000 MB.
+# A JVM argument of the form "-Xmx${FLUMEBASE_HEAP_SIZE}m" is included on
+# the FlumeBase JVM command line, and does not need to be specified in
+# $FLUMEBASE_OPTS.
 export FLUMEBASE_HEAP_SIZE=${FLUMEBASE_HEAP_SIZE:-1000}
 
