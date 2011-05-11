@@ -130,6 +130,8 @@ function usage() {
   echo ""
   echo "  classpath   Print the classpath used by Java executables and exit"
   echo "  version     Print FlumeBase version information and exit"
+  echo ""
+  echo "Use -debug to enable verbose logging"
 }
 
 function add_to_classpath() {
@@ -213,6 +215,14 @@ foreground=true
 # Invocation format: flumebase <command> [args...]
 action="$1"
 shift
+
+# Only argument currently recognized is '-debug'. Handle in bin script.
+loglevel=INFO
+logtarget=console
+if [ "$1" == "-debug" ]; then
+  loglevel=DEBUG
+fi
+
 if [ -z "$action" ]; then
   usage
   exit 0
@@ -228,8 +238,8 @@ elif [ "$action" == "start" ]; then
   create_missing_dir $FLUMEBASE_LOG_DIR
   create_missing_dir $FLUMEBASE_PID_DIR
   foreground=false
-  export FLUMEBASE_OPTS="-Dlog4j.rootLogger=INFO,drfa \
--Dflumebase.log.dir=$FLUMEBASE_LOG_DIR $FLUMEBASE_OPTS"
+  logtarget=drfa
+  export FLUMEBASE_OPTS="-Dflumebase.log.dir=$FLUMEBASE_LOG_DIR $FLUMEBASE_OPTS"
 elif [ "$action" == "stop" ]; then
   if [ ! -f "$FLUMEBASE_PID_DIR/flumebase.pid" ]; then
     echo "Cannot find pid file. No FlumeBase instance running?"
@@ -275,6 +285,8 @@ else
   usage
   exit 1
 fi
+
+export FLUMEBASE_OPTS="-Dlog4j.rootLogger=$loglevel,$logtarget $FLUMEBASE_OPTS"
 
 if $foreground ; then
   exec java -cp "${FLUMEBASE_CLASSPATH}" \
