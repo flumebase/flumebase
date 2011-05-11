@@ -802,6 +802,7 @@ select_statement ::= SELECT select_expr, select_expr ... FROM stream_reference
     [ WHERE where_condition ]
     [ GROUP BY column_list ]
     [ OVER range_expr ]
+    [ HAVING having_condition ]
     [ WINDOW <userinput>window_name</userinput> AS ( range_expr ), WINDOW ... ]
       </programlisting>
 
@@ -961,8 +962,9 @@ where_clause ::= WHERE bool_expr
         </programlisting>
 
         <para>
-          A <literal>SELECT</literal> statement may filter some input events, and emit output events
-          corresponding only to input events that match a boolean predicate.
+          A <literal>SELECT</literal> statement may filter some input events,
+          and emit output events corresponding only to input events that match a
+          boolean predicate.
 
           <screen>
 rtsql&gt; <userinput>SELECT x FROM foo WHERE length(x) > 5;</userinput>
@@ -1058,6 +1060,7 @@ rtsql&gt; <userinput>SELECT * FROM f JOIN g ON f.x = g.y OVER</userinput>
         <programlisting>
 group_by_clause ::= GROUP BY <userinput>col</userinput> [, <userinput>col</userinput>...]
 over_clause ::= OVER range_expr
+having_clause ::= [ HAVING bool_expr ]
         </programlisting>
 
         <para>
@@ -1120,6 +1123,24 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo GROUP BY event_src</userinput>
         </para>
 
         <para>
+          Note that by setting <constant>flumebase.aggregation.buckets</constant>
+          to <literal>1</literal> and
+          <constant>flumebase.aggregation.continuous.output</constant> to
+          <literal>true</literal>, you can disable rolling windows, and instead
+          divide the stream into discrete time-based groups.
+        </para>
+        <para>
+          This example gives a minute-by-minute summary of hits per minute from
+          a web log:
+          <screen>
+rtsql&gt; <userinput>\set flumebase.aggregation.buckets=1;</userinput>
+rtsql&gt; <userinput>\set flumebase.aggregation.continuous.output=true;</userinput>
+rtsql&gt; <userinput>SELECT COUNT(*) as hits FROM httpd_log</userinput>
+    -&gt; <userinput>OVER RANGE INTERVAL 1 MINUTES PRECEDING;</userinput>
+          </screen>
+        </para>
+
+        <para>
           Flume may deliver events out of order; FlumeBase tolerates improperly
           ordered events that arrive within the "slack interval" of 200
           milliseconds of when they are expected. Events that arrive after the
@@ -1165,6 +1186,34 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo GROUP BY event_src</userinput>
           applied by the <literal>over_clause</literal> to all aggregate operators.
           This may change in a future version of FlumeBase.
         </para>
+
+        <section>
+          <title>Filtering aggregate data</title>
+          <programlisting>
+having_clause ::= [ HAVING bool_expr ]         
+          </programlisting>
+
+          <para>
+            A <literal>WHERE</literal> clause is evaluated before any grouping
+            operators are applied. By contrast, the <literal>HAVING</literal>
+            clause is applied after all grouping and projection operators (e.g.,
+            <literal>x AS y</literal>) have been applied. A
+            <literal>HAVING</literal> clause filters events at the end of
+            processing, emitting only those output events that satisfy the
+            boolean predicate.
+          </para>
+          <para>
+            For example, this statement filters the previous example such that
+            only event sources that emit 10 or more records in a five second
+            window are listed as output:
+            <screen>
+rtsql&gt; <userinput>SELECT event_src, COUNT(event_src) AS cnt FROM foo</userinput>
+    -&gt; <userinput>GROUP BY event_src</userinput>
+    -&gt; <userinput>OVER RANGE INTERVAL 5 SECONDS PRECEDING</userinput>
+    -&gt; <userinput>HAVING cnt > 10;</userinput>
+            </screen>
+          </para>
+        </section>
       </section>
       <section>
         <title><literal>WINDOW</literal> clauses</title>

@@ -242,12 +242,12 @@ field_type returns [Type val] :
 // A non-recursive field type.
 primitive_field_type returns [String val]:
     BOOLEAN { $val = "BOOLEAN"; }
+  | BINARY { $val = "BINARY"; }
   | BIGINT { $val = "BIGINT"; }
   | INT_KW { $val = "INT"; }
   | FLOAT { $val = "FLOAT"; }
   | DOUBLE { $val = "DOUBLE"; }
   | STRING_KW { $val = "STRING"; }
-  | BINARY { $val = "BINARY"; }
   | TIMESTAMP { $val = "TIMESTAMP"; };
 
 // Defines a PRECISE(n) type.
