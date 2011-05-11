@@ -1147,6 +1147,67 @@ public class TestSelect extends RtsqlTestCase {
         "a", null)));
   }
 
+  // The next few tests are for comparison of BINARY fields.
+  @Test
+  public void testBinaryComparison1() throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.BINARY)));
+    streamBuilder.addField(new TypedField("b", Type.getNullable(Type.TypeName.BINARY)));
+    Event e = new EventImpl("abc,abc".getBytes());
+    streamBuilder.addEvent(e);
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT a = b AS v FROM s",
+        Collections.singletonList(new Pair<String, Object>(
+        "v", Boolean.TRUE)));
+  }
+
+  @Test
+  public void testBinaryComparison2() throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.BINARY)));
+    streamBuilder.addField(new TypedField("b", Type.getNullable(Type.TypeName.BINARY)));
+    Event e = new EventImpl("abc,abc".getBytes());
+    streamBuilder.addEvent(e);
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT a < b AS v FROM s",
+        Collections.singletonList(new Pair<String, Object>(
+        "v", Boolean.FALSE)));
+  }
+
+  @Test
+  public void testBinaryComparison3() throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.BINARY)));
+    streamBuilder.addField(new TypedField("b", Type.getNullable(Type.TypeName.BINARY)));
+    Event e = new EventImpl("abc,azz".getBytes());
+    streamBuilder.addEvent(e);
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT a < b AS v FROM s",
+        Collections.singletonList(new Pair<String, Object>(
+        "v", Boolean.TRUE)));
+  }
+
+  @Test
+  public void testBinaryComparison4() throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.BINARY)));
+    streamBuilder.addField(new TypedField("b", Type.getNullable(Type.TypeName.BINARY)));
+    Event e = new EventImpl("abc,azz".getBytes());
+    streamBuilder.addEvent(e);
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT a > b AS v FROM s",
+        Collections.singletonList(new Pair<String, Object>(
+        "v", Boolean.FALSE)));
+  }
+
 
   // TODO: Write the following tests:
   //   Test non-null string fields.
