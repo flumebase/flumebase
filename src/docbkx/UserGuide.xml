@@ -1243,32 +1243,12 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
           named attributes.
         </para>
         <para>
-          Pre-defined system columns allow you to access each of these:
-        </para>
-        <table><caption>System columns in rtsql streams</caption>
-          <thead>
-            <tr><td>column</td><td>accesses</td><td>type</td></tr>
-          </thead>
-          <tbody>
-            <tr><td><literal>#timestamp</literal></td><td>Event
-              timestamp</td><td>TIMESTAMP NOT NULL</td></tr>
-            <tr><td><literal>#host</literal></td><td>Event origin
-              host</td><td>STRING NOT NULL</td></tr>
-            <tr><td><literal>#priority</literal></td><td>Event priority</td>
-              <td>STRING NOT NULL</td></tr>
-            <tr><td><userinput>#attrname</userinput></td><td>An attribute
-              named <literal>attrname</literal></td>
-              <td>BINARY</td></tr>
-          </tbody>
-        </table>
-        <para>
-          For example, to select events only at the ERROR priority level:
-          <screen>
-rtsql&gt; <userinput>SELECT * FROM foo WHERE #priority = 'ERROR';</userinput>
-          </screen>
+          Named attributes of an event can be accessed with the syntax
+          "<userinput>#attrname</userinput>". This acts like a column of
+          type <literal>BINARY</literal>.
         </para>
         <para>
-          Or to select events with the <literal>interesting</literal> attribute:
+          For example, to select events with the <literal>interesting</literal> attribute:
           <screen>
 rtsql&gt; <userinput>SELECT * FROM foo WHERE #interesting IS NOT NULL;</userinput>
           </screen>
@@ -1279,6 +1259,40 @@ rtsql&gt; <userinput>SELECT * FROM foo WHERE #interesting IS NOT NULL;</userinpu
           function:
           <screen>
 rtsql&gt; <userinput>SELECT * FROM foo WHERE bin2str(#x) = 'abc';</userinput>
+          </screen>
+        </para>
+        <para>
+          A set of functions allow you to access the host, priority, and timestamp
+          properties of each event:
+        </para>
+        <table><caption>Event property accessor functions</caption>
+          <thead>
+            <tr><td>function</td><td>accesses</td><td>type</td></tr>
+          </thead>
+          <tbody>
+            <tr><td><literal>event_timestamp()</literal></td><td>Event
+              <literal>timestamp</literal> and <literal>nanos</literal>
+              properties</td><td>TIMESTAMP NOT NULL</td></tr>
+            <tr><td><literal>host()</literal></td><td>Event origin
+              host</td><td>STRING NOT NULL</td></tr>
+            <tr><td><literal>priority()</literal></td><td>Event priority label</td>
+              <td>STRING NOT NULL</td></tr>
+            <tr><td><literal>priority_level()</literal></td><td>Event priority as an integer</td>
+              <td>INT NOT NULL</td></tr>
+          </tbody>
+        </table>
+        <para>
+          For example, to select events only at the ERROR priority level:
+          <screen>
+rtsql&gt; <userinput>SELECT * FROM foo WHERE priority() = 'ERROR';</userinput>
+          </screen>
+        </para>
+        <para>
+          The priority field is also available as an integer. More urgent priorities have
+          lower ordinal values (<constant>'FATAL'</constant> is <constant>0</constant>).
+          To select events at the <constant>WARN</constant> level and more urgent:
+          <screen>
+rtsql&gt; <userinput>SELECT * FROM foo WHERE priority_level() &lt;= 2;</userinput>
           </screen>
         </para>
       </section>

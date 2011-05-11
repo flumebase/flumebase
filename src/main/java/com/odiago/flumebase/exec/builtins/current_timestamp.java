@@ -17,12 +17,13 @@
 
 package com.odiago.flumebase.exec.builtins;
 
-import java.sql.Timestamp;
-
 import java.util.Collections;
 import java.util.List;
 
+import com.odiago.flumebase.exec.EventWrapper;
+
 import com.odiago.flumebase.lang.ScalarFunc;
+import com.odiago.flumebase.lang.Timestamp;
 import com.odiago.flumebase.lang.Type;
 
 /**
@@ -35,7 +36,7 @@ public class current_timestamp extends ScalarFunc {
   }
 
   @Override
-  public Object eval(Object... args) {
+  public Object eval(EventWrapper event, Object... args) {
     return new Timestamp(System.currentTimeMillis());
   }
 

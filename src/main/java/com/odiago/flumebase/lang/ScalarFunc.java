@@ -17,6 +17,8 @@
 
 package com.odiago.flumebase.lang;
 
+import com.odiago.flumebase.exec.EventWrapper;
+
 /**
  * A scalar function that takes in a tuple of fixed arity and returns
  * a single value.
@@ -28,8 +30,11 @@ package com.odiago.flumebase.lang;
 public abstract class ScalarFunc extends Function {
   /**
    * Apply the function to its arguments and return its result.
+   * @param event the EventWrapper defining the "current event." May be a
+   * DummyEventWrapper if used outside the context of an event execution.
+   * @param args the function-defined argument array.
    * @throws EvalException if the function cannot be evaluated (for example,
    * there are not enough arguments, etc.).
    */
-  public abstract Object eval(Object... args) throws EvalException;
+  public abstract Object eval(EventWrapper event, Object... args) throws EvalException;
 }

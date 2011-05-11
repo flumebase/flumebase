@@ -42,15 +42,6 @@ public class IdentifierExpr extends Expr {
   private static final Logger LOG = LoggerFactory.getLogger(
       IdentifierExpr.class.getName());
 
-  /** 'magic' identifier for the 'host' field of the event. */
-  public static final String HOST_IDENTIFIER = "#host";
-
-  /** magic identifier for the 'priority' field of the event. */
-  public static final String PRIORITY_IDENTIFIER = "#priority";
-
-  /** magic identifier for the 'timestamp' field of the event. */
-  public static final String TIMESTAMP_IDENTIFIER = "#timestamp";
-  
   /**
    * Enumeration that identifies the types of accesses an identifier
    * can make into an event.
@@ -58,9 +49,6 @@ public class IdentifierExpr extends Expr {
   public static enum AccessType {
     FIELD, // Ordinary named field
     ATTRIBUTE, // Named #attribute
-    HOST,
-    PRIORITY,
-    TIMESTAMP,
   }
 
   /** The field this represents. */
@@ -189,12 +177,6 @@ public class IdentifierExpr extends Expr {
       } else {
         return ByteBuffer.wrap(bytes);
       }
-    case HOST:
-      return e.getEvent().getHost();
-    case PRIORITY:
-      return e.getEvent().getPriority().toString();
-    case TIMESTAMP:
-      return new Timestamp(e.getEvent().getTimestamp(), e.getEvent().getNanos());
     default:
       throw new IOException("IdentifierExpr.eval() cannot understand mAccessType="
          + mAccessType);

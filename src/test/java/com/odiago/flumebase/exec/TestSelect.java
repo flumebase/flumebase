@@ -1082,7 +1082,7 @@ public class TestSelect extends RtsqlTestCase {
 
   @Test
   public void testPriorityAttr() throws IOException, InterruptedException {
-    // Test that the special "#priority" field works.
+    // Test that the priority() function to access event priority works.
 
     MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
 
@@ -1090,7 +1090,7 @@ public class TestSelect extends RtsqlTestCase {
     streamBuilder.addEvent("1");
     StreamSymbol stream = streamBuilder.build();
 
-    runFreeSelectTest(stream, "SELECT #priority AS p FROM s",
+    runFreeSelectTest(stream, "SELECT priority() AS p FROM s",
         Collections.singletonList(new Pair<String, Object>("p", new Utf8("INFO"))));
   }
 

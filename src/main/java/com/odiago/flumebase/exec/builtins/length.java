@@ -20,6 +20,8 @@ package com.odiago.flumebase.exec.builtins;
 import java.util.Collections;
 import java.util.List;
 
+import com.odiago.flumebase.exec.EventWrapper;
+
 import com.odiago.flumebase.lang.ScalarFunc;
 import com.odiago.flumebase.lang.Type;
 
@@ -33,7 +35,7 @@ public class length extends ScalarFunc {
   }
 
   @Override
-  public Object eval(Object... args) {
+  public Object eval(EventWrapper event, Object... args) {
     Object arg0 = args[0];
     if (null == arg0) {
       return null;

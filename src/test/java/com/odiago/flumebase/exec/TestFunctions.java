@@ -62,7 +62,7 @@ public class TestFunctions extends RtsqlTestCase {
     }
 
     @Override
-    public Object eval(Object... args) {
+    public Object eval(EventWrapper event, Object... args) {
       Object left = args[0];
       Object right = args[1];
 

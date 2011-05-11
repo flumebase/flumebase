@@ -59,6 +59,6 @@ public class Timestamp extends TimestampBase {
 
   @Override
   public String toString() {
-    return "" + milliseconds + "." + nanos;
+    return "" + milliseconds + "." + String.format("%06d", nanos);
   }
 }

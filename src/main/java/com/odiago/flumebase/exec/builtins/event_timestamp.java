@@ -17,48 +17,34 @@
 
 package com.odiago.flumebase.exec.builtins;
 
-import java.nio.ByteBuffer;
-
-import java.nio.charset.Charset;
-
 import java.util.Collections;
 import java.util.List;
+
+import com.cloudera.flume.core.Event;
 
 import com.odiago.flumebase.exec.EventWrapper;
 
 import com.odiago.flumebase.lang.ScalarFunc;
+import com.odiago.flumebase.lang.Timestamp;
 import com.odiago.flumebase.lang.Type;
 
 /**
- * Return the STRING representation of a BINARY object.
+ * Return the timestamp field of the current event as a TIMESTAMP.
  */
-public class bin2str extends ScalarFunc {
-  /** Charset used to decode all ByteBuffers */
-  private static Charset UTF8_CHARSET;
-
-  static {
-    UTF8_CHARSET = Charset.forName("UTF-8");
-  }
-
+public class event_timestamp extends ScalarFunc {
   @Override
   public Type getReturnType() {
-    return Type.getNullable(Type.TypeName.STRING);
+    return Type.getPrimitive(Type.TypeName.TIMESTAMP);
   }
 
   @Override
   public Object eval(EventWrapper event, Object... args) {
-    Object arg0 = args[0];
-    if (null == arg0) {
-      return null;
-    } else {
-      ByteBuffer bytes = (ByteBuffer) arg0;
-      return new String(bytes.array(), bytes.position(), bytes.remaining(),
-            UTF8_CHARSET);
-    }
+    Event e = event.getEvent();
+    return new Timestamp(e.getTimestamp(), e.getNanos());
   }
 
   @Override
   public List<Type> getArgumentTypes() {
-    return Collections.singletonList(Type.getNullable(Type.TypeName.BINARY));
+    return Collections.emptyList();
   }
 }

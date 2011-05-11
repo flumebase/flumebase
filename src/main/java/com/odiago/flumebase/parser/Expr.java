@@ -93,7 +93,7 @@ public abstract class Expr extends SQLStatement {
     } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.STRING)) {
       // coerce this object to a string.
       if (val instanceof ByteBuffer) {
-        return BIN2STR_FN.eval(val);
+        return BIN2STR_FN.eval(null, val);
       } else {
         StringBuilder sb = new StringBuilder();
         sb.append(val);

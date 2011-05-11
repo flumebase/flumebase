@@ -18,16 +18,15 @@
 package com.odiago.flumebase.exec;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.odiago.flumebase.exec.builtins.*;
-import com.odiago.flumebase.exec.builtins.bin2str;
 
 import com.odiago.flumebase.lang.Function;
 import com.odiago.flumebase.lang.Type;
@@ -42,15 +41,19 @@ public class BuiltInSymbolTable extends SymbolTable {
 
   private static Map<String, Symbol> BUILTINS;
   static {
-    BUILTINS = new HashMap<String, Symbol>();
+    BUILTINS = new TreeMap<String, Symbol>();
     // Add symbols for all built-in objects in the system.
     loadBuiltinFunction(avg.class);
     loadBuiltinFunction(bin2str.class);
     loadBuiltinFunction(count.class);
     loadBuiltinFunction(current_timestamp.class);
+    loadBuiltinFunction(event_timestamp.class);
+    loadBuiltinFunction(host.class);
     loadBuiltinFunction(length.class);
     loadBuiltinFunction(min.class);
     loadBuiltinFunction(max.class);
+    loadBuiltinFunction(priority.class);
+    loadBuiltinFunction(priority_level.class);
     loadBuiltinFunction(square.class);
     loadBuiltinFunction(sum.class);
     BUILTINS = Collections.unmodifiableMap(BUILTINS);

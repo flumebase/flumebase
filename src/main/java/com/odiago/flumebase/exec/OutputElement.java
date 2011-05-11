@@ -57,6 +57,8 @@ import com.odiago.flumebase.flume.SourceContextBindings;
 import com.odiago.flumebase.io.AvroEventParser;
 
 import com.odiago.flumebase.lang.StreamType;
+import com.odiago.flumebase.lang.Timestamp;
+import com.odiago.flumebase.lang.TimestampBase;
 import com.odiago.flumebase.lang.Type;
 
 import com.odiago.flumebase.parser.FormatSpec;
@@ -323,11 +325,25 @@ public class OutputElement extends FlowElementImpl {
     for (TypedField field : mInputFields) {
       sb.append('\t');
       Object fieldVal = e.getField(field);
+      if (null != fieldVal) {
+        LOG.debug("Printing val of class " + fieldVal.getClass().getName());
+      }
+
+      // If we get any GenericRecord types, convert them to our own specific types
+      // if we can figure out which to use. This makes toString'ing prettier.
+      if (fieldVal instanceof GenericRecord) {
+        GenericRecord record = (GenericRecord) fieldVal;
+        if (record.getSchema().equals(TimestampBase.SCHEMA$)) {
+          fieldVal = new Timestamp((Long) record.get("milliseconds"),
+              (Long) record.get("nanos"));
+        }
+      }
+
       if (null == fieldVal) {
         sb.append("null");
       } else if (fieldVal instanceof ByteBuffer) {
         sb.append("B[");
-        String toStr = (String) BIN2STR_FN.eval(fieldVal);
+        String toStr = (String) BIN2STR_FN.eval(null, fieldVal);
         sb.append(toStr);
         sb.append("]");
       } else {

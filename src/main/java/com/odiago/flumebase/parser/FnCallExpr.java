@@ -304,7 +304,7 @@ public class FnCallExpr extends Expr {
     evaluateArguments(e);
 
     try {
-      return ((ScalarFunc) mExecFunc).eval(mPartialResults);
+      return ((ScalarFunc) mExecFunc).eval(e, mPartialResults);
     } catch (EvalException ee) {
       throw new IOException(ee);
     }

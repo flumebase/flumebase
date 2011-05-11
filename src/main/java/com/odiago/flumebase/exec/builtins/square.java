@@ -22,6 +22,8 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 
+import com.odiago.flumebase.exec.EventWrapper;
+
 import com.odiago.flumebase.lang.EvalException;
 import com.odiago.flumebase.lang.ScalarFunc;
 import com.odiago.flumebase.lang.Type;
@@ -39,7 +41,7 @@ public class square extends ScalarFunc {
   }
 
   @Override
-  public Object eval(Object... args) throws EvalException {
+  public Object eval(EventWrapper event, Object... args) throws EvalException {
     Number arg0 = (Number) args[0];
     if (null == arg0) {
       return null;

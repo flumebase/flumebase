@@ -560,23 +560,8 @@ public class TypeChecker extends Visitor {
     // that we have a symbol table, and that this is a primitive value.
     Symbol fieldSym = fieldsSymTab.resolve(fieldName);
     if (null == fieldSym) {
-      // This isn't just a simple field. Check if it's a 'magic name' or an attribute.
-      if (fieldName.equals(IdentifierExpr.HOST_IDENTIFIER)) {
-        fieldSym = new AssignedSymbol(IdentifierExpr.HOST_IDENTIFIER,
-            Type.getPrimitive(Type.TypeName.STRING),
-            IdentifierExpr.HOST_IDENTIFIER,
-            IdentifierExpr.AccessType.HOST);
-      } else if (fieldName.equals(IdentifierExpr.PRIORITY_IDENTIFIER)) {
-        fieldSym = new AssignedSymbol(IdentifierExpr.PRIORITY_IDENTIFIER,
-            Type.getPrimitive(Type.TypeName.STRING),
-            IdentifierExpr.PRIORITY_IDENTIFIER,
-            IdentifierExpr.AccessType.PRIORITY);
-      } else if (fieldName.equals(IdentifierExpr.TIMESTAMP_IDENTIFIER)) {
-        fieldSym = new AssignedSymbol(IdentifierExpr.TIMESTAMP_IDENTIFIER,
-            Type.getPrimitive(Type.TypeName.TIMESTAMP),
-            IdentifierExpr.TIMESTAMP_IDENTIFIER,
-            IdentifierExpr.AccessType.TIMESTAMP);
-      } else if (fieldName.startsWith("#") && fieldName.length() > 1) {
+      // This isn't just a simple field. Check if it's an attribute.
+      if (fieldName.startsWith("#") && fieldName.length() > 1) {
         // This is an attribute name.
         String attrName = fieldName.substring(1);
         fieldSym = new AssignedSymbol(attrName,
