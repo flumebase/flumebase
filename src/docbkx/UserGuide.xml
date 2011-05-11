@@ -493,8 +493,8 @@ CREATE STREAM <userinput>stream_name</userinput> (<userinput>col_name</userinput
 
 CREATE STREAM <userinput>stream_name</userinput> AS select_statement
 
-data_type ::= BOOLEAN | BIGINT | INT | FLOAT | DOUBLE | STRING | TIMESTAMP 
-format_spec ::= 'delimited' | 'avro'
+data_type ::= BOOLEAN | BINARY | BIGINT | INT | FLOAT | DOUBLE | STRING | TIMESTAMP 
+format_spec ::= 'delimited' | 'regex' | 'avro'
         </programlisting>
 
         <para>
@@ -558,9 +558,11 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
         <para>
           By specifying an <literal>EVENT FORMAT</literal>, you can choose which
           parser to apply to each event. The event format is specified as a
-          <literal>'quoted string'</literal>. Currently, only the values
-          <literal>'delimited'</literal> and <literal>'avro'</literal> are
-          available. You can further control the behavior of the event parser
+          <literal>'quoted string'</literal>. The next few subsections define
+          the available event formats.
+        </para>
+        <para>
+          You can further control the behavior of the event parser
           by specifying (key, value) pairs in the <literal>PROPERTIES</literal>
           section. The keys recognized are specific to each event format. Keys
           and values are both single-quoted strings.
@@ -583,12 +585,14 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
         </section>
 
         <section>
-          <title>Delimited events</title>
+          <title>The <literal>delimited</literal> event format</title>
           <para>
             The <literal>delimited</literal> event format allows FlumeBase to
             interpret events consisting of UTF-8 encoded text. Individual fields
             are expected to be separated by commas. All values are expected to
-            be converted to text.
+            be converted to text. <type>BINARY</type> columns are created as
+            the bytes holding a UTF-8 encoded string (which was terminated by
+            the field delimiter).
           </para>
           <para>
             The delimiter character is controlled by the
@@ -608,10 +612,9 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
             any other string with the <constant>null.sequence</constant>
             property.
           </para>
-
         </section>
         <section>
-          <title>Avro-encoded events</title>
+          <title>The <literal>avro</literal> event format</title>
           <para>
             FlumeBase can interpret events which contain a single serialized avro
             record as a collection of fields. The event is assumed to be in the
@@ -623,7 +626,22 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
             any name) which contains a set of fields; these fields must have the
             correct avro types (<literal>"string"</literal>,
             <literal>"long"</literal>, etc.) to match the expected rtsql types
-            (<type>STRING</type>, <type>BIGINT</type>, etc.).
+            (<type>STRING NOT NULL</type>, <type>BIGINT NOT NULL</type>, etc.).
+            A nullable type (e.g., <type>STRING</type>) is expressed as
+            an avro union of <literal>["string", "null"]</literal>.
+          </para>
+        </section>
+        <section>
+          <title>The <literal>regex</literal> event format</title>
+          <para>
+            Another text-based event format, this format allows you to specify
+            a regular expression, the groups of which are extracted as the columns.
+            Each event is a single line of UTF-8 encoded text. The
+            <constant>regex</constant> property is required. This should define
+            as many binding groups (with <literal>(parentheses)</literal>) as
+            columns are specified in the stream definition. The
+            <constant>null.sequence</constant> property applies to this format
+            as well.
           </para>
         </section>
         <section id="create.as.select">
@@ -1182,6 +1200,8 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
         <tbody>
           <tr><td>BOOLEAN</td><td>Boolean</td><td><constant>true</constant>,
             <constant>false</constant></td></tr>
+          <tr><td>BINARY</td><td>ByteBuffer</td><td>
+            Any array of bytes</td></tr>
           <tr><td>BIGINT</td><td>Long</td><td>
             [<constant>-2<superscript>63</superscript></constant>,
             <constant>2<superscript>63</superscript>-1</constant>]</td></tr>
@@ -1255,6 +1275,18 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
           sequence which defaults to the two characters <constant>\N</constant>.
           Delimited events may not contain the delimiter character itself; the
           ability to escape these characters is future work.
+        </para>
+      </section>
+      <section>
+        <title>The BINARY type</title>
+        <para>
+          The <type>BINARY</type> type holds a byte buffer of arbitrary bytes.
+          When reading from an Avro input source, any byte array can be
+          specified. When reading from text-based inputs, the byte array will
+          be the bytes representing the UTF-8 encoding of the string input.
+          If coerced to the <type>STRING</type> type (either implicitly, or
+          explicitly through the <literal>bin2str()</literal> function,
+          the UTF-8 character set will be applied to the bytes.
         </para>
       </section>
       

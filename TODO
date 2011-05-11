@@ -19,7 +19,6 @@ most important new features:
     -- new PRECISE type
     -- new HAVING clause
     -- attrs/host/priority selection
-    -- bin2str()
 
 
 Types:
