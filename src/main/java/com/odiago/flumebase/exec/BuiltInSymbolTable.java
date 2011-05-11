@@ -55,6 +55,7 @@ public class BuiltInSymbolTable extends SymbolTable {
     loadBuiltinFunction(priority.class);
     loadBuiltinFunction(priority_level.class);
     loadBuiltinFunction(square.class);
+    loadBuiltinFunction(str2bin.class);
     loadBuiltinFunction(sum.class);
     BUILTINS = Collections.unmodifiableMap(BUILTINS);
   }

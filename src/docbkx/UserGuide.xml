@@ -1418,9 +1418,16 @@ rtsql&gt; <userinput>SELECT * FROM foo WHERE priority_level() &lt;= 2;</userinpu
           When reading from an Avro input source, any byte array can be
           specified. When reading from text-based inputs, the byte array will
           be the bytes representing the UTF-8 encoding of the string input.
+        </para>
+        <para>
           If coerced to the <type>STRING</type> type (either implicitly, or
           explicitly through the <literal>bin2str()</literal> function,
           the UTF-8 character set will be applied to the bytes.
+        </para>
+        <para>
+          The <literal>str2bin()</literal> function will do the reverse,
+          returning a <type>BINARY</type> object that explicitly represents
+          the UTF-8 bytes of its input string argument.
         </para>
       </section>
       
