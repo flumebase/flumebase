@@ -20,6 +20,8 @@ package com.odiago.flumebase.exec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import java.nio.ByteBuffer;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,6 +45,8 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
+
+import com.odiago.flumebase.exec.builtins.bin2str;
 
 import com.odiago.flumebase.exec.local.LocalContext;
 
@@ -78,6 +82,11 @@ public class OutputElement extends FlowElementImpl {
 
   /** Max queue length we deliver to Flume before blocking. */
   private static final int MAX_QUEUE_LEN = 512;
+
+  private static bin2str BIN2STR_FN; // Used for stringifying ByteBuffers.
+  static {
+    BIN2STR_FN = new bin2str();
+  }
 
   /** Input fields being delivered to this node. */
   private List<TypedField> mInputFields;
@@ -316,6 +325,11 @@ public class OutputElement extends FlowElementImpl {
       Object fieldVal = e.getField(field);
       if (null == fieldVal) {
         sb.append("null");
+      } else if (fieldVal instanceof ByteBuffer) {
+        sb.append("B[");
+        String toStr = (String) BIN2STR_FN.eval(fieldVal);
+        sb.append(toStr);
+        sb.append("]");
       } else {
         sb.append(fieldVal);
       }

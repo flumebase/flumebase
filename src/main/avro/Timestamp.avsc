@@ -10,7 +10,7 @@
     },
     {
       "name" : "nanos",
-      "type" : "int"
+      "type" : "long"
     }
   ]
 }

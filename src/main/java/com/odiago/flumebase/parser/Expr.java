@@ -19,10 +19,14 @@ package com.odiago.flumebase.parser;
 
 import java.io.IOException;
 
+import java.nio.ByteBuffer;
+
 import java.util.List;
 
 import com.odiago.flumebase.exec.EventWrapper;
 import com.odiago.flumebase.exec.SymbolTable;
+
+import com.odiago.flumebase.exec.builtins.bin2str;
 
 import com.odiago.flumebase.lang.PreciseType;
 import com.odiago.flumebase.lang.Type;
@@ -32,6 +36,10 @@ import com.odiago.flumebase.lang.Type;
  */
 public abstract class Expr extends SQLStatement {
 
+  private static final bin2str BIN2STR_FN; // For coercing binary -> string
+  static {
+    BIN2STR_FN = new bin2str();
+  }
 
   /** @return a compact string representation of this expression without line breaks. */
   public abstract String toStringOneLine();
@@ -84,9 +92,13 @@ public abstract class Expr extends SQLStatement {
       return val;
     } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.STRING)) {
       // coerce this object to a string.
-      StringBuilder sb = new StringBuilder();
-      sb.append(val);
-      return sb.toString();
+      if (val instanceof ByteBuffer) {
+        return BIN2STR_FN.eval(val);
+      } else {
+        StringBuilder sb = new StringBuilder();
+        sb.append(val);
+        return sb.toString();
+      }
     } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.INT)) {
       return Integer.valueOf(((Number) val).intValue());
     } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.BIGINT)) {

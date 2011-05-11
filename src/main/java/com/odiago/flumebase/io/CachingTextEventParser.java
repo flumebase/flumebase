@@ -19,6 +19,7 @@ package com.odiago.flumebase.io;
 
 import java.io.UnsupportedEncodingException;
 
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 
 import java.util.ArrayList;
@@ -125,7 +126,7 @@ public abstract class CachingTextEventParser extends EventParser {
     switch (primitiveTypeName) {
     case BINARY:
       try {
-        out = chars.toString().getBytes("UTF-8");
+        out = ByteBuffer.wrap(chars.toString().getBytes("UTF-8"));
       } catch (UnsupportedEncodingException uee) {
         // Shouldn't ever be able to get here.
         // (http://download.oracle.com/javase/6/docs/api/java/nio/charset/Charset.html)

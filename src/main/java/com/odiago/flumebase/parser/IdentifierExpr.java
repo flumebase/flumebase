@@ -194,7 +194,7 @@ public class IdentifierExpr extends Expr {
     case PRIORITY:
       return e.getEvent().getPriority().toString();
     case TIMESTAMP:
-      return new Timestamp(e.getEvent().getTimestamp());
+      return new Timestamp(e.getEvent().getTimestamp(), e.getEvent().getNanos());
     default:
       throw new IOException("IdentifierExpr.eval() cannot understand mAccessType="
          + mAccessType);

@@ -390,55 +390,6 @@ public class TestSelect extends RtsqlTestCase {
   }
 
   @Test
-  public void testPriorityAttr() throws IOException, InterruptedException {
-    // Test that the special "#priority" field works.
-
-    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
-
-    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.INT)));
-    streamBuilder.addEvent("1");
-    StreamSymbol stream = streamBuilder.build();
-
-    runFreeSelectTest(stream, "SELECT #priority AS p FROM s",
-        Collections.singletonList(new Pair<String, Object>("p", new Utf8("INFO"))));
-  }
-
-  @Test
-  public void testUserAttr() throws IOException, InterruptedException {
-    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
-
-    // Select a user-attached "attribute" of the stream.
-
-    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.INT)));
-    Event e = new EventImpl("1".getBytes());
-    e.set("attr", "val".getBytes());
-    streamBuilder.addEvent(e);
-    StreamSymbol stream = streamBuilder.build();
-
-    runFreeSelectTest(stream, "SELECT #attr AS a  FROM s",
-        Collections.singletonList(new Pair<String, Object>(
-        "a", ByteBuffer.wrap("val".getBytes()))));
-  }
-
-  @Test
-  public void testMissingUserAttr() throws IOException, InterruptedException {
-    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
-
-    // Select a (missing) user-attached "attribute" of the stream, verify
-    // we get null back.
-
-    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.INT)));
-    Event e = new EventImpl("1".getBytes());
-    e.set("attr", "val".getBytes());
-    streamBuilder.addEvent(e);
-    StreamSymbol stream = streamBuilder.build();
-
-    runFreeSelectTest(stream, "SELECT #attr2 AS a  FROM s",
-        Collections.singletonList(new Pair<String, Object>(
-        "a", null)));
-  }
-
-  @Test
   public void testAddExpr() throws IOException, InterruptedException {
     // Test that we can add a value to the first field and select it.
     runFreeSelectTest("memstream", "a", "b", "SELECT a, b, 3 + a AS c FROM memstream",
@@ -1127,6 +1078,73 @@ public class TestSelect extends RtsqlTestCase {
     outputs.add("11.6");
 
     runPreciseTest(events, "SELECT square(x) AS y FROM f", "y", outputs);
+  }
+
+  @Test
+  public void testPriorityAttr() throws IOException, InterruptedException {
+    // Test that the special "#priority" field works.
+
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.INT)));
+    streamBuilder.addEvent("1");
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT #priority AS p FROM s",
+        Collections.singletonList(new Pair<String, Object>("p", new Utf8("INFO"))));
+  }
+
+  @Test
+  public void testUserAttr() throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    // Select a user-attached "attribute" of the stream.
+
+    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.INT)));
+    Event e = new EventImpl("1".getBytes());
+    e.set("attr", "val".getBytes());
+    streamBuilder.addEvent(e);
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT #attr AS a  FROM s",
+        Collections.singletonList(new Pair<String, Object>(
+        "a", ByteBuffer.wrap("val".getBytes()))));
+  }
+
+  @Test
+  public void testUserAttrToStr() throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    // Select a user-attached "attribute" of the stream and convert it to
+    // a string.
+
+    streamBuilder.addField(new TypedField("f", Type.getNullable(Type.TypeName.INT)));
+    Event e = new EventImpl("1".getBytes());
+    e.set("attr", "val".getBytes());
+    streamBuilder.addEvent(e);
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT bin2str(#attr) AS a  FROM s",
+        Collections.singletonList(new Pair<String, Object>(
+        "a", new Utf8("val"))));
+  }
+
+  @Test
+  public void testMissingUserAttr() throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    // Select a (missing) user-attached "attribute" of the stream, verify
+    // we get null back.
+
+    streamBuilder.addField(new TypedField("a", Type.getNullable(Type.TypeName.INT)));
+    Event e = new EventImpl("1".getBytes());
+    e.set("attr", "val".getBytes());
+    streamBuilder.addEvent(e);
+    StreamSymbol stream = streamBuilder.build();
+
+    runFreeSelectTest(stream, "SELECT #attr2 AS a  FROM s",
+        Collections.singletonList(new Pair<String, Object>(
+        "a", null)));
   }
 
 

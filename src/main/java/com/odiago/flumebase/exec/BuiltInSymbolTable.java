@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.odiago.flumebase.exec.builtins.*;
+import com.odiago.flumebase.exec.builtins.bin2str;
 
 import com.odiago.flumebase.lang.Function;
 import com.odiago.flumebase.lang.Type;
@@ -44,6 +45,7 @@ public class BuiltInSymbolTable extends SymbolTable {
     BUILTINS = new HashMap<String, Symbol>();
     // Add symbols for all built-in objects in the system.
     loadBuiltinFunction(avg.class);
+    loadBuiltinFunction(bin2str.class);
     loadBuiltinFunction(count.class);
     loadBuiltinFunction(current_timestamp.class);
     loadBuiltinFunction(length.class);

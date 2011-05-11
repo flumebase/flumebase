@@ -86,6 +86,22 @@ public abstract class AvroOutputElementImpl extends FlowElementImpl {
     // necessary.
     mOutputBytes.reset();
     try {
+      LOG.debug("Emitting record");
+      for (Schema.Field f : record.getSchema().getFields()) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("  " + f.name() + " => " + record.get(f.name()));
+        sb.append(" (");
+        Object out = record.get(f.name());
+        if (null == out) {
+          sb.append("Null");
+        } else {
+          sb.append(out.getClass().getName());
+        }
+
+        sb.append(")");
+        LOG.debug(sb.toString());
+        
+      }
       mDatumWriter.write(record, mEncoder);
     } catch (NullPointerException npe) {
       // Schema error - the user tried to put a null in a field declared non-null.

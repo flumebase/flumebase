@@ -28,7 +28,7 @@ public class Timestamp extends TimestampBase {
     this(millis, 0);
   }
 
-  public Timestamp(long millis, int nanos) {
+  public Timestamp(long millis, long nanos) {
     this.milliseconds = millis;
     this.nanos = nanos;
   }
@@ -40,7 +40,7 @@ public class Timestamp extends TimestampBase {
 
   @Override
   public int hashCode() {
-    return ((int) (this.milliseconds & 0xFFFFFFFF)) ^ (this.nanos * 37);
+    return ((int) (this.milliseconds & 0xFFFFFFFF)) ^ ((int) this.nanos * 37);
   }
 
   @Override

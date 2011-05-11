@@ -1,5 +1,11 @@
 
 
+Before releasing: is #host, #priority such a good idea? This aliases
+with the namespace of attributes. Longer names (#flumebase.host) would
+require more typing, and don't really solve the problem. But reserved
+keywords (a. la. 'rownum' in Oracle) are established.. It doesn't seem
+unreasonable to have reserved attr names too.  -- review with gwu.
+
 most important new features:
 
   -- range intervals over rows, not just time
@@ -13,6 +19,7 @@ most important new features:
     -- new PRECISE type
     -- new HAVING clause
     -- attrs/host/priority selection
+    -- bin2str()
 
 
 Types:
@@ -21,7 +28,12 @@ Types:
 
   -- need List<T>, Map<T1, T2> types
 
-  -- BINARY type should be able to specify encoding when converting to STRING.
+  -- BINARY type should be able to specify encoding when converting to/from STRING.
+  -- BINARY: Need tests for equality, comparison operators
+    -- What does ByteBuffer.equals() do? Should we be using a separate array
+       equality comparator? Ensure that we're not coercing all the way to string for this.
+
+
 
 Aggregation:
 
