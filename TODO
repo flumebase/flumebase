@@ -16,7 +16,6 @@ most important new features:
   -- multi-threading, distribution, scalability
 
   -- documentation debt:
-    -- new PRECISE type
     -- attrs/host/priority selection
 
 

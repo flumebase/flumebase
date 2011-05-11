@@ -493,7 +493,7 @@ CREATE STREAM <userinput>stream_name</userinput> (<userinput>col_name</userinput
 
 CREATE STREAM <userinput>stream_name</userinput> AS select_statement
 
-data_type ::= BOOLEAN | BINARY | BIGINT | INT | FLOAT | DOUBLE | STRING | TIMESTAMP 
+data_type ::= BOOLEAN | BINARY | BIGINT | INT | FLOAT | DOUBLE | PRECISE(int) | STRING | TIMESTAMP 
 format_spec ::= 'delimited' | 'regex' | 'avro'
         </programlisting>
 
@@ -1267,6 +1267,9 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
             (2-2<superscript>-52</superscript>)*2<superscript>1023</superscript>]
             (positive or negative)
             </td></tr>
+          <tr><td>PRECISE(n)</td><td>BigDecimal</td><td>
+            A BigDecimal with the <constant>scale</constant> property set to
+            <literal>n</literal>.</td></tr>
           <tr><td>STRING</td><td>String</td><td>
             A UTF-8-encoded string</td></tr>
           <tr><td>TIMESTAMP</td><td>(internal)</td><td>
@@ -1307,6 +1310,19 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
           <function>java.lang.Float.valueOf()</function> and
           <function>java.lang.Double.valueOf()</function> may be
           used as the text representation of these values.
+        </para>
+      </section>
+
+      <section>
+        <title>Precise numeric types</title>
+        <para>
+          The <literal>PRECISE()</literal> type constructor defines
+          a family of numeric types providing specific degrees of
+          precision. The argument to the type constructor specifies
+          the "scale" of the value; if positive, this is the number
+          of significant digits to the right of the decimal place.
+          If 0, all digits are significant. Operations on PRECISE
+          values preserve the scale of the value.
         </para>
       </section>
       
@@ -1387,6 +1403,10 @@ rtsql&gt; <userinput>SELECT COUNT(*) FROM foo OVER mywin</userinput>
           Numeric values may be promoted to any broader numeric type. From
           narrowest to broadest, the numeric types are <type>INT</type>,
           <type>BIGINT</type>, <type>FLOAT</type>, and <type>DOUBLE</type>.
+          <type>PRECISE</type> types may be promoted to any broader
+          <type>PRECISE</type> type. <type>INT</type> and <type>BIGINT</type>
+          promote to PRECISE(0), FLOAT promotes to PRECISE(24), and
+          DOUBLE promotes to PRECISE(53).
         </para>
         <para>
           All types may be promoted to <type>STRING</type>. The result
