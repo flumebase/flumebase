@@ -158,6 +158,23 @@ public class TestType {
     // STREAM does not promote to STRING.
     assertFalse(StreamType.getEmptyStreamType().promotesTo(
         Type.getPrimitive(Type.TypeName.STRING)));
+
+
+    // LIST(INT) promotes to LIST(BIGINT)
+    assertTrue(new ListType(Type.getPrimitive(Type.TypeName.INT)).promotesTo(
+        new ListType(Type.getPrimitive(Type.TypeName.BIGINT))));
+
+    // Not vice versa
+    assertFalse(new ListType(Type.getPrimitive(Type.TypeName.BIGINT)).promotesTo(
+        new ListType(Type.getPrimitive(Type.TypeName.INT))));
+
+    // LIST(INT NOT NULL) promotes to LIST(INT)
+    assertTrue(new ListType(Type.getPrimitive(Type.TypeName.INT)).promotesTo(
+        new ListType(Type.getNullable(Type.TypeName.INT))));
+
+    // Lists can't turn into strings.
+    assertFalse(new ListType(Type.getPrimitive(Type.TypeName.INT)).promotesTo(
+        Type.getPrimitive(Type.TypeName.STRING)));
   }
 
   // Tests for promotion to/of PRECISE types.

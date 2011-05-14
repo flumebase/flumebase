@@ -56,6 +56,7 @@ INTERVAL : I N T E R V A L ;
 INT_KW : I N T ;
 IS : I S ;
 JOIN : J O I N ;
+LIST : L I S T ;
 LOCAL : L O C A L ;
 MINUTES : M I N U T E S ;
 MONTHS : M O N T H S ;

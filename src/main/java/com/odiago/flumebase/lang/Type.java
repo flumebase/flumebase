@@ -69,7 +69,8 @@ public class Type {
                // this is not bound to any objects in practice.
                // Use 't instanceof UniversalType' to check the sort of cast you can
                // make. TODO: This is probably a bug.) 
-    WINDOW // A bounded window of time which collects records.
+    WINDOW, // A bounded window of time which collects records.
+    LIST,   // Complex type: a list of scalar values, all of the same type.
     ;
 
 
@@ -100,7 +101,7 @@ public class Type {
      * @return a compareTo()-like value describing whether this type is lower on
      * the lattice than t, based on the meetLevel.
      */
-    private int meetCompareLevel(TypeName t) {
+    int meetCompareLevel(TypeName t) {
       if (mMeetLevel < t.mMeetLevel) {
         return -1;
       } else if (mMeetLevel == t.mMeetLevel) {
@@ -301,6 +302,7 @@ public class Type {
    *     = NULLABLE meet(X, Y)</li>
    *   <li>meet(ANY, X) = X for any X</li>
    *   <li>meet(X, STRING) = STRING for any scalar X</li>
+   *   <li>meet(LIST&lt;X&gt;, LIST&lt;Y&gt;) = LIST&lt;meet(X, Y)&gt;</li>
    *   <li>The following lattice defines the scalar types:<pre><tt>
    *                     TYPECLASS_ANY
    *                           |
@@ -408,6 +410,14 @@ public class Type {
       return t2;
     } else if (t2.equals(Type.getPrimitive(Type.TypeName.ANY))) {
       return t1;
+    }
+
+    if (t1 instanceof ListType && t2 instanceof ListType) {
+      // Factor out meet under lists.
+      ListType lst1 = (ListType) t1;
+      ListType lst2 = (ListType) t2;
+      Type listMeet = meet(lst1.getElementType(), lst2.getElementType());
+      return new ListType(listMeet);
     }
 
     if (t1.isNumeric() && t2.isNumeric()) {

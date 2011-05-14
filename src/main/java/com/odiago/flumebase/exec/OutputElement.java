@@ -346,6 +346,8 @@ public class OutputElement extends FlowElementImpl {
         String toStr = (String) BIN2STR_FN.eval(null, fieldVal);
         sb.append(toStr);
         sb.append("]");
+      } else if (fieldVal instanceof List<?>) {
+        StringUtils.formatList(sb, (List<?>) fieldVal);
       } else {
         sb.append(fieldVal);
       }

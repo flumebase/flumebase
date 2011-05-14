@@ -28,9 +28,10 @@ options {
 @header {
   package com.odiago.flumebase.parser;
 
-  import com.odiago.flumebase.lang.Type;
+  import com.odiago.flumebase.lang.ListType;
   import com.odiago.flumebase.lang.NullableType;
   import com.odiago.flumebase.lang.PreciseType;
+  import com.odiago.flumebase.lang.Type;
 }
 
 top returns [SQLStatement val]:
@@ -221,9 +222,15 @@ typed_field_list returns [TypedFieldList val]:
 field_spec returns [TypedField val] :
   f=field_sel t=field_type { $val = new TypedField($f.val, $t.val); };
 
-// Types users can apply to a field can be a primitive type with or without a "NOT NULL",
-// or a PRECISE type (w/ or w/o NOT NULL).
+// Types users can apply to a field can be a scalar type, or a list type (either with
+// or without 'NOT NULL').
 field_type returns [Type val] :
+    s=scalar_field_type { $val = $s.val; }
+  | lst=list_type { $val = $lst.val; }
+  ;
+
+// Any non-recursive field type, either a simple primitive, or a PRECISE type.
+scalar_field_type returns [Type val] :
     prim=primitive_field_type nonnul=non_nul_qualifier
     {
       try {
@@ -248,7 +255,8 @@ primitive_field_type returns [String val]:
   | FLOAT { $val = "FLOAT"; }
   | DOUBLE { $val = "DOUBLE"; }
   | STRING_KW { $val = "STRING"; }
-  | TIMESTAMP { $val = "TIMESTAMP"; };
+  | TIMESTAMP { $val = "TIMESTAMP"; }
+  ;
 
 // Defines a PRECISE(n) type.
 precise_type returns [Type val] :
@@ -257,6 +265,11 @@ precise_type returns [Type val] :
     (NOT NULL { $val = ((NullableType) $val).getInnerType(); })?
   ;
 
+// An arbitrary-length list of values of the same type.
+list_type returns [Type val]:
+    LIST LT s=scalar_field_type GT { $val = new NullableType(new ListType($s.val)); }
+    (NOT NULL { $val = ((NullableType) $val).getInnerType(); })?
+  ;
 
 // boolean flag indicating whether "..NOT NULL" was appended to a type spec.
 non_nul_qualifier returns [boolean val] :
