@@ -17,6 +17,7 @@
 
 package com.odiago.flumebase.lang;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -30,9 +31,20 @@ public abstract class Function {
   public abstract Type getReturnType();
   
   /**
-   * @return an ordered list containing the types expected for all arguments.
+   * @return an ordered list containing the types expected for all mandatory arguments.
    */
   public abstract List<Type> getArgumentTypes();
+
+  /**
+   * @return an ordered list containing types expected for variable argument lists.
+   * If a function takes a variable-length argument list, the varargs must be arranged
+   * in groups matching the size of the list returned by this method. e.g., to accept
+   * an arbitrary number of strings, this should return a singleton list of type STRING.
+   * If pairs of strings and ints are required, this should return a list [STRING, INT].
+   */
+  public List<Type> getVarArgTypes() {
+    return Collections.emptyList();
+  }
 
   /**
    * Determines whether arguments are promoted to their specified types by

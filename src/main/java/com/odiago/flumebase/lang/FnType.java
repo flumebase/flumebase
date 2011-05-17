@@ -17,7 +17,9 @@
 
 package com.odiago.flumebase.lang;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.odiago.flumebase.util.StringUtils;
 
@@ -31,10 +33,14 @@ public class FnType extends Type {
   // The argument types to the function.
   private List<Type> mArgTypes;
 
-  public FnType(Type retType, List<Type> argTypes) {
+  // Vararg types
+  private List<Type> mVarArgTypes;
+
+  public FnType(Type retType, List<Type> argTypes, List<Type> varArgTypes) {
     super(TypeName.SCALARFUNC);
     mRetType = retType;
     mArgTypes = argTypes;
+    mVarArgTypes = varArgTypes;
   }
 
   public Type getReturnType() {
@@ -43,6 +49,10 @@ public class FnType extends Type {
 
   public List<Type> getArgumentTypes() {
     return mArgTypes;
+  }
+
+  public List<Type> getVarArgTypes() {
+    return mVarArgTypes;
   }
 
   @Override
@@ -60,6 +70,13 @@ public class FnType extends Type {
     StringBuilder sb = new StringBuilder();
     sb.append("(");
     StringUtils.formatList(sb, mArgTypes);
+
+    if (mVarArgTypes.size() > 0 ) {
+      sb.append(", ");
+      StringUtils.formatList(sb, mVarArgTypes);
+      sb.append("...");
+    }
+
     sb.append(") -> ");
     sb.append(mRetType);
     return sb.toString();
@@ -100,6 +117,34 @@ public class FnType extends Type {
       }
     }
 
+    if (mVarArgTypes.size() != otherType.mVarArgTypes.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < mVarArgTypes.size(); i++) {
+      if (!mVarArgTypes.get(i).equals(otherType.mVarArgTypes.get(i))) {
+        return false;
+      }
+    }
+
     return true;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Type replaceUniversal(Map<Type, Type> universalMapping) throws TypeCheckException {
+    Type retType = mRetType.replaceUniversal(universalMapping);
+
+    List<Type> argTypes = new ArrayList<Type>();
+    for (Type argType : mArgTypes) {
+      argTypes.add(argType.replaceUniversal(universalMapping));
+    }
+
+    List<Type> varArgTypes = new ArrayList<Type>();
+    for (Type argType : mVarArgTypes) {
+      varArgTypes.add(argType.replaceUniversal(universalMapping));
+    }
+
+    return new FnType(retType, argTypes, varArgTypes);
   }
 }

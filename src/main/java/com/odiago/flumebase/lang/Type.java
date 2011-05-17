@@ -53,7 +53,7 @@ public class Type {
     BINARY(6),
     TIMESTAMP(6),
     TIMESPAN(7),
-    ANY(0), // 'null' constant can be cast to any type. Only valid inside NULLABLE.
+    ANY(0), // 'null' constant can be cast to any type. Only valid inside NULLABLE or LIST.
             // This represents the "bottom" of the promotesTo type lattice.
     NULLABLE, // nullable instance of a primitive type (int, bigint, etc).
     STREAM, // Collection (record) of named primitive or nullable types.
@@ -568,6 +568,8 @@ public class Type {
   /** @return an Avro schema describing the specified TypeName. */
   protected Schema getAvroSchema(TypeName typeName) { 
     switch (typeName) {
+    case ANY:
+      return Schema.create(Schema.Type.NULL);
     case BOOLEAN:
       return Schema.create(Schema.Type.BOOLEAN);
     case INT:
@@ -590,6 +592,19 @@ public class Type {
       LOG.error("Cannot create avro schema for type: " + toString());
       return null;
     }
+  }
+
+  /**
+   * @return this type structure with any UniversalType instances
+   * replaced by their concrete types.
+   * 
+   * @param universalMapping a map from universal type instances to their
+   * concrete replacements within an expression.
+   * @throws TypeCheckException if the universal type is not bound properly.
+   */
+  public Type replaceUniversal(Map<Type, Type> universalMapping) throws TypeCheckException {
+    // Ordinary scalar type, etc. is not universal to begin with.
+    return this;
   }
 
   public String toString(boolean isNullable) {

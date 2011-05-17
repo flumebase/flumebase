@@ -20,6 +20,7 @@ package com.odiago.flumebase.exec;
 import java.io.IOException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.avro.generic.GenericData;
@@ -97,6 +98,47 @@ public class TestFunctions extends RtsqlTestCase {
   }
 
   /**
+   * Var-arg function that concatenates a bunch of strings.
+   */
+  private static class concatstrs extends ScalarFunc {
+
+    public concatstrs() {
+    }
+
+    @Override
+    public Object eval(EventWrapper event, Object... args) {
+      StringBuilder sb = new StringBuilder();
+
+      for (Object arg : args) {
+        if (null == arg) {
+          sb.append("null");
+        } else {
+          assert arg instanceof CharSequence;
+          sb.append(arg.toString());
+        }
+      }
+
+      return new Utf8(sb.toString());
+    }
+
+    @Override
+    public Type getReturnType() {
+      return Type.getPrimitive(Type.TypeName.STRING);
+    }
+
+    @Override
+    public List<Type> getArgumentTypes() {
+      // No required args.
+      return Collections.emptyList();
+    }
+
+    @Override
+    public List<Type> getVarArgTypes() {
+     return Collections.singletonList(Type.getNullable(Type.TypeName.STRING));
+    }
+  }
+
+  /**
    * Run a test where one records of two integer-typed fields is selected from
    * two input records.
    * @param query the query string to submit to the execution engine.
@@ -117,7 +159,12 @@ public class TestFunctions extends RtsqlTestCase {
     // Register the 'max2' function we use in some tests.
     ScalarFunc max2Func = new max2();
     getSymbolTable().addSymbol(new FnSymbol("max2", max2Func, max2Func.getReturnType(),
-        max2Func.getArgumentTypes()));
+        max2Func.getArgumentTypes(), max2Func.getVarArgTypes()));
+
+    // Register the 'concatstrs' function we use in some tests.
+    ScalarFunc strcatFunc = new concatstrs();
+    getSymbolTable().addSymbol(new FnSymbol("concatstrs", strcatFunc, strcatFunc.getReturnType(),
+        strcatFunc.getArgumentTypes(), strcatFunc.getVarArgTypes()));
 
     getConf().set(SelectStmt.CLIENT_SELECT_TARGET_KEY, "testSelect");
 
@@ -319,4 +366,36 @@ public class TestFunctions extends RtsqlTestCase {
     }
   }
 
+  @Test
+  public void testVarArgs1() throws Exception {
+    // Test that we can put a single value into a vararg fn.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", new Utf8("foo")));
+    runFnTest("SELECT concatstrs('foo') AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testVarArgsMulti() throws Exception {
+    // Test that we can put a few values into a vararg fn.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", new Utf8("foobarbaz")));
+    runFnTest("SELECT concatstrs('foo', 'bar', 'baz') AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testVarArgsEmpty() throws Exception {
+    // Test that we can put no values into a vararg fn.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", new Utf8("")));
+    runFnTest("SELECT concatstrs() AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testVarArgsCoerce() throws Exception {
+    // Test that we can put values of different types into a vararg fn,
+    // and they are all coerced to the correct type. 
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", new Utf8("foo42")));
+    runFnTest("SELECT concatstrs('foo', 42) AS x FROM memstream", checks);
+  }
 }

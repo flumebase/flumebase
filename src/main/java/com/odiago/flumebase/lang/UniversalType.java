@@ -19,6 +19,10 @@ package com.odiago.flumebase.lang;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.odiago.flumebase.util.StringUtils;
 
@@ -49,6 +53,8 @@ import com.odiago.flumebase.util.StringUtils;
  * </p>
  */
 public class UniversalType extends Type {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      UniversalType.class.getName());
 
   /**
    * The set of type(classes) which constrain the set of values this type can
@@ -217,5 +223,18 @@ public class UniversalType extends Type {
     }
 
     return true;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Type replaceUniversal(Map<Type, Type> universalMapping) throws TypeCheckException {
+    Type replacement = universalMapping.get(this);
+
+    if (null == replacement) {
+      throw new TypeCheckException("No runtime binding for universal type: " + this);
+    }
+
+    LOG.debug("Resolved arg type from " + this + " to " + replacement);
+    return replacement;
   }
 }

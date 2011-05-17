@@ -57,6 +57,7 @@ public class BuiltInSymbolTable extends SymbolTable {
     loadBuiltinFunction(square.class);
     loadBuiltinFunction(str2bin.class);
     loadBuiltinFunction(sum.class);
+    loadBuiltinFunction(to_list.class);
     BUILTINS = Collections.unmodifiableMap(BUILTINS);
   }
 
@@ -107,9 +108,10 @@ public class BuiltInSymbolTable extends SymbolTable {
       Function fn = (Function) cls.newInstance();
       Type retType = fn.getReturnType();
       List<Type> argTypes = fn.getArgumentTypes();
+      List<Type> varArgTypes = fn.getVarArgTypes();
       String fnName = cls.getSimpleName();
       LOG.debug("Loaded built-in function: " + fnName);
-      Symbol fnSymbol = new FnSymbol(fnName, fn, retType, argTypes);
+      Symbol fnSymbol = new FnSymbol(fnName, fn, retType, argTypes, varArgTypes);
       BUILTINS.put(fnName, fnSymbol);
     } catch (InstantiationException ie) {
       LOG.error("Could not instantiate class: " + ie);

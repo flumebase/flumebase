@@ -19,6 +19,7 @@ package com.odiago.flumebase.lang;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.avro.Schema;
 
@@ -46,6 +47,10 @@ public class NullableType extends Type {
     super(TypeName.NULLABLE);
     mType = type;
     assert null != mType;
+
+    // This is an illegal configuration and will cause Avro to fail
+    // (Cannot nest unions directly.)
+    assert !(mType instanceof NullableType);
   }
 
   /** Return the inner type that we're making nullable. */
@@ -99,6 +104,12 @@ public class NullableType extends Type {
     unionTypes.add(mType.getAvroSchema());
     unionTypes.add(Schema.create(Schema.Type.NULL));
     return Schema.createUnion(unionTypes);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Type replaceUniversal(Map<Type, Type> universalMapping) throws TypeCheckException {
+    return new NullableType(mType.replaceUniversal(universalMapping));
   }
 
   @Override

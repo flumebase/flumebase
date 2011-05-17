@@ -170,7 +170,7 @@ if [ \( ! -d "${LIB_DIR}" \) -a \( ! -d "${MVN_BUILD_DEPS_DIR}" \) ]; then
   if [ "${ret}" == 0 ]; then
     pushd "${projectroot}"
     echo "Retrieving dependencies via mvn"
-    mvn dependency:copy-dependencies
+    mvn dependency:copy-dependencies --offline
     mvnret=$?
     if [ "${mvnret}" != 0 ]; then
       echo "WARNING: It looks like you're running from a development branch, but"

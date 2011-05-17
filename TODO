@@ -1,5 +1,4 @@
 
-
 most important new features:
 
   -- range intervals over rows, not just time
@@ -14,6 +13,17 @@ Types:
   -- Add CHARACTER type which is a single char.
 
   -- need List<T>, Map<T1, T2> types
+     list functions:
+       contains(lst<t> theList, t val) -> true if theList contains X such that X = val
+       index(list<t> theList, INT i) -> returns theList[i]
+       size(list<t>) -> returns ## of elements in the list
+       append(list<t> lst, t val) -> returns lst @ [val]
+       reverse(list<t> lst) -> reverses the order of elements in lst
+       map_fn(fn<t> f, list<t> lst) -> applies f to each value in lst and returns the result list.
+       exists(fn<t> f, list<t> lst) -> true if f returns true for some element of lst
+       foldl(fn<x, t> f, x initial, list<t> lst) -> folds f over elements of lst, using
+          initial as the first accumulator value.
+       concat(list<t> lst1, lst<t> lst2) -> returns lst1 @ lst2.
 
   -- BINARY type should be able to specify encoding when converting to/from STRING.
 

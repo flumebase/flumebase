@@ -36,6 +36,7 @@ import com.odiago.flumebase.exec.SymbolTable;
 import com.odiago.flumebase.lang.AggregateFunc;
 import com.odiago.flumebase.lang.EvalException;
 import com.odiago.flumebase.lang.Function;
+import com.odiago.flumebase.lang.ListType;
 import com.odiago.flumebase.lang.ScalarFunc;
 import com.odiago.flumebase.lang.Type;
 import com.odiago.flumebase.lang.TypeCheckException;
@@ -166,13 +167,41 @@ public class FnCallExpr extends Expr {
 
     // Get a list of argument types from the function symbol. These may include
     // universal types we need to concretize.
-    List<Type> abstractArgTypes = mFnSymbol.getArgumentTypes();
+    List<Type> abstractArgTypes = new ArrayList<Type>(mFnSymbol.getArgumentTypes());
 
-    if (mArgExprs.size() != abstractArgTypes.size()) {
-      // Check that arity matches.
+    // Argument types for varargs, after the fixed args.
+    List<Type> abstractVarArgTypes = mFnSymbol.getVarArgTypes();
+
+    // Check that arity matches.
+    int argsRemaining = mArgExprs.size();
+    argsRemaining -= abstractArgTypes.size();
+    if (argsRemaining < 0 || (argsRemaining > 0 && abstractVarArgTypes.size() == 0)) {
+      // Too few actual args, or too many args (and this is not a varargs fn).
       throw new TypeCheckException("Function " + mFunctionName + " requires "
           + abstractArgTypes.size() + " arguments, but received " + mArgExprs.size());
     }
+
+    if (argsRemaining > 0 && abstractVarArgTypes.size() > 0) {
+      // varargs may need to come in pairs, etc. Check that we have a correct multiple
+      // of the number of varargs available.
+      int argRemainder = argsRemaining % abstractVarArgTypes.size();
+      if (0 != argRemainder) {
+        throw new TypeCheckException("Function " + mFunctionName + " requires varargs "
+            + "in sets of " + abstractVarArgTypes.size() + ", but this call has "
+            + argRemainder + " too few.");
+      }
+    }
+
+    // For each actual vararg, add its type to the abstractArgTypes list.
+    if (abstractVarArgTypes.size() > 0) {
+      int numVarArgSets = (mArgExprs.size() - abstractArgTypes.size())
+          / abstractVarArgTypes.size();
+      for (int i = 0; i < numVarArgSets; i++) {
+        abstractArgTypes.addAll(abstractVarArgTypes);
+      }
+    }
+
+    assert mArgExprs.size() == abstractArgTypes.size();
 
     // Check that each expression type can promote to the argument type.
     for (int i = 0; i < mArgExprs.size(); i++) {
@@ -185,7 +214,7 @@ public class FnCallExpr extends Expr {
       }
     }
 
-    mArgTypes = new Type[abstractArgTypes.size()];
+    mArgTypes = new Type[mArgExprs.size()];
 
     // Now identify all the UniversalType instances in here, and the
     // actual constraints on each of these.
@@ -217,40 +246,32 @@ public class FnCallExpr extends Expr {
     // Finally, generate a list of concrete argument types for coercion purposes.
     for (int i = 0; i < abstractArgTypes.size(); i++ ) {
       Type abstractType = abstractArgTypes.get(i);
-      if (abstractType instanceof UniversalType) {
-        // Use the resolved type instead.
-        mArgTypes[i] = unificationOut.get(abstractType);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Resolved arg[" + i + "] type of " + mFunctionName + " from "
-              + abstractType + " to " + mArgTypes[i]);
-        }
-      } else {
-        // Use the specified literal type from the function definition.
-        mArgTypes[i] = abstractType;
-      }
-
-      assert(mArgTypes[i] != null);
+      mArgTypes[i] = abstractType.replaceUniversal(unificationOut);
+      assert mArgTypes[i] != null;
     }
 
     // Also set mReturnType; if this referenced a UniversalType, use the resolved
     // version. Otherwise, use the version from the function directly.
     Type fnRetType = mFnSymbol.getReturnType();
-    if (fnRetType instanceof UniversalType) {
-      mReturnType = unificationOut.get(fnRetType);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Resolved return type of " + mFunctionName + " from " + fnRetType
-            + " to " + mReturnType);
-      }
-      if (null == mReturnType) {
-        // We can only resolve against our arguments, not our caller's type.
+    try {
+      mReturnType = fnRetType.replaceUniversal(unificationOut);
+    } catch (TypeCheckException tce) {
+      // We can only resolve against our arguments, not our caller's type.
+      if (fnRetType instanceof ListType) {
+        // If the unresolved typevar is an argument to a list type, we can
+        // return this -- it's going to be an empty list, so we can return
+        // LIST<ANY>
+        // TODO(aaron): This allows to_list() to produce an empty list, but
+        // putting this check here feels a bit like a hack to me.
+        mReturnType = new ListType(Type.getPrimitive(Type.TypeName.ANY));
+      } else {
         // This fails for being too abstract.
         throw new TypeCheckException("Output type of function " + mFunctionName
-            + " is an unresolved UniversalType: " + fnRetType);
+            + " is an unresolved UniversalType: " + fnRetType, tce);
       }
-    } else {
-      // Normal type; use directly.
-      mReturnType = fnRetType;
     }
+
+    assert null != mReturnType;
 
     mExecFunc = mFnSymbol.getFuncInstance();
     mAutoPromote = mExecFunc.autoPromoteArguments();

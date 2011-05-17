@@ -28,4 +28,8 @@ public class TypeCheckException extends VisitException {
   public TypeCheckException(String msg) {
     super(msg);
   }
+
+  public TypeCheckException(String msg, Throwable cause) {
+    super(msg, cause);
+  }
 }

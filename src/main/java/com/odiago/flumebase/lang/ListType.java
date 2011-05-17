@@ -17,6 +17,8 @@
 
 package com.odiago.flumebase.lang;
 
+import java.util.Map;
+
 import org.apache.avro.Schema;
 
 /**
@@ -35,7 +37,6 @@ public class ListType extends Type implements Comparable<ListType> {
     this.mElementType = elemType;
 
     assert null != elemType;
-    assert elemType.isScalar();
   }
 
   public Type getElementType() {
@@ -45,9 +46,9 @@ public class ListType extends Type implements Comparable<ListType> {
   @Override
   public String toString(boolean isNullable) {
     if (isNullable) {
-      return "LIST(" + mElementType + ")";
+      return "LIST<" + mElementType + ">";
     } else {
-      return "LIST(" + mElementType + ") NOT NULL";
+      return "LIST<" + mElementType + "> NOT NULL";
     }
   }
 
@@ -88,6 +89,12 @@ public class ListType extends Type implements Comparable<ListType> {
   @Override
   public boolean isConcrete() {
     return true;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Type replaceUniversal(Map<Type, Type> universalMapping) throws TypeCheckException {
+    return new ListType(mElementType.replaceUniversal(universalMapping));
   }
 }
 

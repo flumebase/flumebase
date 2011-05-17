@@ -31,21 +31,30 @@ public class FnSymbol extends Symbol {
   /** The types of all the arguments. */
   private final List<Type> mArgTypes;
 
+  /** The types of any varargs. */
+  private final List<Type> mVarArgTypes;
+
   /** The return type of the function. */
   private final Type mRetType;
 
   /** The function instance itself. */
   private final Function mFunc;
 
-  public FnSymbol(String name, Function func, Type retType, List<Type> argTypes) {
-    super(name, new FnType(retType, argTypes));
+  public FnSymbol(String name, Function func, Type retType, List<Type> argTypes,
+      List<Type> varArgTypes) {
+    super(name, new FnType(retType, argTypes, varArgTypes));
     mFunc = func;
     mRetType = retType;
     mArgTypes = argTypes;
+    mVarArgTypes = varArgTypes;
   }
 
   public List<Type> getArgumentTypes() {
     return mArgTypes;
+  }
+
+  public List<Type> getVarArgTypes() {
+    return mVarArgTypes;
   }
 
   public Type getReturnType() {
@@ -58,6 +67,6 @@ public class FnSymbol extends Symbol {
 
   @Override
   public Symbol withName(String name) {
-    return new FnSymbol(name, mFunc, mRetType, mArgTypes);
+    return new FnSymbol(name, mFunc, mRetType, mArgTypes, mVarArgTypes);
   }
 }
