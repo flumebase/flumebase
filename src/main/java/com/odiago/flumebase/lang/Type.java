@@ -382,7 +382,13 @@ public class Type {
         // for nullability, we won't be able to factor that out here. Buf if
         // one of the two sides was in a proper NullableType wrapper, do this
         // recursive step.
-        return new NullableType(meet(t1n, t2n));
+        Type nullableMeet = meet(t1n, t2n);
+        if (nullableMeet instanceof UniversalType) {
+          return nullableMeet; // UniversalType holds nullability inside.
+        } else {
+          // For everything else, "properly" factor out nullability.
+          return new NullableType(nullableMeet);
+        }
       }
     }
 
@@ -450,7 +456,7 @@ public class Type {
   private static Type meetUniversal(final Type t1, final Type t2) {
     // If one type is a UniversalType, and the other type is X, then:
     // assert that for each specified constraint, meet(X, specified) == specified.
-    // If the assertion holds, return X. Otherwise, return TYPECLASS_ANY.
+    // If the assertion holds, return the universal type. Otherwise, return TYPECLASS_ANY.
     UniversalType universalType;
     Type concreteType;
 
@@ -475,7 +481,7 @@ public class Type {
     }
     
     LOG.debug("ok!");
-    return concreteType;
+    return universalType;
   }
 
   /**
@@ -556,13 +562,7 @@ public class Type {
       LOG.debug("Checking: " + this + " promotesTo " + other);
     }
 
-    if (other instanceof UniversalType) {
-      // meet(X, universalType) is actually X in this case.
-      return meet(this, other).equals(this);
-    } else {
-      // Normal case: just check that the transitive rule applies
-      return meet(this, other).equals(other);
-    }
+    return meet(this, other).equals(other);
   }
 
   /** @return an Avro schema describing the specified TypeName. */
