@@ -24,6 +24,8 @@ import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.avro.util.Utf8;
+
 import com.odiago.flumebase.exec.EventWrapper;
 
 import com.odiago.flumebase.lang.ScalarFunc;
@@ -52,8 +54,8 @@ public class bin2str extends ScalarFunc {
       return null;
     } else {
       ByteBuffer bytes = (ByteBuffer) arg0;
-      return new String(bytes.array(), bytes.position(), bytes.remaining(),
-            UTF8_CHARSET);
+      return new Utf8(new String(bytes.array(), bytes.position(), bytes.remaining(),
+            UTF8_CHARSET));
     }
   }
 

@@ -17,6 +17,8 @@
 
 package com.odiago.flumebase.parser;
 
+import org.apache.avro.util.Utf8;
+
 import org.testng.annotations.Test;
 
 import static org.testng.AssertJUnit.*;
@@ -153,16 +155,16 @@ public class TestBinExpr extends ExprTestCase {
     assertEquals(Integer.valueOf(2), value);
 
     binExpr = new BinExpr(
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "abc"),
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("abc")),
         BinOp.Add,
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "def"));
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("def")));
     checker = new TypeChecker(new HashSymbolTable());
     binExpr.accept(checker);
     value = binExpr.eval(getEmptyEventWrapper());
     assertEquals("abcdef", value);
 
     binExpr = new BinExpr(
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "abc"),
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("abc")),
         BinOp.Add,
         new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(3)));
     checker = new TypeChecker(new HashSymbolTable());
@@ -173,7 +175,7 @@ public class TestBinExpr extends ExprTestCase {
     binExpr = new BinExpr(
         new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(3)),
         BinOp.Add,
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "xyz"));
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("xyz")));
     checker = new TypeChecker(new HashSymbolTable());
     binExpr.accept(checker);
     value = binExpr.eval(getEmptyEventWrapper());
@@ -426,18 +428,18 @@ public class TestBinExpr extends ExprTestCase {
     assertNull(value);
 
     binExpr = new BinExpr(
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "abc"),
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("abc")),
         BinOp.Eq,
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "abc"));
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("abc")));
     checker = new TypeChecker(new HashSymbolTable());
     binExpr.accept(checker);
     value = binExpr.eval(getEmptyEventWrapper());
     assertEquals(Boolean.TRUE, value);
 
     binExpr = new BinExpr(
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "abc"),
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("abc")),
         BinOp.Eq,
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "ABC"));
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("ABC")));
     checker = new TypeChecker(new HashSymbolTable());
     binExpr.accept(checker);
     value = binExpr.eval(getEmptyEventWrapper());
@@ -446,7 +448,7 @@ public class TestBinExpr extends ExprTestCase {
     // integer-to-string promotion holds for the '=' operator too.
 
     binExpr = new BinExpr(
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "4"),
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("4")),
         BinOp.Eq,
         new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(4)));
     checker = new TypeChecker(new HashSymbolTable());
@@ -457,7 +459,7 @@ public class TestBinExpr extends ExprTestCase {
     binExpr = new BinExpr(
         new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf(4)),
         BinOp.Eq,
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "4"));
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("4")));
     checker = new TypeChecker(new HashSymbolTable());
     binExpr.accept(checker);
     value = binExpr.eval(getEmptyEventWrapper());
@@ -498,18 +500,18 @@ public class TestBinExpr extends ExprTestCase {
     assertNull(value);
 
     binExpr = new BinExpr(
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "abc"),
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("abc")),
         BinOp.NotEq,
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "abc"));
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("abc")));
     checker = new TypeChecker(new HashSymbolTable());
     binExpr.accept(checker);
     value = binExpr.eval(getEmptyEventWrapper());
     assertEquals(Boolean.FALSE, value);
 
     binExpr = new BinExpr(
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "abc"),
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("abc")),
         BinOp.NotEq,
-        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), "ABC"));
+        new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), new Utf8("ABC")));
     checker = new TypeChecker(new HashSymbolTable());
     binExpr.accept(checker);
     value = binExpr.eval(getEmptyEventWrapper());

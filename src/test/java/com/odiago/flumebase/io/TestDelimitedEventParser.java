@@ -17,6 +17,8 @@
 
 package com.odiago.flumebase.io;
 
+import org.apache.avro.util.Utf8;
+
 import org.testng.annotations.Test;
 
 import org.slf4j.Logger;
@@ -67,8 +69,8 @@ public class TestDelimitedEventParser {
 
     // Reset this onto another instance.
     ep.reset(makeEvent("meep"));
-    String strResult = (String) ep.getColumn(0, Type.getPrimitive(Type.TypeName.STRING));
-    assertEquals("meep", strResult);
+    Utf8 strResult = (Utf8) ep.getColumn(0, Type.getPrimitive(Type.TypeName.STRING));
+    assertEquals(new Utf8("meep"), strResult);
 
     try {
       Object unexpectedResult = ep.getColumn(1, Type.getPrimitive(Type.TypeName.STRING));
@@ -102,21 +104,21 @@ public class TestDelimitedEventParser {
       assertEquals(8 - i, result);
     }
 
-    String s;
+    Utf8 s;
 
     // In-order parsing with strings.
     ep.reset(makeEvent("bar,quux"));
-    s = (String) ep.getColumn(0, Type.getPrimitive(Type.TypeName.STRING));
-    assertEquals("bar", s);
-    s = (String) ep.getColumn(1, Type.getPrimitive(Type.TypeName.STRING));
-    assertEquals("quux", s);
+    s = (Utf8) ep.getColumn(0, Type.getPrimitive(Type.TypeName.STRING));
+    assertEquals(new Utf8("bar"), s);
+    s = (Utf8) ep.getColumn(1, Type.getPrimitive(Type.TypeName.STRING));
+    assertEquals(new Utf8("quux"), s);
 
     // Go backward with strings.
     ep.reset(makeEvent("meep,foo"));
-    s = (String) ep.getColumn(1, Type.getPrimitive(Type.TypeName.STRING));
-    assertEquals("foo", s);
-    s = (String) ep.getColumn(0, Type.getPrimitive(Type.TypeName.STRING));
-    assertEquals("meep", s);
+    s = (Utf8) ep.getColumn(1, Type.getPrimitive(Type.TypeName.STRING));
+    assertEquals(new Utf8("foo"), s);
+    s = (Utf8) ep.getColumn(0, Type.getPrimitive(Type.TypeName.STRING));
+    assertEquals(new Utf8("meep"), s);
 
     // Ask for a column that does not exist; then go back and ask for one that does.
     ep.reset(makeEvent("1,2,3"));

@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.avro.util.Utf8;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,7 +156,7 @@ public abstract class CachingTextEventParser extends EventParser {
       if (expectedType.isNullable() && asStr.equals(mNullStr)) {
         out = null;
       } else {
-        out = asStr;
+        out = new Utf8(asStr);
       }
       break;
     case TIMESTAMP:

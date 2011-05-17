@@ -20,6 +20,8 @@ package com.odiago.flumebase.exec.builtins;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.avro.util.Utf8;
+
 import com.cloudera.flume.core.Event;
 
 import com.odiago.flumebase.exec.EventWrapper;
@@ -39,7 +41,7 @@ public class host extends ScalarFunc {
   @Override
   public Object eval(EventWrapper event, Object... args) {
     Event e = event.getEvent();
-    return e.getHost();
+    return new Utf8(e.getHost());
   }
 
   @Override

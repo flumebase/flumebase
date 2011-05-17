@@ -32,6 +32,8 @@ options {
   import com.odiago.flumebase.lang.NullableType;
   import com.odiago.flumebase.lang.PreciseType;
   import com.odiago.flumebase.lang.Type;
+
+  import org.apache.avro.util.Utf8;
 }
 
 top returns [SQLStatement val]:
@@ -197,7 +199,8 @@ atom_expr returns [Expr val]:
   | FALSE { $val = new ConstExpr(Type.getPrimitive(Type.TypeName.BOOLEAN), Boolean.FALSE); }
   | i=INT { $val = new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf($i.text)); }
   | NULL { $val = new ConstExpr(Type.getNullable(Type.TypeName.ANY), null); }
-  | s=Q_STRING { $val = new ConstExpr(Type.getPrimitive(Type.TypeName.STRING), unescape($s.text)); }
+  | s=Q_STRING { $val = new ConstExpr(Type.getPrimitive(Type.TypeName.STRING),
+      new Utf8(unescape($s.text))); }
   | STAR { $val = new AllFieldsExpr(); }
   ;
 

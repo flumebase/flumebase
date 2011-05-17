@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.avro.util.Utf8;
+
 import static org.testng.AssertJUnit.*;
 import org.testng.annotations.Test;
 
@@ -45,13 +47,13 @@ public class TestRegexEventParser {
 
     CharSequence field1 = (CharSequence) parser.getColumn(0,
         Type.getPrimitive(Type.TypeName.STRING));
-    assertEquals("foo", field1);
+    assertEquals(new Utf8("foo"), field1);
 
     Integer field2 = (Integer) parser.getColumn(1, Type.getPrimitive(Type.TypeName.INT));
     assertEquals(Integer.valueOf(42), field2);
 
     CharSequence field3 = (CharSequence) parser.getColumn(2,
         Type.getPrimitive(Type.TypeName.STRING));
-    assertEquals("this is a lovely record", field3);
+    assertEquals(new Utf8("this is a lovely record"), field3);
   }
 }

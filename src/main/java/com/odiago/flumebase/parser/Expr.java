@@ -23,6 +23,8 @@ import java.nio.ByteBuffer;
 
 import java.util.List;
 
+import org.apache.avro.util.Utf8;
+
 import com.odiago.flumebase.exec.EventWrapper;
 import com.odiago.flumebase.exec.SymbolTable;
 
@@ -97,7 +99,7 @@ public abstract class Expr extends SQLStatement {
       } else {
         StringBuilder sb = new StringBuilder();
         sb.append(val);
-        return sb.toString();
+        return new Utf8(sb.toString());
       }
     } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.INT)) {
       return Integer.valueOf(((Number) val).intValue());
