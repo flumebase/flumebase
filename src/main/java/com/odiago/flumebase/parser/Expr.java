@@ -21,6 +21,7 @@ import java.io.IOException;
 
 import java.nio.ByteBuffer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.avro.util.Utf8;
@@ -30,6 +31,7 @@ import com.odiago.flumebase.exec.SymbolTable;
 
 import com.odiago.flumebase.exec.builtins.bin2str;
 
+import com.odiago.flumebase.lang.ListType;
 import com.odiago.flumebase.lang.PreciseType;
 import com.odiago.flumebase.lang.Type;
 
@@ -92,6 +94,17 @@ public abstract class Expr extends SQLStatement {
       return null;
     } else if (valType.equals(targetType)) {
       return val;
+    } else if (valType instanceof ListType && targetType instanceof ListType) {
+      // Do an element-wise list-to-list coersion.
+      Type valInnerT = ((ListType) valType).getElementType();
+      Type targetInnerT = ((ListType) targetType).getElementType();
+      List<Object> out = new ArrayList<Object>();
+      List<Object> in = (List<Object>) val;
+      for (Object elem : in) {
+        out.add(coerce(elem, valInnerT, targetInnerT));
+      }
+
+      return out;
     } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.STRING)) {
       // coerce this object to a string.
       if (val instanceof ByteBuffer) {
