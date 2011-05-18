@@ -168,16 +168,22 @@ public class UniversalType extends Type {
       candidate = Type.meet(candidate, actualConstraints.get(i));
     }
 
-    if (candidate.equals(Type.getPrimitive(Type.TypeName.ANY))
-        || candidate.equals(Type.getNullable(Type.TypeName.ANY))) {
-      LOG.debug("Returning ANY-typed implicitly-nullable value (numActuals="
+    if (candidate.equals(Type.getPrimitive(Type.TypeName.NULL))
+        || candidate.equals(Type.getNullable(Type.TypeName.NULL))) {
+      LOG.debug("Returning NULL-typed implicitly-nullable value (numActuals="
           + actualConstraints.size() + ")");
+
+      if (!candidate.isNullable()) {
+        LOG.warn("Returning non-nullable NULL-typed runtime type: numActuals="
+            + actualConstraints.size() + "; actuals=["
+            + StringUtils.listToStr(actualConstraints) + "]");
+      }
       return candidate.asNullable();
     }
 
     // Ensure that a concrete candidate type exists.
     if (!candidate.isConcrete()) {
-      // TODO(aaron): The most concrete example we might get is just a Nullable 'ANY',
+      // TODO(aaron): The most concrete example we might get is just a Nullable 'NULL',
       // if we are inferring type from a NULL ConstExpr. This needs to be ok too.
       throw new TypeCheckException("Actual constraints are incompatible."); 
     }

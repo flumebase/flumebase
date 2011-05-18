@@ -93,12 +93,12 @@ public class TestType {
     assertTrue(Type.getPrimitive(Type.TypeName.STRING).promotesTo(
         Type.getNullable(Type.TypeName.STRING)));
     
-    // NULLABLE(ANY) to NULLABLE(INT), NULLABLE(STRING), NULLABLE(TIMESTAMP).
-    assertTrue(Type.getNullable(Type.TypeName.ANY).promotesTo(
+    // NULLABLE(NULL) to NULLABLE(INT), NULLABLE(STRING), NULLABLE(TIMESTAMP).
+    assertTrue(Type.getNullable(Type.TypeName.NULL).promotesTo(
         Type.getNullable(Type.TypeName.INT)));
-    assertTrue(Type.getNullable(Type.TypeName.ANY).promotesTo(
+    assertTrue(Type.getNullable(Type.TypeName.NULL).promotesTo(
         Type.getNullable(Type.TypeName.STRING)));
-    assertTrue(Type.getNullable(Type.TypeName.ANY).promotesTo(
+    assertTrue(Type.getNullable(Type.TypeName.NULL).promotesTo(
         Type.getNullable(Type.TypeName.TIMESTAMP)));
 
     // NULLABLE(X) -> NULLABLE(STRING).
@@ -148,10 +148,10 @@ public class TestType {
     assertFalse(Type.getNullable(Type.TypeName.FLOAT).promotesTo(
         Type.getPrimitive(Type.TypeName.STRING)));
 
-    // NULLABLE(ANY) to X fails.
-    assertFalse(Type.getNullable(Type.TypeName.ANY).promotesTo(
+    // NULLABLE(NULL) to X fails.
+    assertFalse(Type.getNullable(Type.TypeName.NULL).promotesTo(
         Type.getPrimitive(Type.TypeName.STRING)));
-    assertFalse(Type.getNullable(Type.TypeName.ANY).promotesTo(
+    assertFalse(Type.getNullable(Type.TypeName.NULL).promotesTo(
         Type.getPrimitive(Type.TypeName.INT)));
 
 

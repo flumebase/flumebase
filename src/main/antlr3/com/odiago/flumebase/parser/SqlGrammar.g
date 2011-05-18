@@ -198,7 +198,7 @@ atom_expr returns [Expr val]:
   | TRUE { $val = new ConstExpr(Type.getPrimitive(Type.TypeName.BOOLEAN), Boolean.TRUE); }
   | FALSE { $val = new ConstExpr(Type.getPrimitive(Type.TypeName.BOOLEAN), Boolean.FALSE); }
   | i=INT { $val = new ConstExpr(Type.getPrimitive(Type.TypeName.INT), Integer.valueOf($i.text)); }
-  | NULL { $val = new ConstExpr(Type.getNullable(Type.TypeName.ANY), null); }
+  | NULL { $val = new ConstExpr(Type.getNullable(Type.TypeName.NULL), null); }
   | s=Q_STRING { $val = new ConstExpr(Type.getPrimitive(Type.TypeName.STRING),
       new Utf8(unescape($s.text))); }
   | STAR { $val = new AllFieldsExpr(); }

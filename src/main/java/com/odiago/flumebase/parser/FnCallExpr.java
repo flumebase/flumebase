@@ -264,10 +264,10 @@ public class FnCallExpr extends Expr {
       if (fnRetType instanceof ListType) {
         // If the unresolved typevar is an argument to a list type, we can
         // return this -- it's going to be an empty list, so we can return
-        // LIST<ANY>
+        // LIST<NULL>
         // TODO(aaron): This allows to_list() to produce an empty list, but
         // putting this check here feels a bit like a hack to me.
-        mReturnType = new ListType(Type.getNullable(Type.TypeName.ANY));
+        mReturnType = new ListType(Type.getNullable(Type.TypeName.NULL));
       } else {
         // This fails for being too abstract.
         throw new TypeCheckException("Output type of function " + mFunctionName

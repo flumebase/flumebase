@@ -62,7 +62,7 @@ public class UniversalConstraintExtractor {
     //
     // If the actual type is not deep enough, we still want to identify
     // the UniversalType instance in the specified type, if one exists. In which
-    // case, we associate the UniversalType with the constraint 'NULLABLE(ANY)'
+    // case, we associate the UniversalType with the constraint 'NULLABLE(NULL)'
     // (effectively leaving it unconstrained).
     // This can happen in the following case:
     // specified:                      actual:
@@ -90,9 +90,9 @@ public class UniversalConstraintExtractor {
         return extractConstraint(((ListType) specifiedType).getElementType(),
             ((ListType) actualType).getElementType());
       } else {
-        assert Type.TypeName.ANY.equals(actualType.getPrimitiveTypeName());
+        assert Type.TypeName.NULL.equals(actualType.getPrimitiveTypeName());
         return extractConstraint(((ListType) specifiedType).getElementType(),
-            Type.getNullable(Type.TypeName.ANY));
+            Type.getNullable(Type.TypeName.NULL));
       }
     } else if (specifiedType instanceof NullableType) {
       if (actualType instanceof NullableType) {

@@ -13,8 +13,6 @@ most important new features:
 
 Types:
 
-  -- ANY type really needs to be renamed to NULL.
-
   -- Add CHARACTER type which is a single char.
 
   -- need Map<T1, T2> types

@@ -59,7 +59,7 @@ public class Type {
     BINARY(6),
     TIMESTAMP(6),
     TIMESPAN(7),
-    ANY(0), // 'null' constant can be cast to any type. Only valid inside NULLABLE or LIST.
+    NULL(0), // 'null' constant can be cast to any type. Only valid inside NULLABLE or LIST.
             // This represents the "bottom" of the promotesTo type lattice.
     NULLABLE, // nullable instance of a primitive type (int, bigint, etc).
     STREAM, // Collection (record) of named primitive or nullable types.
@@ -68,7 +68,7 @@ public class Type {
     TYPECLASS_NUMERIC(7), // Typeclass representing all numeric types.
     TYPECLASS_COMPARABLE(8), // Typeclass representing all comparable types.
     TYPECLASS_ANY(9),     // Typeclass representing all types. This is the "top" of
-                          // the promotesTo lattice. (nothing promotesTo ANY, but
+                          // the promotesTo lattice. (nothing promotesTo NULL, but
                           // everything promotesTo TYPECLASS_ANY.)
     UNIVERSAL, // Represents an unbound type variable in a UniversalType instance.
                // (Note that UniversalType.getPrimitiveTypeName() returns null;
@@ -160,7 +160,9 @@ public class Type {
     PRIMITIVE_TYPES.put(TypeName.TYPECLASS_ANY, new Type(TypeName.TYPECLASS_ANY));
     // Window is in primitive types, but is not allowed to be nullable.
     PRIMITIVE_TYPES.put(TypeName.WINDOW, new Type(TypeName.WINDOW));
-    PRIMITIVE_TYPES.put(TypeName.ANY, new Type(TypeName.ANY));
+    // Only valid inside recursive meet() operations. Should always be seen
+    // as nullable in "real" type instances.
+    PRIMITIVE_TYPES.put(TypeName.NULL, new Type(TypeName.NULL));
 
     NULLABLE_TYPES = new HashMap<TypeName, NullableType>();
     NULLABLE_TYPES.put(TypeName.BOOLEAN, new NullableType(TypeName.BOOLEAN));
@@ -172,7 +174,7 @@ public class Type {
     NULLABLE_TYPES.put(TypeName.BINARY, new NullableType(TypeName.BINARY));
     NULLABLE_TYPES.put(TypeName.TIMESTAMP, new NullableType(TypeName.TIMESTAMP));
     NULLABLE_TYPES.put(TypeName.TIMESPAN, new NullableType(TypeName.TIMESPAN));
-    NULLABLE_TYPES.put(TypeName.ANY, new NullableType(TypeName.ANY));
+    NULLABLE_TYPES.put(TypeName.NULL, new NullableType(TypeName.NULL));
     NULLABLE_TYPES.put(TypeName.TYPECLASS_NUMERIC, new NullableType(TypeName.TYPECLASS_NUMERIC));
     NULLABLE_TYPES.put(TypeName.TYPECLASS_COMPARABLE,
         new NullableType(TypeName.TYPECLASS_COMPARABLE));
@@ -310,7 +312,8 @@ public class Type {
    *   <li>meet(X, Y) = Y &amp;&amp; meet(Y, Z) =&gt; meet(X, Z) = Z (transitivity)</li>
    *   <li>Nullativity "factors out": meet(X, NULLABLE Y) = meet(NULLABLE X, NULLABLE Y)
    *     = NULLABLE meet(X, Y)</li>
-   *   <li>meet(ANY, X) = X for any X</li>
+   *   <li>meet(NULL, X) = X for any X (n.b.: even if X is a NOT NULL; NULL is typeless
+   *     and used more like 'void*')</li>
    *   <li>meet(X, STRING) = STRING for any scalar X</li>
    *   <li>meet(LIST&lt;X&gt;, LIST&lt;Y&gt;) = LIST&lt;meet(X, Y)&gt;</li>
    *   <li>The following lattice defines the scalar types:<pre><tt>
@@ -333,14 +336,14 @@ public class Type {
    *   |           \    |                        /
    *   |   (STRING) ---INT   (BOOLEAN)      TIMESPAN    ----------(TYPECLASS_ANY)-----
    *    \       \       |    /               /         /    /        |        \       \
-   *     --------------ANY-------------------     STREAM  FLOW  UNIVERSAL SCALARFUNC WINDOW
-   *         ("ANY" must be a column type)         ("non-column" types exist in type
+   *     --------------NULL------------------     STREAM  FLOW  UNIVERSAL SCALARFUNC WINDOW
+   *         ("NULL" must be a column type)         ("non-column" types exist in type
    *                                                space but cannot unify with any column
    *                                                types; they are also not concrete types,
    *                                                with the exception of "WINDOW".)
    *
    *</tt></pre></li>
-   *   <li>The lattice ANY -&gt; BINARY -&gt; STRING -&gt; ...  also holds.
+   *   <li>The lattice NULL -&gt; BINARY -&gt; STRING -&gt; ...  also holds.
    *     Bytes are BASE64-encoded when converted to strings.</li>
    *   <li>An additional rule governs meets over PRECISE(k) types:
    *     meet(PRECISE(n), PRECISE(m)) = PRECISE(MAX(n, m))</li>
@@ -421,10 +424,10 @@ public class Type {
       return t2;
     }
 
-    // If one type is ANY, then use the other type. ANY promotes to everything.
-    if (t1.equals(Type.getPrimitive(Type.TypeName.ANY))) {
+    // If one type is NULL, then use the other type. NULL promotes to everything.
+    if (t1.equals(Type.getPrimitive(Type.TypeName.NULL))) {
       return t2;
-    } else if (t2.equals(Type.getPrimitive(Type.TypeName.ANY))) {
+    } else if (t2.equals(Type.getPrimitive(Type.TypeName.NULL))) {
       return t1;
     }
 
@@ -578,7 +581,7 @@ public class Type {
   /** @return an Avro schema describing the specified TypeName. */
   protected Schema getAvroSchema(TypeName typeName) { 
     switch (typeName) {
-    case ANY:
+    case NULL:
       return Schema.create(Schema.Type.NULL);
     case BOOLEAN:
       return Schema.create(Schema.Type.BOOLEAN);
