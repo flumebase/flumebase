@@ -168,6 +168,13 @@ public class UniversalType extends Type {
       candidate = Type.meet(candidate, actualConstraints.get(i));
     }
 
+    if (candidate.equals(Type.getPrimitive(Type.TypeName.ANY))
+        || candidate.equals(Type.getNullable(Type.TypeName.ANY))) {
+      LOG.debug("Returning ANY-typed implicitly-nullable value (numActuals="
+          + actualConstraints.size() + ")");
+      return candidate.asNullable();
+    }
+
     // Ensure that a concrete candidate type exists.
     if (!candidate.isConcrete()) {
       // TODO(aaron): The most concrete example we might get is just a Nullable 'ANY',

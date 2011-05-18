@@ -6,14 +6,19 @@ most important new features:
     -- ability to have these intervals start exactly on the hour/minute/etc
   -- persistent flow metastore
   -- JSON event input format
+    -- dependencies: LIST<T>, MAP<KT,VT>
   -- multi-threading, distribution, scalability
+
+  -- documentation debt: lists and list functions.
 
 Types:
 
+  -- ANY type really needs to be renamed to NULL.
+
   -- Add CHARACTER type which is a single char.
 
-  -- need List<T>, Map<T1, T2> types
-     list functions:
+  -- need Map<T1, T2> types
+  -- more list functions:
        prepend/append(list<t> lst, t val) -> returns lst @ [val] ?
        reverse(list<t> lst) -> reverses the order of elements in lst
        map_fn(fn<t> f, list<t> lst) -> applies f to each value in lst and returns the result list.
@@ -21,13 +26,10 @@ Types:
        foldl(fn<x, t> f, x initial, list<t> lst) -> folds f over elements of lst, using
           initial as the first accumulator value.
 
-  -- Need to be able to to_list(NULL, NULL, NULL) -- need better support for unification
-     of ANY / ANY NOT NULL with UniversalType instances.
+  -- All list constructions need to use Collections.immutableList() to protect them.
+  -- Need to read delimited lists from UTF-8 formats.
 
   -- BINARY type should be able to specify encoding when converting to/from STRING.
-
-  -- documentation debt: list functions.
-
 
 Aggregation:
 

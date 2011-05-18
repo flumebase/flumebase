@@ -27,6 +27,9 @@ import org.apache.avro.generic.GenericData;
 
 import org.apache.avro.util.Utf8;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.testng.annotations.Test;
 
 import com.cloudera.util.Pair;
@@ -51,6 +54,8 @@ import static org.testng.AssertJUnit.*;
  * operate like we expect them to.
  */
 public class TestFunctions extends RtsqlTestCase {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      TestFunctions.class.getName());
 
   /**
    * Scalar function that returns the larger of two values.
@@ -147,6 +152,7 @@ public class TestFunctions extends RtsqlTestCase {
    */
   private void runFnTest(String query, List<Pair<String, Object>> checkFields)
       throws IOException, InterruptedException {
+    LOG.info("Running function test: " + query);
     MemStreamBuilder streamBuilder = new MemStreamBuilder("memstream");
 
     streamBuilder.addField(new TypedField("a", Type.getPrimitive(Type.TypeName.INT)));
@@ -173,10 +179,12 @@ public class TestFunctions extends RtsqlTestCase {
     env.connect();
 
     // Run the query.
+    LOG.debug("Actually submitting to running environment");
     QuerySubmitResponse response = env.submitQuery(query, getQueryOpts());
     FlowId id = response.getFlowId();
     assertNotNull(response.getMessage(), id);
     joinFlow(id);
+    LOG.debug("Flow runtime complete");
 
     // Examine the response records.
     MemoryOutputElement output = getOutput("testSelect");
@@ -397,5 +405,157 @@ public class TestFunctions extends RtsqlTestCase {
     List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
     checks.add(new Pair<String, Object>("x", new Utf8("foo42")));
     runFnTest("SELECT concatstrs('foo', 42) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListFn() throws Exception {
+    // Test that we can create a list.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    innerList.add(Integer.valueOf(2));
+    innerList.add(Integer.valueOf(3));
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT to_list(1,2,3) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testEmptyList() throws Exception {
+    // Test that we can create an empty list.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT to_list() AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testNullListElem1() throws Exception {
+    // Test that we can create a list with a null in it.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(null);
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT to_list(null) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testNullListElem2() throws Exception {
+    // Test that we can create a list with a null in it.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    innerList.add(null);
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT to_list(1, null) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testNullListElem3() throws Exception {
+    // Test that we can create a list with a null in it.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(null);
+    innerList.add(null);
+    innerList.add(Integer.valueOf(1));
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT to_list(null, null, 1) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testIndexFn1() throws Exception {
+    // Test that we can index into a list.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", Integer.valueOf(42)));
+    runFnTest("SELECT index(to_list(1,42), 1) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testIndexFn2() throws Exception {
+    // Test that we can index into a list that uses type coersion in its c'tor.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", new Utf8("a")));
+    runFnTest("SELECT index(to_list('a',42), 0) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testContains1() throws Exception {
+    // Test that we can use the contains() function normally.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", Boolean.TRUE));
+    runFnTest("SELECT contains(to_list(4,5,6), 4) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testContains2() throws Exception {
+    // Test that we can use the contains() function normally.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", Boolean.FALSE));
+    runFnTest("SELECT contains(to_list(4,5,6), 7) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testContainsTypeCast() throws Exception {
+    // Test that we can use the contains() function with type casting.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", Boolean.FALSE));
+    runFnTest("SELECT contains(to_list(4,5,6), 'a') AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testContainsNullList() throws Exception {
+    // Test that we can use the contains() function with a null list argument..
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", null));
+    runFnTest("SELECT contains(null, 4) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testEmptyListContains() throws Exception {
+    // Test that we can use the contains() function with an empty list
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", Boolean.FALSE));
+    runFnTest("SELECT contains(to_list(), 5) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testNullOnlyListContains() throws Exception {
+    // Test that we can use the contains() function with a list containing only nulls
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", Boolean.FALSE));
+    runFnTest("SELECT contains(to_list(null, null), 5) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testNullOnlyListContainsNull() throws Exception {
+    // Test that we can use the contains() function with a list containing only nulls
+    // and a 'null' for the argument.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", Boolean.TRUE));
+    runFnTest("SELECT contains(to_list(null, null), null) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListSize1() throws Exception {
+    // Test that we can use the size() function on a list and get back 0 for empty. 
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", Integer.valueOf(0)));
+    runFnTest("SELECT size(to_list()) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListSize2() throws Exception {
+    // Test that we can use the size() function on a list and get back null for a
+    // null list.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", null));
+    runFnTest("SELECT size(null) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListSize3() throws Exception {
+    // Test that we can use the size() function to accurately test a real list size.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    checks.add(new Pair<String, Object>("x", Integer.valueOf(2)));
+    runFnTest("SELECT size(to_list('a', 'b')) AS x FROM memstream", checks);
   }
 }

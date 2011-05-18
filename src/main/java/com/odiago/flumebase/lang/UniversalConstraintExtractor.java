@@ -45,8 +45,38 @@ public class UniversalConstraintExtractor {
    * false otherwise.
    */
   public boolean extractConstraint(Type specifiedType, Type actualType) {
+    // The purpose of this function is to recurse into the specified and actual
+    // types in tandem, matching the 'a to the best subtree possible in the
+    // definition of the actual type.
+    //
+    // It is a precondition that actualType promotesTo specifiedType.
+    //
+    // Mappings like 'a  -> INT are trivial.
+    // But if we have trees like:
+    // specified:                      actual
+    //   ListType                      ListType
+    //     NullableType                  NullableType
+    //       UniversalType 'a              INT
+    //
+    // .. we need to recursively enter the two types and still match 'a to INT.
+    //
+    // If the actual type is not deep enough, we still want to identify
+    // the UniversalType instance in the specified type, if one exists. In which
+    // case, we associate the UniversalType with the constraint 'NULLABLE(ANY)'
+    // (effectively leaving it unconstrained).
+    // This can happen in the following case:
+    // specified:                      actual:
+    //   NullableType                    Nullable
+    //     ListType                        NULL
+    //       Nullable
+    //         Universal 'a
+    //
+    // This is a valid promotesTo case. NULL is the only type that can
+    // promote to a recursive type instance.
     LOG.debug("Checking constraints for specified type: " + specifiedType);
     LOG.debug("  vs actual type: " + actualType);
+
+    assert actualType.promotesTo(specifiedType);
 
     if (specifiedType instanceof UniversalType) {
       // We've found a match
@@ -54,15 +84,26 @@ public class UniversalConstraintExtractor {
       mConstraintType = actualType;
       LOG.debug("Binding constraint: " + mUniversalType + " --> " + mConstraintType);
       return true;
-    } else if (specifiedType instanceof ListType && actualType instanceof ListType) {
-      // Check if List<'a> matches List<actual_constraint>
-      return extractConstraint(((ListType) specifiedType).getElementType(),
-          ((ListType) actualType).getElementType());
-    } else if (specifiedType instanceof NullableType && actualType instanceof NullableType) {
-      return extractConstraint(((NullableType) specifiedType).getInnerType(),
-          ((NullableType) actualType).getInnerType());
+    } else if (specifiedType instanceof ListType) {
+      if (actualType instanceof ListType) {
+        // Check if List<'a> matches List<actual_constraint>
+        return extractConstraint(((ListType) specifiedType).getElementType(),
+            ((ListType) actualType).getElementType());
+      } else {
+        assert Type.TypeName.ANY.equals(actualType.getPrimitiveTypeName());
+        return extractConstraint(((ListType) specifiedType).getElementType(),
+            Type.getNullable(Type.TypeName.ANY));
+      }
     } else if (specifiedType instanceof NullableType) {
-      return extractConstraint(((NullableType) specifiedType).getInnerType(), actualType);
+      if (actualType instanceof NullableType) {
+        // Recurse inside nullable.
+        return extractConstraint(((NullableType) specifiedType).getInnerType(),
+            ((NullableType) actualType).getInnerType());
+      } else {
+        // Actual instance os not null, so it's not cast as one. Descend on specifiedType only.
+        return extractConstraint(((NullableType) specifiedType).getInnerType(),
+            actualType);
+      }
     }
 
     // No UniversalType instance to be found.

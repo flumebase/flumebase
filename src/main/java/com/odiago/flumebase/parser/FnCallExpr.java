@@ -267,7 +267,7 @@ public class FnCallExpr extends Expr {
         // LIST<ANY>
         // TODO(aaron): This allows to_list() to produce an empty list, but
         // putting this check here feels a bit like a hack to me.
-        mReturnType = new ListType(Type.getPrimitive(Type.TypeName.ANY));
+        mReturnType = new ListType(Type.getNullable(Type.TypeName.ANY));
       } else {
         // This fails for being too abstract.
         throw new TypeCheckException("Output type of function " + mFunctionName
@@ -308,8 +308,10 @@ public class FnCallExpr extends Expr {
    * mPartialResults array.
    */
   private void evaluateArguments(EventWrapper e) throws IOException {
-    assert mArgExprs.size() == mArgTypes.length;
-    assert mExprTypes.size() == mArgTypes.length;
+    // Ensure that we have actual and specified types for all actual expression arguments.
+    // We may have some extras, if virtual arguments were used to finish type unification.
+    assert mArgExprs.size() <= mArgTypes.length;
+    assert mArgExprs.size() <= mExprTypes.size();
 
     // Evaluate arguments left-to-right.
     for (int i = 0; i < mArgExprs.size(); i++) {

@@ -347,7 +347,9 @@ public class OutputElement extends FlowElementImpl {
         sb.append(toStr);
         sb.append("]");
       } else if (fieldVal instanceof List<?>) {
+        sb.append("[");
         StringUtils.formatList(sb, (List<?>) fieldVal);
+        sb.append("]");
       } else {
         sb.append(fieldVal);
       }

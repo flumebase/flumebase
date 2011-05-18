@@ -107,10 +107,16 @@ public class NullableType extends Type {
   @Override
   public Schema getAvroSchema() {
     // Our schema is a union of our ordinary type, or null.
-    List<Schema> unionTypes = new ArrayList<Schema>();
-    unionTypes.add(mType.getAvroSchema());
-    unionTypes.add(Schema.create(Schema.Type.NULL));
-    return Schema.createUnion(unionTypes);
+    Schema subSchema = mType.getAvroSchema();
+    if (subSchema.equals(Schema.create(Schema.Type.NULL))) {
+      return subSchema; // 'ANY' -> NULL schema; use directly.
+    } else {
+      // Make a union of subSchema and null.
+      List<Schema> unionTypes = new ArrayList<Schema>();
+      unionTypes.add(mType.getAvroSchema());
+      unionTypes.add(Schema.create(Schema.Type.NULL));
+      return Schema.createUnion(unionTypes);
+    }
   }
 
   /** {@inheritDoc} */

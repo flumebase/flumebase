@@ -667,6 +667,7 @@ public class Type {
     assert isPrimitive();
 
     if (null == val) {
+      assert isNullable();
       return null; // Not much we can do with this.
     } else if (valType.equals(this)) {
       return val;
