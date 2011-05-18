@@ -170,6 +170,8 @@ public class UniversalType extends Type {
 
     // Ensure that a concrete candidate type exists.
     if (!candidate.isConcrete()) {
+      // TODO(aaron): The most concrete example we might get is just a Nullable 'ANY',
+      // if we are inferring type from a NULL ConstExpr. This needs to be ok too.
       throw new TypeCheckException("Actual constraints are incompatible."); 
     }
 

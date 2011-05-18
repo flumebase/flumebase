@@ -31,7 +31,11 @@ public final class StringUtils {
       if (!first) {
         sb.append(", ");
       }
-      sb.append(elem.toString());
+      if (null == elem) {
+        sb.append("null");
+      } else {
+        sb.append(elem.toString());
+      }
       first = false;
     }
   }

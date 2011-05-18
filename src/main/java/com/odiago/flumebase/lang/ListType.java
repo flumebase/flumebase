@@ -17,6 +17,8 @@
 
 package com.odiago.flumebase.lang;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.avro.Schema;
@@ -88,13 +90,38 @@ public class ListType extends Type implements Comparable<ListType> {
 
   @Override
   public boolean isConcrete() {
-    return true;
+    return mElementType.isConcrete();
   }
 
   /** {@inheritDoc} */
   @Override
   public Type replaceUniversal(Map<Type, Type> universalMapping) throws TypeCheckException {
     return new ListType(mElementType.replaceUniversal(universalMapping));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Object coerceValue(Type valType, Object val) {
+    if (null == val) {
+      return null;
+    } else {
+      // Do an element-wise list-to-list coersion.
+      if (valType instanceof NullableType) {
+        // Strip off any leading nullability first.
+        valType = ((NullableType) valType).getInnerType();
+      }
+
+      assert valType instanceof ListType;
+      Type valInnerT = ((ListType) valType).getElementType();
+      Type targetInnerT = getElementType();
+      List<Object> out = new ArrayList<Object>();
+      List<Object> in = (List<Object>) val;
+      for (Object elem : in) {
+        out.add(targetInnerT.coerceValue(valInnerT, elem));
+      }
+
+      return out;
+    }
   }
 }
 

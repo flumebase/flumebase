@@ -116,5 +116,16 @@ public class PreciseType extends Type implements Comparable<PreciseType> {
       return 1;
     }
   }
+
+  /** {@inheritDoc} */
+  @Override
+  public Object coerceValue(Type valType, Object val) {
+    if (null == val) {
+      return null;
+    } else {
+      assert valType.isNumeric();
+      return parseStringInput(val.toString());
+    }
+  }
 }
 

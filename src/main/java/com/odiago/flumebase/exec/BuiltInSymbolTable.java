@@ -45,6 +45,7 @@ public class BuiltInSymbolTable extends SymbolTable {
     // Add symbols for all built-in objects in the system.
     loadBuiltinFunction(avg.class);
     loadBuiltinFunction(bin2str.class);
+    loadBuiltinFunction(contains.class);
     loadBuiltinFunction(count.class);
     loadBuiltinFunction(current_timestamp.class);
     loadBuiltinFunction(event_timestamp.class);

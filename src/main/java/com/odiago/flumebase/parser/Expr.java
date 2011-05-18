@@ -26,12 +26,16 @@ import java.util.List;
 
 import org.apache.avro.util.Utf8;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.odiago.flumebase.exec.EventWrapper;
 import com.odiago.flumebase.exec.SymbolTable;
 
 import com.odiago.flumebase.exec.builtins.bin2str;
 
 import com.odiago.flumebase.lang.ListType;
+import com.odiago.flumebase.lang.NullableType;
 import com.odiago.flumebase.lang.PreciseType;
 import com.odiago.flumebase.lang.Type;
 
@@ -39,6 +43,7 @@ import com.odiago.flumebase.lang.Type;
  * An expression which evaluates to a value inside a record.
  */
 public abstract class Expr extends SQLStatement {
+  private static final Logger LOG = LoggerFactory.getLogger(Expr.class.getName());
 
   private static final bin2str BIN2STR_FN; // For coercing binary -> string
   static {
@@ -90,44 +95,7 @@ public abstract class Expr extends SQLStatement {
    * from valType into targetType.
    */
   protected Object coerce(Object val, Type valType, Type targetType) {
-    if (null == val) {
-      return null;
-    } else if (valType.equals(targetType)) {
-      return val;
-    } else if (valType instanceof ListType && targetType instanceof ListType) {
-      // Do an element-wise list-to-list coersion.
-      Type valInnerT = ((ListType) valType).getElementType();
-      Type targetInnerT = ((ListType) targetType).getElementType();
-      List<Object> out = new ArrayList<Object>();
-      List<Object> in = (List<Object>) val;
-      for (Object elem : in) {
-        out.add(coerce(elem, valInnerT, targetInnerT));
-      }
-
-      return out;
-    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.STRING)) {
-      // coerce this object to a string.
-      if (val instanceof ByteBuffer) {
-        return BIN2STR_FN.eval(null, val);
-      } else {
-        StringBuilder sb = new StringBuilder();
-        sb.append(val);
-        return new Utf8(sb.toString());
-      }
-    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.INT)) {
-      return Integer.valueOf(((Number) val).intValue());
-    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.BIGINT)) {
-      return Long.valueOf(((Number) val).longValue());
-    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.FLOAT)) {
-      return Float.valueOf(((Number) val).floatValue());
-    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.DOUBLE)) {
-      return Double.valueOf(((Number) val).doubleValue());
-    } else if (targetType.getPrimitiveTypeName().equals(Type.TypeName.PRECISE)) {
-      PreciseType preciseTarget = PreciseType.toPreciseType(targetType);
-      return preciseTarget.parseStringInput(val.toString());
-    } else {
-      throw new RuntimeException("Do not know how to coerce from " + valType
-          + " to " + targetType);
-    }
+    LOG.debug("Converting: " + valType + " to " + targetType);
+    return targetType.coerceValue(valType, val);
   }
 }

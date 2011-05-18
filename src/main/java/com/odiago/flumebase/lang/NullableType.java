@@ -89,11 +89,18 @@ public class NullableType extends Type {
   }
 
   @Override
+  public boolean isPrimitive() {
+    return mType.isPrimitive();
+  }
+
+  @Override
   /** 
    * @return the TypeName of the non-null type being wrapped.
    */
   public TypeName getPrimitiveTypeName() {
-    assert mType.isPrimitive();
+    if (!mType.isPrimitive()) {
+      return null;
+    }
     return mType.getTypeName();
   }
 
@@ -139,5 +146,24 @@ public class NullableType extends Type {
     }
 
     return false;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Object coerceValue(Type valType, Object val) {
+    if (null == val) {
+      return null;
+    } else if (valType.equals(mType)) {
+      // We're converting from FOO NOT NULL to FOO; just return
+      // the same entry.
+      return val;
+    } else {
+      // Factor out 'Nullable' nature from both sides and recurse.
+      Type trueValType = valType;
+      if (valType instanceof NullableType) {
+        trueValType = ((NullableType) valType).getInnerType();
+      }
+      return mType.coerceValue(trueValType, val);
+    }
   }
 }

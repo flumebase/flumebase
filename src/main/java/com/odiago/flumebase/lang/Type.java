@@ -17,14 +17,20 @@
 
 package com.odiago.flumebase.lang;
 
+import java.nio.ByteBuffer;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.avro.Schema;
 
+import org.apache.avro.util.Utf8;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.odiago.flumebase.exec.builtins.bin2str;
 
 /**
  * Defines a static or runtime type within the rtsql
@@ -112,6 +118,10 @@ public class Type {
     }
   };
 
+  protected static final bin2str BIN2STR_FN; // For coercing binary -> string
+  static {
+    BIN2STR_FN = new bin2str();
+  }
   
   /** The basic type name for this type. */
   private TypeName mTypeName;
@@ -206,7 +216,7 @@ public class Type {
     // If we've got a single representation instance, use that.
     NullableType premade = NULLABLE_TYPES.get(mTypeName);
     if (null != premade) {
-      return null;
+      return premade;
     }
 
     return new NullableType(this);
@@ -641,5 +651,45 @@ public class Type {
     }
 
     return false;
+  }
+
+  /**
+   * Given a value of another type, return the value,
+   * coerced into our own type. 
+   * @param valType the type of the original value that needs to be
+   * converted. A precondition of this method is that valType.promotesTo(this).
+   * @param val the raw value that needs to be converted.
+   */
+  public Object coerceValue(Type valType, Object val) {
+    assert valType != null;
+    assert valType.promotesTo(this) || valType.promotesTo(this.asNullable());
+
+    assert isPrimitive();
+
+    if (null == val) {
+      return null; // Not much we can do with this.
+    } else if (valType.equals(this)) {
+      return val;
+    } else if (getPrimitiveTypeName().equals(Type.TypeName.STRING)) {
+      // coerce this object to a string.
+      if (val instanceof ByteBuffer) {
+        return BIN2STR_FN.eval(null, val);
+      } else {
+        StringBuilder sb = new StringBuilder();
+        sb.append(val);
+        return new Utf8(sb.toString());
+      }
+    } else if (getPrimitiveTypeName().equals(Type.TypeName.INT)) {
+      return Integer.valueOf(((Number) val).intValue());
+    } else if (getPrimitiveTypeName().equals(Type.TypeName.BIGINT)) {
+      return Long.valueOf(((Number) val).longValue());
+    } else if (getPrimitiveTypeName().equals(Type.TypeName.FLOAT)) {
+      return Float.valueOf(((Number) val).floatValue());
+    } else if (getPrimitiveTypeName().equals(Type.TypeName.DOUBLE)) {
+      return Double.valueOf(((Number) val).doubleValue());
+    }
+
+    throw new RuntimeException("Do not know how to coerce from " + valType
+        + " to " + this);
   }
 }
