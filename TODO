@@ -14,19 +14,19 @@ Types:
 
   -- need List<T>, Map<T1, T2> types
      list functions:
-       contains(lst<t> theList, t val) -> true if theList contains X such that X = val
-       index(list<t> theList, INT i) -> returns theList[i]
-       size(list<t>) -> returns ## of elements in the list
-       append(list<t> lst, t val) -> returns lst @ [val]
+       prepend/append(list<t> lst, t val) -> returns lst @ [val] ?
        reverse(list<t> lst) -> reverses the order of elements in lst
        map_fn(fn<t> f, list<t> lst) -> applies f to each value in lst and returns the result list.
        exists(fn<t> f, list<t> lst) -> true if f returns true for some element of lst
        foldl(fn<x, t> f, x initial, list<t> lst) -> folds f over elements of lst, using
           initial as the first accumulator value.
-       concat(list<t> lst1, lst<t> lst2) -> returns lst1 @ lst2.
+
+  -- Need to be able to to_list(NULL, NULL, NULL) -- need better support for unification
+     of ANY / ANY NOT NULL with UniversalType instances.
 
   -- BINARY type should be able to specify encoding when converting to/from STRING.
 
+  -- documentation debt: list functions.
 
 
 Aggregation:

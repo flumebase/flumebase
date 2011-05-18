@@ -40,6 +40,7 @@ import com.odiago.flumebase.lang.ListType;
 import com.odiago.flumebase.lang.ScalarFunc;
 import com.odiago.flumebase.lang.Type;
 import com.odiago.flumebase.lang.TypeCheckException;
+import com.odiago.flumebase.lang.UniversalConstraintExtractor;
 import com.odiago.flumebase.lang.UniversalType;
 
 /**
@@ -221,16 +222,19 @@ public class FnCallExpr extends Expr {
     Map<UniversalType, List<Type>> unifications = new HashMap<UniversalType, List<Type>>();
     for (int i = 0; i < abstractArgTypes.size(); i++) {
       Type abstractType = abstractArgTypes.get(i);
-      if (abstractType instanceof UniversalType) {
+      Type actualType = mExprTypes.get(i);
+      UniversalConstraintExtractor constraintExtractor = new UniversalConstraintExtractor();
+      if (constraintExtractor.extractConstraint(abstractType, actualType)) {
         // Found a UniversalType. Make sure it's mapped to a list of actual constraints.
-        List<Type> actualConstraints = unifications.get(abstractType);
+        UniversalType univType = constraintExtractor.getUniversalType();
+        List<Type> actualConstraints = unifications.get(univType);
         if (null == actualConstraints) {
           actualConstraints = new ArrayList<Type>();
-          unifications.put((UniversalType) abstractType, actualConstraints);
+          unifications.put(univType, actualConstraints);
         }
 
         // Add the actual constraint of the expression being applied as this argument.
-        actualConstraints.add(mExprTypes.get(i));
+        actualConstraints.add(constraintExtractor.getConstraintType());
       }
     }
 
