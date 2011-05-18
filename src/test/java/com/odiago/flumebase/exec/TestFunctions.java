@@ -558,4 +558,124 @@ public class TestFunctions extends RtsqlTestCase {
     checks.add(new Pair<String, Object>("x", Integer.valueOf(2)));
     runFnTest("SELECT size(to_list('a', 'b')) AS x FROM memstream", checks);
   }
+
+  @Test
+  public void testListConcat1() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists.
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    innerList.add(Integer.valueOf(2));
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(1), to_list(2)) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListConcat2() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists involving nulls
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    innerList.add(null);
+    innerList.add(Integer.valueOf(2));
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(1, null), to_list(2)) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListConcat3() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists involving nulls
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    innerList.add(null);
+    innerList.add(Integer.valueOf(2));
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(1), to_list(null, 2)) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListConcat4() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists involving nulls
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    innerList.add(null);
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(1), to_list(null)) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListConcat5() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists involving nulls
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    innerList.add(null);
+    innerList.add(null);
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(1, null), to_list(null)) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListConcat6() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists involving nulls
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(null);
+    innerList.add(null);
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(null), to_list(null)) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListConcat7() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists involving empty lists
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(1), to_list()) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListConcat8() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists involving empty lists
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    innerList.add(Integer.valueOf(2));
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(1), to_list(), to_list(2)) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListConcat9() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists involving empty lists
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(), to_list()) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListConcat10() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists involving empty lists
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    innerList.add(null);
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(1), to_list(), to_list(null)) AS x FROM memstream", checks);
+  }
+
+  @Test
+  public void testListConcat11() throws Exception {
+    // Test that we can use the concat fn to concatenate two lists involving empty lists
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(null);
+    checks.add(new Pair<String, Object>("x", innerList));
+    runFnTest("SELECT concat(to_list(), to_list(null)) AS x FROM memstream", checks);
+  }
 }
