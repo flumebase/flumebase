@@ -28,6 +28,9 @@ import org.apache.avro.generic.GenericData;
 
 import org.apache.hadoop.conf.Configuration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -49,6 +52,8 @@ import com.odiago.flumebase.flume.EmbeddedFlumeConfig;
  * queries against in-memory streams.
  */
 public class RtsqlTestCase {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      RtsqlTestCase.class.getName());
 
   private LocalEnvironment mEnvironment;
   private SymbolTable mSymbolTable;
@@ -172,6 +177,13 @@ public class RtsqlTestCase {
       String testField, Object testValue) {
     for (GenericData.Record record : records) {
       Object result = record.get(testField);
+
+      if (result != null && testValue != null) {
+        LOG.debug("Checking result: " + result + " (class=" + result.getClass().getName() + ")"
+            + " against testValue: " + testValue + " (class=" + testValue.getClass().getName()
+            + ") for field " + testField);
+      }
+
       if (null == testValue && null == result) {
         return;
       } else if (null != testValue && testValue.equals(result)) {

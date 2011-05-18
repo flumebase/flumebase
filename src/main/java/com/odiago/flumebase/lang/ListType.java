@@ -123,6 +123,21 @@ public class ListType extends Type implements Comparable<ListType> {
       return out;
     }
   }
+
+  /**
+   * Given a ListType or a wrapper around the ListType, return the
+   * inner ListType object, or null if this cannot be performed.
+   */
+  public static ListType toListType(Type t) {
+    if (t instanceof ListType) {
+      return (ListType) t;
+    } else if (t instanceof NullableType) {
+      NullableType nul = t.asNullable();
+      return toListType(nul.getInnerType());
+    } else {
+      return null; // Didn't match.
+    }
+  }
 }
 
 

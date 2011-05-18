@@ -17,9 +17,6 @@
 
 package com.odiago.flumebase.io;
 
-import java.io.UnsupportedEncodingException;
-
-import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 
 import java.util.ArrayList;
@@ -27,15 +24,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.avro.util.Utf8;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.core.Event;
 
-import com.odiago.flumebase.lang.PreciseType;
-import com.odiago.flumebase.lang.Timestamp;
 import com.odiago.flumebase.lang.Type;
 
 import com.odiago.flumebase.util.Ref;
@@ -59,6 +52,10 @@ public abstract class CachingTextEventParser extends EventParser {
   public static final String NULL_STR_PARAM = "null.sequence";
   public static final String DEFAULT_NULL_STR = "\\N";
 
+  /** key in the stream properties that specifies a split token for LIST<T> items. */
+  public static final String LIST_SEPARATOR_PARAM = "list.delim";
+  public static final String DEFAULT_LIST_SEPARATOR = "|";
+
   /** CharBuffers wrapping the text of each column. */
   private ArrayList<CharBuffer> mColTexts;
 
@@ -73,8 +70,12 @@ public abstract class CachingTextEventParser extends EventParser {
   /** An escape sequence that specifies that the current field is a null string. */
   private String mNullStr;
 
+  /** Delimiter for list items. */
+  private String mListSep;
+
   protected CachingTextEventParser() {
     mNullStr = DEFAULT_NULL_STR;
+    mListSep = DEFAULT_LIST_SEPARATOR;
     init();
   }
 
@@ -83,6 +84,11 @@ public abstract class CachingTextEventParser extends EventParser {
     mNullStr = params.get(NULL_STR_PARAM);
     if (null == mNullStr) {
       mNullStr = DEFAULT_NULL_STR;
+    }
+
+    mListSep = params.get(LIST_SEPARATOR_PARAM);
+    if (null == mListSep) {
+      mListSep = DEFAULT_LIST_SEPARATOR;
     }
 
     init();
@@ -114,7 +120,6 @@ public abstract class CachingTextEventParser extends EventParser {
    */
   protected Object parseAndCache(CharBuffer chars, int colIdx, Type expectedType)
       throws ColumnParseException {
-    Type.TypeName primitiveTypeName = expectedType.getPrimitiveTypeName();
 
     String debugInputString = null;
     if (LOG.isDebugEnabled()) {
@@ -123,61 +128,7 @@ public abstract class CachingTextEventParser extends EventParser {
       debugInputString = chars.toString();
     }
 
-    // TODO(aaron): Test how this handles a field that is an empty string.
-    Object out = null;
-    switch (primitiveTypeName) {
-    case BINARY:
-      try {
-        out = ByteBuffer.wrap(chars.toString().getBytes("UTF-8"));
-      } catch (UnsupportedEncodingException uee) {
-        // Shouldn't ever be able to get here.
-        // (http://download.oracle.com/javase/6/docs/api/java/nio/charset/Charset.html)
-        LOG.error("Your JVM doesn't support UTF-8. This is really, really bad.");
-        throw new ColumnParseException(uee);
-      }
-      break;
-    case BOOLEAN:
-      out = CharBufferUtils.parseBool(chars);
-      break;
-    case INT:
-      out = CharBufferUtils.parseInt(chars);
-      break;
-    case BIGINT:
-      out = CharBufferUtils.parseLong(chars);
-      break;
-    case FLOAT:
-      out = CharBufferUtils.parseFloat(chars);
-      break;
-    case DOUBLE:
-      out = CharBufferUtils.parseDouble(chars);
-      break;
-    case STRING:
-      String asStr = chars.toString();
-      if (expectedType.isNullable() && asStr.equals(mNullStr)) {
-        out = null;
-      } else {
-        out = new Utf8(asStr);
-      }
-      break;
-    case TIMESTAMP:
-      out = CharBufferUtils.parseLong(chars);
-      if (null != out) {
-        out = new Timestamp((Long) out);
-      }
-      break;
-    case TIMESPAN:
-      // TODO: This should return a TimeSpan object, which is actually two
-      // fields. We need to work on this... it should not just be a 'long'
-      // representation.
-      out = CharBufferUtils.parseLong(chars);
-      break;
-    case PRECISE:
-      PreciseType preciseType = PreciseType.toPreciseType(expectedType);
-      out = preciseType.parseStringInput(chars.toString());
-      break;
-    default:
-      throw new ColumnParseException("Cannot parse recursive types");
-    }
+    Object out = CharBufferUtils.parseType(chars, expectedType, mNullStr, mListSep);
 
     while(mColumnValues.size() < colIdx) {
       // Add nulls to the list to increase the memoized size up to this column.
@@ -192,10 +143,10 @@ public abstract class CachingTextEventParser extends EventParser {
     mColumnValues.add(out);
     mColumnNulls.add(Boolean.valueOf(out == null));
 
-    //if (LOG.isDebugEnabled()) {
-    //  LOG.debug("Parsed string [" + debugInputString + "] with expected type ["
-    //      + expectedType + "] for column idx=" + colIdx + "; result is [" + out + "]"); 
-    //}
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Parsed string [" + debugInputString + "] with expected type ["
+          + expectedType + "] for column idx=" + colIdx + "; result is [" + out + "]"); 
+    }
     return out;
   }
 

@@ -17,10 +17,26 @@
 
 package com.odiago.flumebase.io;
 
+import java.io.UnsupportedEncodingException;
+
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.avro.util.Utf8;
+
+import org.apache.commons.lang.text.StrTokenizer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.odiago.flumebase.lang.ListType;
+import com.odiago.flumebase.lang.PreciseType;
+import com.odiago.flumebase.lang.Timestamp;
+import com.odiago.flumebase.lang.Type;
 
 /**
  * Utility methods for parsing string-based values without
@@ -149,6 +165,95 @@ public class CharBufferUtils {
 
   public static String parseString(CharBuffer chars) throws ColumnParseException {
     return chars.toString();
+  }
+
+  /**
+   * Parses a CharSequence into a list of values, all of some other type.
+   */
+  public static List<Object> parseList(CharBuffer chars, Type listItemType,
+      String nullStr, String listDelim) throws ColumnParseException {
+    StrTokenizer tokenizer = new StrTokenizer(chars.toString(), listDelim.charAt(0));
+    List<Object> out = new ArrayList<Object>();
+
+    while (tokenizer.hasNext()) {
+      String part = (String) tokenizer.next();
+      out.add(parseType(CharBuffer.wrap(part), listItemType, nullStr, listDelim));
+    }
+
+    return Collections.unmodifiableList(out);
+  }
+
+  /**
+   * Parses a CharSequence into a value of a given expected type.
+   * @param chars the unparsed characters representing the value
+   * @param expectedType the expected type of the final value
+   * @param nullStr a token indicating a null String instance.
+   */
+  public static Object parseType(CharBuffer chars, Type expectedType,
+      String nullStr, String listDelim) throws ColumnParseException {
+    Type.TypeName primitiveTypeName = expectedType.getPrimitiveTypeName();
+
+    // TODO(aaron): Test how this handles a field that is an empty string.
+    Object out = null;
+    switch (primitiveTypeName) {
+    case BINARY:
+      try {
+        out = ByteBuffer.wrap(chars.toString().getBytes("UTF-8"));
+      } catch (UnsupportedEncodingException uee) {
+        // Shouldn't ever be able to get here.
+        // (http://download.oracle.com/javase/6/docs/api/java/nio/charset/Charset.html)
+        LOG.error("Your JVM doesn't support UTF-8. This is really, really bad.");
+        throw new ColumnParseException(uee);
+      }
+      break;
+    case BOOLEAN:
+      out = CharBufferUtils.parseBool(chars);
+      break;
+    case INT:
+      out = CharBufferUtils.parseInt(chars);
+      break;
+    case BIGINT:
+      out = CharBufferUtils.parseLong(chars);
+      break;
+    case FLOAT:
+      out = CharBufferUtils.parseFloat(chars);
+      break;
+    case DOUBLE:
+      out = CharBufferUtils.parseDouble(chars);
+      break;
+    case STRING:
+      String asStr = chars.toString();
+      if (expectedType.isNullable() && asStr.equals(nullStr)) {
+        out = null;
+      } else {
+        out = new Utf8(asStr);
+      }
+      break;
+    case TIMESTAMP:
+      out = CharBufferUtils.parseLong(chars);
+      if (null != out) {
+        out = new Timestamp((Long) out);
+      }
+      break;
+    case TIMESPAN:
+      // TODO: This should return a TimeSpan object, which is actually two
+      // fields. We need to work on this... it should not just be a 'long'
+      // representation.
+      out = CharBufferUtils.parseLong(chars);
+      break;
+    case PRECISE:
+      PreciseType preciseType = PreciseType.toPreciseType(expectedType);
+      out = preciseType.parseStringInput(chars.toString());
+      break;
+    case LIST:
+      out = parseList(chars, ListType.toListType(expectedType).getElementType(),
+          nullStr, listDelim);
+      break;
+    default:
+      throw new ColumnParseException("Cannot parse recursive types");
+    }
+
+    return out;
   }
 
 }

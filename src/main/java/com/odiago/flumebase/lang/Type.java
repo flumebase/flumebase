@@ -203,11 +203,9 @@ public class Type {
 
   /**
    * If this is a primitive type, return the TypeName it represents.
+   * Otherwise, return the TypeName representing the type class/constructor.
    */
   public TypeName getPrimitiveTypeName() {
-    if (!isPrimitive()) {
-      return null;
-    }
     return mTypeName;
   }
 
@@ -252,7 +250,7 @@ public class Type {
   }
 
   /** @return true if this is a concrete type that can actually be instantiated
-   * with values (i.e., not a typeclass). */
+   * with values or selected (i.e., not a typeclass). */
   public boolean isConcrete() {
     return isScalar();
   }

@@ -46,6 +46,8 @@ import com.odiago.flumebase.exec.local.MemoryOutputElement;
 
 import com.odiago.flumebase.io.DelimitedEventParser;
 
+import com.odiago.flumebase.lang.ListType;
+import com.odiago.flumebase.lang.NullableType;
 import com.odiago.flumebase.lang.PreciseType;
 import com.odiago.flumebase.lang.Type;
 
@@ -1207,6 +1209,28 @@ public class TestSelect extends RtsqlTestCase {
         Collections.singletonList(new Pair<String, Object>(
         "v", Boolean.FALSE)));
   }
+
+  @Test
+  public void testListCol() throws IOException, InterruptedException {
+    MemStreamBuilder streamBuilder = new MemStreamBuilder("s");
+
+    streamBuilder.addField(new TypedField("a",
+        new NullableType(new ListType(Type.getPrimitive(Type.TypeName.INT)))));
+    streamBuilder.addField(new TypedField("b", Type.getNullable(Type.TypeName.INT)));
+    Event e = new EventImpl("1|2|3,4".getBytes());
+    streamBuilder.addEvent(e);
+    StreamSymbol stream = streamBuilder.build();
+
+    List<Pair<String, Object>> checks = new ArrayList<Pair<String, Object>>();
+    List<Object> innerList = new ArrayList<Object>();
+    innerList.add(Integer.valueOf(1));
+    innerList.add(Integer.valueOf(2));
+    innerList.add(Integer.valueOf(3));
+    checks.add(new Pair<String, Object>("a", innerList));
+    checks.add(new Pair<String, Object>("b", Integer.valueOf(4)));
+    runFreeSelectTest(stream, "SELECT a, b FROM s", checks);
+  }
+
 
 
   // TODO: Write the following tests:

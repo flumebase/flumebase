@@ -9,7 +9,7 @@ most important new features:
     -- dependencies: LIST<T>, MAP<KT,VT>
   -- multi-threading, distribution, scalability
 
-  -- documentation debt: lists and list functions.
+  -- documentation debt: lists and list functions. (list.delim param for eventfmt)
 
 Types:
 
@@ -23,9 +23,6 @@ Types:
        exists(fn<t> f, list<t> lst) -> true if f returns true for some element of lst
        foldl(fn<x, t> f, x initial, list<t> lst) -> folds f over elements of lst, using
           initial as the first accumulator value.
-
-  -- All list constructions need to use Collections.immutableList() to protect them.
-  -- Need to read delimited lists from UTF-8 formats.
 
   -- BINARY type should be able to specify encoding when converting to/from STRING.
 

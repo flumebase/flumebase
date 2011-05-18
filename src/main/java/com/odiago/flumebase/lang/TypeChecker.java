@@ -582,10 +582,10 @@ public class TypeChecker extends Visitor {
     }
 
     Type fieldType = fieldSym.getType();
-    if (!fieldType.isPrimitive()) {
-      // This name refers to a stream or other complex object. We can't
+    if (!fieldType.isConcrete()) {
+      // This name refers to a stream or other ephemeral type. We can't
       // select that.
-      throw new TypeCheckException("Cannot select non-primitive entity \""
+      throw new TypeCheckException("Cannot select non-concrete entity \""
           + fieldName + "\"");
     }
 

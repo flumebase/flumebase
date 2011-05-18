@@ -54,7 +54,7 @@ public class to_list extends ScalarFunc {
     for (Object arg : args) {
       out.add(arg);
     }
-    return out;
+    return Collections.unmodifiableList(out);
   }
 
   @Override

@@ -98,10 +98,7 @@ public class NullableType extends Type {
    * @return the TypeName of the non-null type being wrapped.
    */
   public TypeName getPrimitiveTypeName() {
-    if (!mType.isPrimitive()) {
-      return null;
-    }
-    return mType.getTypeName();
+    return mType.getPrimitiveTypeName();
   }
 
   @Override

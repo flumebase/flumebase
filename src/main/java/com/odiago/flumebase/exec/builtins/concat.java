@@ -58,7 +58,7 @@ public class concat extends ScalarFunc {
       out.addAll(in);
     }
 
-    return out;
+    return Collections.unmodifiableList(out);
   }
 
   @Override
