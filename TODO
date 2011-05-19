@@ -59,11 +59,6 @@ Remote environment stuff:
   -- Icing: Operations like \w <streamName> should call a method that resolves a name to
      a flowId, and then calls watch() on the flowId.
 
-RPC Testing:
-  ... test what happens with multiple clients listening to the same flow
-  and what happens when one ^C's, etc.
-  
-
 Joins:
   I don't know that the various calls to streamSymbol.getName() are actually
   the correct name here -- I think we want the user's alias to get its way
