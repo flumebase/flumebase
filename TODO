@@ -157,6 +157,8 @@ Features:
     we can't practically use avro data in files, because we parse the file itself as
     if it is \n-terminated text records.
 
+  - Replace jline with libjcsi or a Java readline wrapper
+
 Optimizations:
 
   - ProjectionNode instances with identical input and output schemata should be removed.
