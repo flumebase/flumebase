@@ -8,8 +8,7 @@ most important new features:
   -- JSON event input format
     -- dependencies: LIST<T>, MAP<KT,VT>
   -- multi-threading, distribution, scalability
-
-  -- documentation debt: lists and list functions. (list.delim param for eventfmt)
+  -- udf api
 
 Types:
 
@@ -136,6 +135,8 @@ Bugs:
   - Quitting is very slow due to the Flume shutdown. Can we improve this?
     ... it also emits a scary looking error message, that we should suppress for
     hygeine's sake.
+
+  - Windowed JOIN may cause server crash under undefined conditions.
 
 Features:
 

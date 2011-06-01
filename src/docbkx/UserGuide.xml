@@ -594,12 +594,13 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
         <section>
           <title>The <literal>delimited</literal> event format</title>
           <para>
-            The <literal>delimited</literal> event format allows FlumeBase to
-            interpret events consisting of UTF-8 encoded text. Individual fields
-            are expected to be separated by commas. All values are expected to
-            be converted to text. <type>BINARY</type> columns are created as
-            the bytes holding a UTF-8 encoded string (which was terminated by
-            the field delimiter).
+            The (default) <literal>delimited</literal> event format
+            allows FlumeBase to interpret events consisting of UTF-8
+            encoded text. Individual fields are expected to be
+            separated by commas. All values are expected to be
+            converted to text. <type>BINARY</type> columns are created
+            as the bytes holding a UTF-8 encoded string (which was
+            terminated by the field delimiter).
           </para>
           <para>
             The delimiter character is controlled by the
@@ -618,6 +619,17 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
             sequence <literal>\N</literal>.  This sequence can be overridden by
             any other string with the <constant>null.sequence</constant>
             property.
+          </para>
+          <para>
+            Columns which are lists of other values (that is, columns
+            with type <type>LIST&lt;t&gt;</type> where
+            <constant>t</constant> is some other type, such as
+            <type>INT</type>) contain an additional <emphasis>list
+            delimiter</emphasis>, which separates the values within
+            each list. The list delimiter is controlled by the
+            <constant>list.delim</constant> property. The default
+            value for <constant>list.delim</constant> is the pipe
+            (<constant>"|"</constant>) character.
           </para>
         </section>
         <section>
@@ -647,8 +659,8 @@ rtsql&gt; <userinput>CREATE STREAM foo (x STRING) FROM FILE 'file:///home/aaron/
             <constant>regex</constant> property is required. This should define
             as many binding groups (with <literal>(parentheses)</literal>) as
             columns are specified in the stream definition. The
-            <constant>null.sequence</constant> property applies to this format
-            as well.
+            <constant>null.sequence</constant> and <constant>list.delim</constant>
+            properties apply to this format as well.
           </para>
         </section>
         <section id="create.as.select">
@@ -746,6 +758,10 @@ sum ((var('a, constraints={TYPECLASS_NUMERIC})) -> var('a, constraints={TYPECLAS
           is used for the input, will also be used as the output type. For
           more information on polymorphic types, see <xref
           linkend="polymorphic" />.
+        </para>
+        <para>
+          A complete list of functions included with rtsql is provided in
+          <xref linkend="ref.fn" />.
         </para>
       </section>
       <section>
@@ -947,7 +963,7 @@ rtsql&gt; <userinput>SELECT v.x FROM verylongname v;</userinput>
           A <literal>stream_reference</literal> may also be a nested
           <literal>SELECT</literal> statement.
           <screen>
-rtsql&gt; <userinput>SELECT length(x) FROM (SELECT x FROM foo) AS f;</userinput>
+rtsql&gt; <userinput>SELECT LENGTH(x) FROM (SELECT x FROM foo) AS f;</userinput>
           </screen>
         </para>
 
@@ -974,7 +990,7 @@ where_clause ::= WHERE bool_expr
           boolean predicate.
 
           <screen>
-rtsql&gt; <userinput>SELECT x FROM foo WHERE length(x) > 5;</userinput>
+rtsql&gt; <userinput>SELECT x FROM foo WHERE LENGTH(x) > 5;</userinput>
           </screen>
         </para>
 
@@ -1159,36 +1175,11 @@ rtsql&gt; <userinput>SELECT COUNT(*) as hits FROM httpd_log</userinput>
         </para>
 
         <para>
-          The following aggregate functions are available:
-        </para>
-
-        <table><caption>Aggregate functions in rtsql</caption>
-          <thead>
-            <tr><td>Function name</td><td>Description</td></tr>
-          </thead>
-          <tbody>
-            <tr><td><literal><function>COUNT(*)</function></literal></td>
-              <td>Counts the number of events which match the group and time interval</td></tr>
-            <tr><td><literal><function>COUNT(expr)</function></literal></td>
-              <td>Counts the number of events where expr is non-null</td></tr>
-            <tr><td><literal><function>SUM(expr)</function></literal></td>
-              <td>Returns the sum of the values in expr</td></tr>
-            <tr><td><literal><function>MAX(expr)</function></literal></td>
-              <td>Returns the maximum value for expr</td></tr>
-            <tr><td><literal><function>MIN(expr)</function></literal></td>
-              <td>Returns the minimum value for expr</td></tr>
-            <tr><td><literal><function>AVG(expr)</function></literal></td>
-              <td>Returns the arithmetic mean value for expr</td></tr>
-          </tbody>
-        </table>
-
-        <para>
-          rtsql does not support the
-          <literal><function>COUNT</function>(DISTINCT
-          <userinput>col</userinput>)</literal> syntax.
+          The set of aggregate functions available in rtsql are described
+          in <xref linkend="ref.fn.aggregate" />.
         </para>
         <para>
-          rtsql also does not support full <productname>SQL:2003</productname>
+          rtsql does not support full <productname>SQL:2003</productname>
           windowed operators; a single range for the entire select statement is
           applied by the <literal>over_clause</literal> to all aggregate operators.
           This may change in a future version of FlumeBase.
@@ -1262,36 +1253,21 @@ rtsql&gt; <userinput>SELECT * FROM foo WHERE #interesting IS NOT NULL;</userinpu
         </para>
         <para>
           Event attributes are defined as a STRING key and a BINARY value. To
-          use these values as strings, use the <literal>bin2str()</literal>
+          use these values as strings, use the <literal>BIN2STR()</literal>
           function:
           <screen>
-rtsql&gt; <userinput>SELECT * FROM foo WHERE bin2str(#x) = 'abc';</userinput>
+rtsql&gt; <userinput>SELECT * FROM foo WHERE BIN2STR(#x) = 'abc';</userinput>
           </screen>
         </para>
         <para>
-          A set of functions allow you to access the host, priority, and timestamp
-          properties of each event:
+          A set of functions allowing you to access the host, priority, and timestamp
+          properties of each event are described in <xref
+          linkend="ref.fn.eventprops" />.
         </para>
-        <table><caption>Event property accessor functions</caption>
-          <thead>
-            <tr><td>function</td><td>accesses</td><td>type</td></tr>
-          </thead>
-          <tbody>
-            <tr><td><literal>event_timestamp()</literal></td><td>Event
-              <literal>timestamp</literal> and <literal>nanos</literal>
-              properties</td><td>TIMESTAMP NOT NULL</td></tr>
-            <tr><td><literal>host()</literal></td><td>Event origin
-              host</td><td>STRING NOT NULL</td></tr>
-            <tr><td><literal>priority()</literal></td><td>Event priority label</td>
-              <td>STRING NOT NULL</td></tr>
-            <tr><td><literal>priority_level()</literal></td><td>Event priority as an integer</td>
-              <td>INT NOT NULL</td></tr>
-          </tbody>
-        </table>
         <para>
           For example, to select events only at the ERROR priority level:
           <screen>
-rtsql&gt; <userinput>SELECT * FROM foo WHERE priority() = 'ERROR';</userinput>
+rtsql&gt; <userinput>SELECT * FROM foo WHERE PRIORITY() = 'ERROR';</userinput>
           </screen>
         </para>
         <para>
@@ -1299,7 +1275,7 @@ rtsql&gt; <userinput>SELECT * FROM foo WHERE priority() = 'ERROR';</userinput>
           lower ordinal values (<constant>'FATAL'</constant> is <constant>0</constant>).
           To select events at the <constant>WARN</constant> level and more urgent:
           <screen>
-rtsql&gt; <userinput>SELECT * FROM foo WHERE priority_level() &lt;= 2;</userinput>
+rtsql&gt; <userinput>SELECT * FROM foo WHERE PRIORITY_LEVEL() &lt;= 2;</userinput>
           </screen>
         </para>
       </section>
@@ -1343,6 +1319,8 @@ rtsql&gt; <userinput>SELECT * FROM foo WHERE priority_level() &lt;= 2;</userinpu
             A UTF-8-encoded string</td></tr>
           <tr><td>TIMESTAMP</td><td>(internal)</td><td>
             (See <xref linkend="types.timestamp" />)</td></tr>
+          <tr><td>LIST&lt;t&gt;</td><td>List</td><td>
+            (See <xref linkend="types.list" />)</td></tr>
         </tbody>
       </table>
       <para>
@@ -1421,13 +1399,17 @@ rtsql&gt; <userinput>SELECT * FROM foo WHERE priority_level() &lt;= 2;</userinpu
         </para>
         <para>
           If coerced to the <type>STRING</type> type (either implicitly, or
-          explicitly through the <literal>bin2str()</literal> function,
+          explicitly through the <literal>BIN2STR()</literal> function,
           the UTF-8 character set will be applied to the bytes.
         </para>
         <para>
-          The <literal>str2bin()</literal> function will do the reverse,
+          The <literal>STR2BIN()</literal> function will do the reverse,
           returning a <type>BINARY</type> object that explicitly represents
           the UTF-8 bytes of its input string argument.
+        </para>
+        <para>
+          Descriptions of functions that manipulate binary data are
+          available in <xref linkend="ref.fn.binary" />.
         </para>
       </section>
       
@@ -1451,6 +1433,46 @@ rtsql&gt; <userinput>SELECT * FROM foo WHERE priority_level() &lt;= 2;</userinpu
           specified by <constant>timestamp.col</constant> (see
           <xref linkend="stream.timestamp.col" />) will associate only the
           milliseconds part of a timestamp with the event itself.
+        </para>
+      </section>
+
+      <section id="types.list">
+        <title>The LIST type</title>
+        <para>
+          The <type>LIST</type> type allows you to represent a list of
+          values as the value for a single column. The values in a list may
+          be interacted with as a group, or individual values may be
+          extracted from the list.
+        </para>
+        <para>
+          Values in a list must all have the same type. This type is
+          specified with the syntax: <literal>LIST&lt;t&gt;</literal>,
+          where <constant>t</constant> is the specification of another
+          type. For example: <userinput>LIST&lt;INT&gt;</userinput>, or
+          <userinput>LIST&lt;STRING NOT NULL&gt;</userinput>. You may not
+          specify <userinput>LIST</userinput> without specifying the types
+          of the members of the list.
+        </para>
+        <para>
+          Any type may appear in the parameter to the
+          <literal>LIST</literal> type constructor. It is legal to specify,
+          for example, <userinput>LIST&lt;LIST&lt;INT NOT
+          NULL&gt;&gt;</userinput>. Note that <literal>LIST&lt;INT&gt; NOT
+          NULL</literal> is different from <literal>LIST&lt;INT NOT
+          NULL&gt;</literal> and <literal>LIST&lt;INT NOT NULL&gt; NOT
+          NULL</literal> -- though all three of these are legal.
+        </para>
+        <para>
+          Lists can be parsed from events with the
+          <literal>delimited</literal> event format; their elements are
+          separated by pipe characters ("<literal>|</literal>"). You can
+          override this by specifying the
+          <constant>list.delim</constant> property of the
+          event format.
+        </para>
+        <para>
+          Several functions exist to construct and manipulate lists;
+          a reference is provided in <xref linkend="ref.fn.lists" />.
         </para>
       </section>
 
@@ -1485,13 +1507,18 @@ rtsql&gt; <userinput>SELECT * FROM foo WHERE priority_level() &lt;= 2;</userinpu
           DOUBLE promotes to PRECISE(53).
         </para>
         <para>
-          All types may be promoted to <type>STRING</type>. The result
+          All scalar types may be promoted to <type>STRING</type>. The result
           of coercing a value to <type>STRING</type> is the string
           representation of the value, as defined in the previous subsections.
         </para>
         <para>
           Any type <type><emphasis>X</emphasis> NOT NULL</type> may be promoted
           to its nullable counterpart.
+        </para>
+        <para>
+          A type <type>LIST&lt;<emphasis>X</emphasis>&gt;</type> may promote to
+          <type>LIST&lt;<emphasis>Y</emphasis>&gt;</type> if <emphasis>X</emphasis>
+          promotes to <emphasis>Y</emphasis>.
         </para>
       </section>
       <section id="polymorphic">
@@ -1584,6 +1611,37 @@ sum ((var('a, constraints={TYPECLASS_NUMERIC})) -> var('a, constraints={TYPECLAS
             not considered.
           </para>
         </table>
+      </section>
+      <section>
+        <title>Variable-length function argument lists</title>
+        <para>
+          Some functions allow a variable-length argument list. They may take
+          a number of required arguments, and may then have a list of arguments
+          of arbitrary length. The <literal>to_list()</literal> function, for
+          example, will construct a list out of all its arguments. The following
+          selects an empty list:
+          <screen>
+rtsql&gt; <userinput>select to_list() from x;</userinput>
+timestamp      to_list()
+1306906081936  []
+          </screen>
+        </para>
+        <para>
+          Whereas the following will construct a list of 3 elements:
+          <screen>
+rtsql&gt; <userinput>select to_list(42,211,312) from x;</userinput>
+timestamp        to_list(42, 211, 312)
+1306906138072    [42, 211, 312]
+          </screen>
+        </para>
+        <para>
+          Variable-length argument arrays are denoted by an ellipse (<literal>...</literal>)
+          in the type signature of the function. For example:
+          <screen>
+rtsql&gt; <userinput>describe to_list;</userinput>
+to_list ((var('a, constraints={TYPECLASS_ANY})...) -> LIST&lt;var('a, constraints={TYPECLASS_ANY})&gt; NOT NULL)
+          </screen>
+        </para>
       </section>
     </section>
   </section>
@@ -1900,6 +1958,168 @@ Session control commands:
 ...
         </screen>
       </para>
+    </section>
+  </section>
+  <section id="ref.fn">
+    <title>Function Reference</title>
+    <para>
+      This section describes all available functions to apply to values and
+      events. A list of functions and their type signatures can also be
+      accessed within the FlumeBase shell by typing <userinput>SHOW
+      FUNCTIONS;</userinput>.
+    </para>
+    <section id="ref.fn.eventprops">
+      <title>Event property accessor functions</title>
+      <table><caption>Event property accessor functions</caption>
+        <thead>
+          <tr><td>function</td><td>accesses</td><td>type</td></tr>
+        </thead>
+        <tbody>
+          <tr><td><literal>EVENT_TIMESTAMP()</literal></td><td>Event
+            <literal>timestamp</literal> and <literal>nanos</literal>
+            properties</td><td>TIMESTAMP NOT NULL</td></tr>
+          <tr><td><literal>HOST()</literal></td><td>Event origin
+            host</td><td>STRING NOT NULL</td></tr>
+          <tr><td><literal>PRIORITY()</literal></td><td>Event priority label</td>
+            <td>STRING NOT NULL</td></tr>
+          <tr><td><literal>PRIORITY_LEVEL()</literal></td><td>Event priority as an integer</td>
+            <td>INT NOT NULL</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section id="ref.fn.aggregate">
+      <title>Aggregate functions</title>
+      <para>
+        The functions in this section all operate over a window of data
+        and return aggregate values.
+      </para>
+      <table><caption>Aggregate functions in rtsql</caption>
+        <thead>
+          <tr><td>Function name</td><td>Description</td></tr>
+        </thead>
+        <tbody>
+          <tr><td><literal><function>COUNT(*)</function></literal></td>
+            <td>Counts the number of events which match the group and time interval</td></tr>
+          <tr><td><literal><function>COUNT(expr)</function></literal></td>
+            <td>Counts the number of events where expr is non-null</td></tr>
+          <tr><td><literal><function>SUM(expr)</function></literal></td>
+            <td>Returns the sum of the values in expr</td></tr>
+          <tr><td><literal><function>MAX(expr)</function></literal></td>
+            <td>Returns the maximum value for expr</td></tr>
+          <tr><td><literal><function>MIN(expr)</function></literal></td>
+            <td>Returns the minimum value for expr</td></tr>
+          <tr><td><literal><function>AVG(expr)</function></literal></td>
+            <td>Returns the arithmetic mean value for expr</td></tr>
+        </tbody>
+      </table>
+
+      <para>
+        rtsql does not support the
+        <literal><function>COUNT</function>(DISTINCT
+        <userinput>col</userinput>)</literal> syntax.
+      </para>
+    </section>
+    <section id="ref.fn.lists">
+      <title>Functions that operate on lists</title>
+      <para>
+        The following functions construct and manipulate data of type
+        <literal>LIST&lt;t&gt;</literal>.
+      </para>
+      <table>
+        <caption>List functions in rtsql</caption>
+        <thead>
+          <tr><td>Function name</td><td>Description</td></tr>
+        </thead>
+        <tbody>
+          <tr><td><literal><function>CONCAT(LIST&lt;'a&gt;...)</function></literal></td>
+            <td>Concatenates a set of lists into a single list where all
+            items have the same type.</td></tr>
+          <tr><td><literal><function>CONTAINS(LIST&lt;'a&gt; lst, 'a val)</function></literal>
+            </td>
+            <td>Returns <literal>true</literal> if <constant>lst</constant>
+            contains <constant>val</constant>.</td></tr>
+          <tr><td><literal><function>INDEX(LIST&lt;'a&gt; lst, INT idx)</function></literal>
+            </td>
+            <td>Returns the <literal>idx</literal>'th value in <literal>lst</literal>.
+            </td></tr>
+          <tr><td><literal><function>SIZE(LIST&lt;'a&gt; lst)</function></literal>
+            </td>
+            <td>Returns the number of items in <literal>lst</literal>.
+            </td></tr>
+          <tr><td><literal><function>TO_LIST(&lt;'a&gt; item...)</function></literal>
+            </td>
+            <td>Returns a <literal>LIST&lt;'a&gt;</literal> containing the
+            items specified as arguments.
+            </td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section id="ref.fn.binary">
+      <title>Functions to work with binary data</title>
+      <table>
+        <caption>Binary functions in rtsql</caption>
+        <thead>
+          <tr><td>Function name</td><td>Description</td></tr>
+        </thead>
+        <tbody>
+          <tr><td><literal><function>BIN2STR(BINARY b)</function></literal></td>
+            <td>Returns a <literal>STRING</literal> containing the string
+            representation of
+            <literal>b</literal>. Assumes <literal>b</literal> is UTF-8
+            encoded.</td></tr>
+          <tr><td><literal><function>STR2BIN(STRING s)</function></literal></td>
+            <td>Returns a <literal>BINARY</literal> representation of the
+            UTF-8 encoding of <literal>s</literal>.</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section id="ref.fn.string">
+      <title>Functions that operate on strings</title>
+      <table>
+        <caption>String functions in rtsql</caption>
+        <thead>
+          <tr><td>Function name</td><td>Description</td></tr>
+        </thead>
+        <tbody>
+          <tr><td><literal><function>LENGTH(STRING s)</function></literal></td>
+            <td>Returns the number of characters in <literal>s</literal>.
+            </td></tr>
+          <tr><td><literal><function>STR2BIN(STRING s)</function></literal></td>
+            <td>Returns a <literal>BINARY</literal> representation of the
+            UTF-8 encoding of <literal>s</literal>.</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section id="ref.fn.timestamp">
+      <title>Functions that operate on timestamps</title>
+      <table>
+        <caption>Timestamp functions in rtsql</caption>
+        <thead>
+          <tr><td>Function name</td><td>Description</td></tr>
+        </thead>
+        <tbody>
+          <tr><td><literal><function>CURRENT_TIMESTAMP()</function></literal></td>
+            <td>Returns the current timestamp on the rtsql
+            server.</td></tr>
+          <tr><td><literal><function>EVENT_TIMESTAMP()</function></literal></td>
+            <td>Returns the timestamp associated with the current event
+            being processed.</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section id="ref.fn.numeric">
+      <title>Functions that operate on numbers</title>
+      <table>
+        <caption>Numeric functions in rtsql</caption>
+        <thead>
+          <tr><td>Function name</td><td>Description</td></tr>
+        </thead>
+        <tbody>
+          <tr><td><literal><function>SQUARE(expr)</function></literal></td>
+            <td>Returns the square of the numeric value that
+            <emphasis>expr</emphasis> evaluates to.</td></tr>
+        </tbody>
+      </table>
     </section>
   </section>
 </article>

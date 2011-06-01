@@ -72,7 +72,9 @@ public class FnType extends Type {
     StringUtils.formatList(sb, mArgTypes);
 
     if (mVarArgTypes.size() > 0 ) {
-      sb.append(", ");
+      if (mArgTypes.size() > 0) {
+        sb.append(", ");
+      }
       StringUtils.formatList(sb, mVarArgTypes);
       sb.append("...");
     }
