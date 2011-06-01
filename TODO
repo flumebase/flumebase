@@ -140,6 +140,7 @@ Bugs:
 
 Features:
 
+  - Need ability to parse strings into timestamps.
   - Windowing should operate on 'previous n rows' too.
     Associate a rowid stamp with every event on input.
     Start each stream at 0 for each query, join operates like a "zipper"

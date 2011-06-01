@@ -5,19 +5,19 @@
 
 v0.2.0  (6/2011);
 
-  More data types:
-  * Adds LIST<t> complex data type and funtions to manipulate lists.
-  * Adds PRECISE(n) data type for precise numeric operations.
-  * Adds BINARY type for byte-oriented data.
+  Expanded query language:
+  * Adds HAVING clauses to SELECT statements.
 
   Improved data access:
   * Adds #attr syntax to access attributes of events
   * Adds functions to access event properties such as host() and priority().
-  * Adds EVENT FORMAT 'regex'; events can now be parsed according to a
+  * Adds EVENT FORMAT 'regex'; event bodies can now be parsed according to a
     regular expression.
 
-  Expanded query language: 
-  * Adds HAVING clauses to SELECT statements.
+  More data types:
+  * Adds LIST<t> complex data type and functions to manipulate lists.
+  * Adds PRECISE(n) data type for precise numeric operations.
+  * Adds BINARY type for byte-oriented data.
 
   Better configuration and server management:
   * Now supports multiple client instances on the same machine.
@@ -30,6 +30,8 @@ v0.2.0  (6/2011);
   Misc:
   * Adds support for varargs functions.
   * Improved some error messages associated with CREATE STREAM.
+  * "bin/flumebase classpath" gives the runtime classpath for FlumeBase.
+  * Add '-debug' flag to provide improved logging under error conditions.
   * Several under-the-hood improvements to data handling, type resolution,
     improved test coverage, compilation checks.
 
