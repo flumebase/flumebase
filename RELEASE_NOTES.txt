@@ -1,0 +1,40 @@
+
+
+     FlumeBase Release notes
+
+
+v0.2.0  (6/2011);
+
+  More data types:
+  * Adds LIST<t> complex data type and funtions to manipulate lists.
+  * Adds PRECISE(n) data type for precise numeric operations.
+  * Adds BINARY type for byte-oriented data.
+
+  Improved data access:
+  * Adds #attr syntax to access attributes of events
+  * Adds functions to access event properties such as host() and priority().
+  * Adds EVENT FORMAT 'regex'; events can now be parsed according to a
+    regular expression.
+
+  Expanded query language: 
+  * Adds HAVING clauses to SELECT statements.
+
+  Better configuration and server management:
+  * Now supports multiple client instances on the same machine.
+  * FlumeBase server can now be started in the background via scripts.
+    ('bin/flumebase start' and 'bin/flumebase stop')
+  * Environment configuration is now performed in etc/flumebase-env.sh.
+  * FlumeBase server now correctly disconnects from Flume streams when
+    shut down via ^C, 'kill', or other unexpected means.
+
+  Misc:
+  * Adds support for varargs functions.
+  * Improved some error messages associated with CREATE STREAM.
+  * Several under-the-hood improvements to data handling, type resolution,
+    improved test coverage, compilation checks.
+
+
+v0.1.0  (4/2011):
+
+  * Initial release.
+
