@@ -2,6 +2,17 @@
                       Welcome to FlumeBase!
 
 
+    *************************************************************
+    *                         WARNING                           *
+    *                                                           *
+    * This software is no longer maintained. The code is        *
+    * left available in the hopes that someone finds this       *
+    * useful, but no support or future maintenance is planned   *
+    * by the original author. You are free to take this code    *
+    * and use it as you wish, but no updates will be provided.  *
+    *                                                           *
+    *************************************************************
+
 This system allows continuous and ad-hoc analysis of streaming event
 data delivered by Flume.
 
@@ -28,10 +39,6 @@ See the COMPILING.txt file for information on how to compile FlumeBase
 from source.  FlumeBase is licensed to you under the terms of the
 Apache Software License version 2.0. See the LICENSE.txt and
 NOTICE.txt files for more specific information about this license.
-
-FlumeBase's home is at http://www.flumebase.org. Documentation,
-releases, announcements, etc. will be posted there. Check out
-the FlumeBase Developer Blog at http://blog.flumebase.org, too.
 
 The development home is at http://github.com/flumebase/flumebase.
 See this site for the most recent source code, wiki, and other

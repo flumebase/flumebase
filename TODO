@@ -1,4 +1,8 @@
 
+Regression:
+
+   Code introduced during FindBugs refactoring makes \f hang the console.
+
 most important new features:
 
   -- range intervals over rows, not just time
