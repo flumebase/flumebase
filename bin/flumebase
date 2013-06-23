@@ -147,6 +147,13 @@ function add_to_classpath() {
     fi
   done
 }
+# name of script
+BINPATH=`dirname $0`
+
+if [ -f "${BINPATH}/flumebase-env.sh" ]; then
+    source "$BINPATH/flumebase-env.sh"
+fi
+
 
 function create_missing_dir() {
   dirname=$1

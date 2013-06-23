@@ -13,3 +13,6 @@
 *~
 .idea
 *.iml
+*.ipr
+*.iws
+/bin/flumebase-env.sh
